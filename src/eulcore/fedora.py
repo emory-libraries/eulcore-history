@@ -1,11 +1,14 @@
 import RDF
 from base64 import standard_b64encode as b64encode
+from eulcore import xmlmap
 from soaplib.client import make_service_client
 from soaplib.serializers import primitive as soap_types
 from soaplib.service import soapmethod
 from soaplib.wsgi_soap import SimpleWSGISoapApp
 from urllib import urlencode
 from urllib2 import urlopen, Request
+
+# a repository object, basically a handy facade for easy api access
 
 class Repository(object):
     URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
@@ -19,6 +22,10 @@ class Repository(object):
     def risearch(self):
         return ResourceIndex(self.fedora_root, self.username, self.password)
 
+    @property
+    def rest_api(self):
+        return REST_API(self.fedora_root, self.username, self.password)
+
     def get_objects_with_cmodel(self, cmodel_uri, type=None):
         uris = self.risearch.get_subjects(self.URI_HAS_MODEL, cmodel_uri)
         return [ self.get_object(uri, type) for uri in uris ]
@@ -30,6 +37,55 @@ class Repository(object):
             pid = pid[len('info:fedora/'):]
         return type(pid, self.fedora_root, self.username, self.password)
 
+    def find_objects(self, type=None, **kwargs):
+        type = type or DigitalObject
+
+        # FIXME: query production here is frankly sketchy
+        query = ' '.join([ '%s~%s' % (k, v) for k, v in kwargs.iteritems() ])
+        read = parse_xml_obj(add_auth(read_uri, self.username, self.password),
+                             SearchResults)
+
+        chunk = self.rest_api.findObjects(query, read=read)
+        while True:
+            for result in chunk.results:
+                yield type(result.pid, self.fedora_root, self.username, self.password)
+
+            if chunk.session_token:
+                chunk = self.rest_api.findObjects(query, session_token=chunk.session_token, read=read)
+            else:
+                break
+
+# xml objects to wrap around xml returns from fedora
+
+class ObjectDatastream(xmlmap.XmlObject):
+    dsid = xmlmap.XPathString('@dsid')
+    label = xmlmap.XPathString('@label')
+    mimeType = xmlmap.XPathString('@mimeType')
+
+class ObjectDatastreams(xmlmap.XmlObject):
+    pid = xmlmap.XPathString('@pid')
+    datastreams = xmlmap.XPathNodeList('datastream', ObjectDatastream)
+
+class SearchResult(xmlmap.XmlObject):
+    def __init__(self, dom_node, context=None):
+        if context is None:
+            context = xmlmap.Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
+        xmlmap.XmlObject.__init__(self, dom_node, context)
+
+    pid = xmlmap.XPathString('res:pid')
+
+class SearchResults(xmlmap.XmlObject):
+    def __init__(self, dom_node, context=None):
+        if context is None:
+            context = xmlmap.Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
+        xmlmap.XmlObject.__init__(self, dom_node, context)
+
+    session_token = xmlmap.XPathString('res:listSession/res:token')
+    cursor = xmlmap.XPathInteger('res:listSession/res:cursor')
+    expiration_date = xmlmap.XPathDate('res:listSession/res:expirationDate')
+    results = xmlmap.XPathNodeList('res:resultList/res:objectFields', SearchResult)
+
+# readers used internally to affect how we interpret network data from fedora
 
 def read_uri(uri):
     return urlopen(uri).read()
@@ -41,19 +97,27 @@ def auth_headers(username, password):
     else:
         return {}
 
-def make_reader_with_auth(username, password):
+def add_auth(reader, username, password):
     def read_uri_with_auth(uri):
         request = Request(uri, headers=auth_headers(username, password))
-        return urlopen(request).read()
+        return reader(request)
     return read_uri_with_auth
 
-def make_rdf_reader_with_auth(username, password):
-    def read_rdf_uri_with_auth(uri):
+def parse_rdf(reader):
+    def read_rdf_uri(uri):
         parser = RDF.Parser('rdfxml')
-        request = Request(uri, headers=auth_headers(username, password))
-        data = urlopen(request).read()
+        data = reader(uri)
         return parser.parse_string_as_stream(data, uri)
-    return read_rdf_uri_with_auth
+    return read_rdf_uri
+
+def parse_xml_obj(reader, xml_class):
+    def read_xml_uri(uri):
+        data = reader(uri)
+        doc = xmlmap.parseString(data, uri)
+        return xml_class(doc.documentElement)
+    return read_xml_uri
+
+# a single digital object in a repo; basically another facade for api access
 
 class DigitalObject(object):
     def __init__(self, pid, fedora_root, username=None, password=None):
@@ -67,10 +131,6 @@ class DigitalObject(object):
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, self.pid)
-
-    def http_auth(self):
-        if self.username and self.password:
-            return 'Basic ' + b64encode('%s:%s' % (self.username, self.password))
 
     @property
     def api_a_lite(self):
@@ -87,11 +147,14 @@ class DigitalObject(object):
     def get_datastream(self, ds_name, read=None):
         return self.api_a_lite.getDatastreamDissemination(self.pid, ds_name, read)
 
-    def get_datastreams_as_xml(self):
-        return self.rest_api.listDatastreams(self.pid)
+    def get_datastreams(self):
+        read = parse_xml_obj(add_auth(read_uri, self.username, self.password),
+                             ObjectDatastreams)
+        dsobj = self.rest_api.listDatastreams(self.pid, read)
+        return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
 
     def get_relationships(self):
-        read = make_rdf_reader_with_auth(self.username, self.password)
+        read = parse_rdf(add_auth(read_uri, self.username, self.password))
         return self.get_datastream('RELS-EXT', read)
 
     def add_relationship(self, rel_uri, object):
@@ -106,11 +169,12 @@ class DigitalObject(object):
         extra_headers = auth_headers(self.username, self.password)
         return self.api_m.addRelationship(self.pid, rel_uri, object, obj_is_literal, **extra_headers)
 
+# fedora apis
 
 class HTTP_API_Base(object):
     def __init__(self, root, username=None, password=None):
         self.fedora_root = root
-        self.read_uri = make_reader_with_auth(username, password)
+        self.read_uri = add_auth(read_uri, username, password)
 
     def read_relative_uri(self, relative_uri, read=None):
         read = read or self.read_uri
@@ -123,8 +187,19 @@ class API_A_LITE(HTTP_API_Base):
 
 
 class REST_API(HTTP_API_Base):
-    def listDatastreams(self, pid):
-        return self.read_relative_uri('objects/%s/datastreams.xml' % (pid,))
+    def findObjects(self, query, pid=True, session_token=None, read=None):
+        http_args = {
+            'query': query,
+            'resultFormat': 'xml',
+        }
+        if pid:
+            http_args['pid'] = 'true'
+        if session_token:
+            http_args['sessionToken'] = session_token
+        return self.read_relative_uri('objects?' + urlencode(http_args), read)
+        
+    def listDatastreams(self, pid, read=None):
+        return self.read_relative_uri('objects/%s/datastreams.xml' % (pid,), read)
 
 
 class API_M(SimpleWSGISoapApp):
