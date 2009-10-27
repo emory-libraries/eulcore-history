@@ -1,0 +1,20 @@
+eulcore,
+being a collection of reusable Python components produced by Emory
+University Libraries.
+
+Note that there's a related repository called django-eulcore containing
+reusable Django components. It is our intention to migrate that repository
+into a submodule of this one, though there's no specific timeline planned
+for this migration.
+
+
+Dependencies
+============
+ * eulcore.fedora depends on Redland RDF Python bindings for RELS-EXT and
+   RISearch RDF logic. Debian/Ubuntu users can apt-get install
+   python-librdf. Other users can check http://librdf.org/
+ * eulcore.fedora also depends on soaplib. Debian/Ubuntu users can apt-get
+   install python-soaplib. Other users can check
+   http://trac.optio.webfactional.com/
+ * eulcore.xmlmap depends on 4suite-xml. Debian/Ubuntu users can apt-get
+   install python-4suite-xml. Other users can check http://4suite.org/
