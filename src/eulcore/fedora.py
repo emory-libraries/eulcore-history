@@ -1,4 +1,5 @@
 import RDF
+import httplib
 from base64 import standard_b64encode as b64encode
 from eulcore import xmlmap
 from soaplib.client import make_service_client
@@ -7,6 +8,7 @@ from soaplib.service import soapmethod
 from soaplib.wsgi_soap import SimpleWSGISoapApp
 from urllib import urlencode
 from urllib2 import urlopen, Request
+from urlparse import urljoin, urlsplit
 
 # a repository object, basically a handy facade for easy api access
 
@@ -147,6 +149,11 @@ class DigitalObject(object):
     def get_datastream(self, ds_name, read=None):
         return self.api_a_lite.getDatastreamDissemination(self.pid, ds_name, read)
 
+    def get_datastream_as_xml(self, ds_name, xml_type):
+        read = parse_xml_obj(add_auth(read_uri, self.username, self.password),
+                             xml_type)
+        return self.get_datastream(ds_name, read)
+
     def get_datastreams(self):
         read = parse_xml_obj(add_auth(read_uri, self.username, self.password),
                              ObjectDatastreams)
@@ -174,6 +181,8 @@ class DigitalObject(object):
 class HTTP_API_Base(object):
     def __init__(self, root, username=None, password=None):
         self.fedora_root = root
+        self.username = username
+        self.password = password
         self.read_uri = add_auth(read_uri, username, password)
 
     def read_relative_uri(self, relative_uri, read=None):
