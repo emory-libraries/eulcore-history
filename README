@@ -10,9 +10,9 @@ for this migration.
 
 Dependencies
 ============
- * eulcore.fedora depends on Redland RDF Python bindings for RELS-EXT and
+ * eulcore.fedora depends on Python rdflib for RELS-EXT and
    RISearch RDF logic. Debian/Ubuntu users can apt-get install
-   python-librdf. Other users can check http://librdf.org/
+   python-rdflib. Other users can easy_install rdflib
  * eulcore.fedora also depends on soaplib. Debian/Ubuntu users can apt-get
    install python-soaplib. Other users can check
    http://trac.optio.webfactional.com/

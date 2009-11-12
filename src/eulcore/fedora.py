@@ -1,5 +1,6 @@
-import RDF
 import httplib
+import rdflib
+from StringIO import StringIO
 from base64 import standard_b64encode as b64encode
 from eulcore import xmlmap
 from soaplib.client import make_service_client
@@ -107,9 +108,11 @@ def add_auth(reader, username, password):
 
 def parse_rdf(reader):
     def read_rdf_uri(uri):
-        parser = RDF.Parser('rdfxml')
+        graph = rdflib.ConjunctiveGraph()
         data = reader(uri)
-        return parser.parse_string_as_stream(data, uri)
+        # reader returns a string, but graph.parse() wants a file
+        graph.parse(StringIO(reader(uri)))
+        return graph
     return read_rdf_uri
 
 def parse_xml_obj(reader, xml_class):
@@ -242,8 +245,9 @@ class ResourceIndex(object):
         request = Request(uri, headers=auth_headers(self.username, self.password))
         data = urlopen(request).read()
 
-        parser = RDF.NTriplesParser()
-        return parser.parse_string_as_stream(data, uri)
+        graph = rdflib.ConjunctiveGraph()
+        graph.parse(StringIO(data), format='n3')
+        return graph
 
     def spo_search(self, subject=None, predicate=None, object=None):
         spo_query = '%s %s %s' % \
@@ -258,12 +262,12 @@ class ResourceIndex(object):
 
     def get_subjects(self, predicate, object):
         for statement in self.spo_search(predicate=predicate, object=object):
-            yield str(statement.subject.uri)
+            yield str(statement[0])
 
     def get_predicates(self, subject, object):
         for statement in self.spo_search(subject=subject, object=object):
-            yield str(statement.predicate.uri)
+            yield str(statement[1])
 
     def get_objects(self, subject, predicate):
         for statement in self.spo_search(subject=subject, predicate=predicate):
-            yield str(statement.object.uri)
+            yield str(statement[2])
