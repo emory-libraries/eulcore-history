@@ -13,9 +13,9 @@ from urlparse import urljoin, urlsplit
 
 # a repository object, basically a handy facade for easy api access
 
-class Repository(object):
-    URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
+URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
 
+class Repository(object):
     def __init__(self, root, username=None, password=None):
         self.fedora_root = root
         self.username = username
@@ -30,7 +30,7 @@ class Repository(object):
         return REST_API(self.fedora_root, self.username, self.password)
 
     def get_objects_with_cmodel(self, cmodel_uri, type=None):
-        uris = self.risearch.get_subjects(self.URI_HAS_MODEL, cmodel_uri)
+        uris = self.risearch.get_subjects(URI_HAS_MODEL, cmodel_uri)
         return [ self.get_object(uri, type) for uri in uris ]
 
     def get_object(self, pid, type=None):
@@ -138,6 +138,10 @@ class DigitalObject(object):
         return '<%s %s>' % (self.__class__.__name__, self.pid)
 
     @property
+    def uri(self):
+        return 'info:fedora/' + self.pid
+
+    @property
     def api_a_lite(self):
         return API_A_LITE(self.fedora_root, self.username, self.password)
 
@@ -178,6 +182,23 @@ class DigitalObject(object):
 
         extra_headers = auth_headers(self.username, self.password)
         return self.api_m.addRelationship(self.pid, rel_uri, object, obj_is_literal, **extra_headers)
+
+    def has_model(self, model):
+        st = (rdflib.URIRef(self.uri), rdflib.URIRef(URI_HAS_MODEL), rdflib.URIRef(model))
+        return st in self.get_relationships()
+
+
+# make it easy to access a DigitalObject as other types if it has the
+# appropriate cmodel info.
+class ObjectTypeDescriptor(object):
+    def __init__(self, model, objtype):
+        self.model = model
+        self.objtype = objtype
+
+    def __get__(self, obj, objtype):
+        if obj.has_model(self.model):
+            return self.objtype(obj.pid, obj.fedora_root, obj.username, obj.password)
+
 
 # fedora apis
 
