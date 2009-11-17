@@ -39,7 +39,8 @@ class XPathNode(XPathDescriptor):
         return self.node_class(node)
 
     def convert_nodelist(self, nodes):
-        return nodes[0]
+        if nodes:
+            return nodes[0]
 
 
 class XPathNodeList(XPathDescriptor):
@@ -69,8 +70,9 @@ class XPathInteger(XPathDescriptor):
         return int(node.xpath('number()'))
 
     def convert_nodelist(self, nodes):
-        # better hope there's only one
-        return nodes[0]
+        if nodes:
+            # better hope there's only one
+            return nodes[0]
 
 class XPathDate(XPathDescriptor):
     def convert_node(self, node):
@@ -85,5 +87,6 @@ class XPathDate(XPathDescriptor):
         return dt
 
     def convert_nodelist(self, nodes):
-        # better hope there's only one
-        return nodes[0]
+        if nodes:
+            # better hope there's only one
+            return nodes[0]
