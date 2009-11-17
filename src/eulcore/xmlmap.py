@@ -75,10 +75,12 @@ class XPathInteger(XPathDescriptor):
 class XPathDate(XPathDescriptor):
     def convert_node(self, node):
         rep = node.xpath('string()')
-        # ignore Z. technically all our times are tzless; the z is hacked on
-        # to make solr work. still, ew.
-        if rep.endswith('Z'):
+        
+        # FIXME: do real parsing here
+        if rep.endswith('Z'): # strip Z
             rep = rep[:-1]
+        if rep[-6] in '+-': # strip tz
+            rep = rep[:-6]
         dt = datetime.strptime(rep, '%Y-%m-%dT%H:%M:%S')
         return dt
 
