@@ -196,9 +196,11 @@ class ObjectTypeDescriptor(object):
         self.objtype = objtype
 
     def __get__(self, obj, objtype):
-        if obj.has_model(self.model):
-            return self.objtype(obj.pid, obj.fedora_root, obj.username, obj.password)
-
+        try:
+            if obj.has_model(self.model):
+                return self.objtype(obj.pid, obj.fedora_root, obj.username, obj.password)
+        except:
+            return None
 
 # fedora apis
 
