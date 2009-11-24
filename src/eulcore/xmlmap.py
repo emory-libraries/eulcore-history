@@ -57,7 +57,8 @@ class XPathString(XPathDescriptor):
         return node.xpath('string()')
 
     def convert_nodelist(self, nodes):
-        return ''.join(nodes)
+        if nodes:
+            return ''.join(nodes)
 
 
 class XPathStringList(XPathDescriptor):
@@ -74,17 +75,24 @@ class XPathInteger(XPathDescriptor):
             # better hope there's only one
             return nodes[0]
 
-class XPathDate(XPathDescriptor):
+
+class XPathIntegerList(XPathDescriptor):
     def convert_node(self, node):
-        rep = node.xpath('string()')
-        
-        # FIXME: do real parsing here
+        return int(node.xpath('number()'))
+
+
+class XPathDate(XPathDescriptor):
+    def parse_date(self, rep):
         if rep.endswith('Z'): # strip Z
             rep = rep[:-1]
         if rep[-6] in '+-': # strip tz
             rep = rep[:-6]
         dt = datetime.strptime(rep, '%Y-%m-%dT%H:%M:%S')
         return dt
+
+    def convert_node(self, node):
+        rep = node.xpath('string()')
+        return self.parse_date(rep)
 
     def convert_nodelist(self, nodes):
         if nodes:
