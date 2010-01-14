@@ -72,11 +72,12 @@ class ExistDBTest(unittest.TestCase):
             self.db.query, xqry)
 
     def test_query_with_no_result(self):
-        xqry = 'for $x in collection("/db%s")//root/element where $x/@name="no found" return $x' % (self.COLLECTION, )
+        xqry = 'for $x in collection("/db%s")/root/field where $x/@name="notfound" return $x' % (self.COLLECTION, )
         qres = self.db.query(xqry)
-        self.assertEquals(qres.hits, 0)
-        self.assertEquals(qres.start, 0)
-        self.assertEquals(qres.count, 0)
+        self.assertEquals(qres.hits, None)
+        self.assertEquals(qres.start, None)
+        self.assertEquals(qres.count, None)
+        self.assertFalse(qres.hasMore())
 
         self.assertFalse(qres.results) #empty list evaluates to false
 

@@ -2,6 +2,7 @@ import xmlrpclib
 from django.conf import settings
 from Ft.Xml.Domlette import NonvalidatingReader
 from django.core.paginator import Paginator, InvalidPage, EmptyPage, Page
+from eulcore import xmlmap
 
 class ExistDB:
     #Class to manipualate eXist DB
@@ -116,93 +117,17 @@ class ExistDB:
         except xmlrpclib.Fault, e:
             raise ExistDBException(e)
 
-def getNodeText(node):
-    """Return the text contained in a dom node (in all child text nodes) or
-       the  value of a dom attribute."""
-    node.normalize
-    # attribute or text element
-    if node.nodeValue:
-        return node.nodeValue
-    # node that contains other elements
-    if node.childNodes:
-        val = ""
-        for c in node.childNodes:
-            childval = getNodeText(c)
-            if childval:
-                val += childval
-        return val
-    else:
-        return None
 
-class XpathString(object):
-    """Descriptor for string access via xpath; object must have a dom_node"""
-    def __init__(self, xpath):
-        self.xpath = xpath
-
-    def __get__(self, obj, objtype):
-        node = obj.dom_node.xpath(self.xpath)
-        if node:
-            val =  getNodeText(node[0]).strip()
-            return val
-        else:
-            return None
-
-    def __set__(self, obj, val):
-        node = obj.dom_node.xpath(self.xpath)
-        if node:
-            node[0].nodeValue = val
-
-class XpathInteger(XpathString):
-    """Descriptor for integer access via xpath; object must have a dom_node"""
-    # extend XpathString, but cast value to int
-    def __get__(self, obj, objtype):
-        value = super(XpathInteger, self).__get__(obj, objtype)
-        if value:
-            return int(value)
-        else:
-            return 0
-            
-class XpathStringList(object):
-    """Descriptor for accessing a list of strings via xpath; object must have a dom_node"""
-    def __init__(self, xpath):
-        self.xpath = xpath
-
-    def __get__(self, obj, objtype):        
-        nodes = obj.dom_node.xpath(self.xpath)
-        result = []
-        for n in nodes:
-            value = getNodeText(n)
-            if value:
-                result.append(value.strip())        
-        return result
-
-    # not sure how (or if) to do set
-    #def __set__(self, obj, val):
-
-class XpathObjectList(object):
-    """Descriptor for a list of node-objects via xpath; parent object must
-    have a dom_node; object init param is dom_node"""
-    # return list of xpath nodes initialized as an arbitrary object type
-    def __init__(self, xpath, type):
-        self.xpath = xpath
-        self.type = type
-
-    def __get__(self, obj, objtype):
-        nodes = obj.dom_node.xpath(self.xpath)
-        result = []
-        for n in nodes:
-            result.append(self.type(n))
-        return result
-
-class QueryResult:
-    hits = XpathInteger("@hits")
-    start = XpathInteger("@start")
-    count = XpathInteger("@count")
+class QueryResult(xmlmap.XmlObject):
+    hits = xmlmap.XPathInteger("@hits")
+    start = xmlmap.XPathInteger("@start")
+    count = xmlmap.XPathInteger("@count")
     
     def __init__(self, response_str):
         self.response_str = response_str
         self.dom = NonvalidatingReader.parseString(response_str)
         self.dom_node = self.dom.documentElement
+        xmlmap.XmlObject.__init__(self, self.dom_node)
 
     @property
     def results(self):
@@ -232,6 +157,8 @@ class QueryResult:
             return rVal
 
     def hasMore(self):
+        if (self.hits == None or self.start == None or self.count == None):
+            return False
         return self.hits > (self.start + self.count)
 
 class ExistDBException(Exception):
