@@ -3,10 +3,12 @@ being a collection of reusable Python components produced by Emory
 University Libraries.
 
 Note that there's a related repository called django-eulcore containing
-reusable Django components. It is our intention to migrate that repository
-into a submodule of this one, though there's no specific timeline planned
-for this migration.
-
+reusable Django components. The current branch of python-eulcore (and a
+related branch of django-eulcore) is a stab at integrating that code into
+python-eulcore. It is our intention that this task will begin with including
+the django-eulcore code as externals. Ultimately we will replace those
+externals with the actual code, making this the official repository for
+shared EUL django code.
 
 Dependencies
 ============
