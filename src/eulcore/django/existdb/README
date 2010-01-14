@@ -1,0 +1,13 @@
+This provides methods to connect and query eXist databases.
+
+These settings need to be added to settings.py
+
+#Exist DB Settings
+EXISTDB_SERVER_PROTOCOL = "" # i.e. http:// or https://
+# hostname, port, & path to exist xmlrpc - e.g., "localhost:8080/exist/xmlrpc"
+EXISTDB_SERVER_HOST = "" # i.e. <server><port>/exist/xmlrpc
+EXISTDB_SERVER_USER     = ""  # Connection user id
+EXISTDB_SERVER_PWD      = ""  # Connection user password
+EXISTDB_SERVER_URL      = EXISTDB_SERVER_PROTOCOL + EXISTDB_SERVER_USER + ":" + EXISTDB_SERVER_PWD + "@" + EXISTDB_SERVER_HOST
+EXISTDB_ROOT_COLLECTION = "" # collection should begin with / -  e.g., /edc
+EXISTDB_TEST_COLLECTION = "" # test collection
