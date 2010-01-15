@@ -1,0 +1,776 @@
+<ead relatedencoding="MARC21">
+    <eadheader countryencoding="iso3166-1" dateencoding="iso8601" langencoding="iso639-2b" relatedencoding="Dublin Core" repositoryencoding="iso15511" scriptencoding="iso15924">
+        <eadid countrycode="us" identifier="heaney653.xml" mainagencycode="geu-s">heaney653.xml</eadid>
+        <filedesc>
+            <titlestmt>
+                <titleproper encodinganalog="Title" type="Irish">Seamus Heaney collection, 1972-1997</titleproper>
+                <author encodinganalog="Creator">Manuscript, Archives, and Rare Book Library, Emory University</author>
+            </titlestmt>
+            <publicationstmt>
+                <publisher encodinganalog="Publisher">Emory University</publisher>
+                <address>
+                    <addressline>Robert W. Woodruff Library</addressline>
+                    <addressline>Manuscript, Archives, and Rare Book
+				Library</addressline>
+                    <addressline>Atlanta, GA 30322</addressline>
+                    <addressline>404-727-6887</addressline>
+                    <addressline>Fax: 404-727-0360</addressline>
+                    <addressline>marbl@emory.edu</addressline>
+                </address>
+                <date calendar="gregorian" encodinganalog="Date" era="ce" normal="2005-05-05">May 5, 2005</date>
+            </publicationstmt>
+        </filedesc>
+        <profiledesc>
+            <creation>Finding aid encoded, 
+		  <date calendar="gregorian" encodinganalog="Date" era="ce" normal="2005-05-05">May 5, 2005</date>
+            </creation>
+            <langusage>
+                <language encodinganalog="Language" langcode="eng" scriptcode="latn">English</language>
+            </langusage>
+        </profiledesc>
+    </eadheader>
+    <archdesc level="collection" relatedencoding="MARC21">
+        <did>
+            <origination>
+                <persname encodinganalog="100" source="lcnaf">Heaney, Seamus, 1939-</persname>
+            </origination>
+            <unittitle encodinganalog="245$a">Seamus Heaney collection,<unitdate calendar="gregorian" encodinganalog="245$f" era="ce" normal="1972/2003" type="inclusive">1972-2005</unitdate>
+            </unittitle>
+            <unitid countrycode="us" repositorycode="geu-s">Manuscript Collection
+		  No.653</unitid>
+            <physdesc encodinganalog="300">
+                <extent>1 linear ft.</extent>
+                <extent>(3 boxes)</extent>, 
+		<extent>12 oversized papers (OP)</extent>
+            </physdesc>
+            <abstract>Collection of materials relating to Irish poet Seamus Heaney
+		  including correspondence, writings by Heaney, printed materials, and
+		  photographs.</abstract>
+            <langmaterial encodinganalog="546">Materials entirely in
+		  <language langcode="eng">English</language>.</langmaterial>
+            <repository encodinganalog="852">Emory University<subarea>Manuscript,
+		  Archives, and Rare Book Library</subarea>
+            </repository>
+        </did>
+        <acqinfo encodinganalog="541">
+            <head>Source</head>
+            <p>Collection assembled from various sources.</p>
+        </acqinfo>
+        <accessrestrict encodinganalog="506">
+            <head>Restrictions on access</head>
+            <p>Special restrictions apply: Letters by Seamus Heaney are closed
+		  without the permission of Seamus Heaney.  Researchers must contact MARBL in advance for access to audio-visual materials in this collection.</p>
+        </accessrestrict>
+        <userestrict encodinganalog="540">
+            <head>Terms Governing Use and Reproduction</head>
+            <p>All requests subject to limitations noted in departmental policies on
+		  reproduction.</p>
+        </userestrict>
+        <prefercite encodinganalog="524">
+            <head>Citation</head>
+            <p>[after identification of item(s)], Seamus Heaney collection,
+		  Manuscript, Archives, and Rare Book Library, Emory University.</p>
+        </prefercite>
+        <processinfo>
+            <head>Processing</head>
+            <p>Processed by Pat Clark, May 7, 2001.</p>
+            <p>Additions, Teresa Burk, May 30, 2003</p>
+        </processinfo>
+        <processinfo>
+            <p>Additions, Elizabeth Russey, May 30, 2003</p>
+            <note>
+                <p>Control level 3</p>
+            </note>
+            <note>
+                <p>File name: heaney653.doc</p>
+            </note>
+        </processinfo>
+        <bioghist encodinganalog="545">
+            <head>Biographical Note</head>
+            <p>Seamus Heaney was born on April 13, 1939, the eldest of nine children,
+		  to Margaret and Patrick Heaney, at the family farm, Mossbawn, northwest of
+		  Belfast in County Derry. He attended the local school at Anahorish until 1957
+		  when he enrolled at Queens College, Belfast, where he studied English. After
+		  graduation he taught English at St. Joseph's College in Belfast. </p>
+            <p>While at St. Joseph's he began to write, publishing work in university
+		  magazines under the pseudonym Incertus. During that time, he joined a poetry
+		  workshop organized by Philip Hobsbaum. In 1965, in connection with the Belfast
+		  Festival, he published 
+		<title linktype="simple">Eleven Poems</title>, and in August of that year he married Marie
+		Devlin. The following year he became a lecturer in modern English literature at
+		Queens College; his first son, Michael, was born; and Faber and Faber published
+		
+		<title linktype="simple">Death of a Naturalist</title>. This collection earned him the Eric
+		Gregory Award, the Cholmondeley Award, the Somerset Maugham Award, and the
+		Geoffrey Faber Memorial Prize. Marie and Seamus Heaney's second son, Michael,
+		was born in 1968.</p>
+            <p>
+                <title linktype="simple">Door Into the Dark</title>, published in 1969, was a Poetry Book
+		Society Choice for the year. In 1970-1971, Heaney was guest lecturer at the
+		University of California, Berkeley. He returned to Northern Ireland in 1971,
+		and in 1972 he resigned his lectureship at Queens College, moved his family to
+		Glanmore, in County Wicklow, and published 
+		<title linktype="simple">Wintering Out</title>. In 1973 his daughter Catherine Ann was
+		born. During this year he also received the Denis Devlin Award and the Writer
+		in Residence Award from the American Irish Foundation. In 1975 
+		<title linktype="simple">North</title> was published, winning the E.M. Forster Award and
+		the Duff Cooper Memorial Prize. During these years at Glanmore, Heaney also
+		gave many readings in the United States and England and edited two poetry
+		anthologies. </p>
+            <p>In 1975 Heaney began teaching at Carysfort College in Dublin, and in
+		  1976 he and his family moved to Sandymount in the city. In 1979 Heaney
+		  published 
+		<title linktype="simple">Field Work</title> and in 1980 
+		<title linktype="simple">Selected Poems</title> and 
+		<title linktype="simple">Preoccupations</title>. In 1981 he gave up his position at
+		Carysfort to become visiting professor at Harvard. In 1982 he won the Bennett
+		Award and Queens University awarded him an honorary Doctor of Letters. He
+		co-founded Field Day company with the playwright Brian Friel and others in
+		1983. 
+		<title linktype="simple">Station Island</title>, his first collection in five years, was
+		published in 1984. During that year he was elected Boylston Professor of
+		Rhetoric and Oratory at Harvard. That same year his mother died. </p>
+            <p>In 1988 Seamus Heaney visited Emory University where he inaugurated
+		  the Richard Ellmann Lectures in Modern Literature. These lectures were
+		  collected and published as 
+		<title linktype="simple">The Place of Writing</title> in 1989. In 1991 Heaney published a
+		new collection 
+		<title linktype="simple">Seeing Things</title>, followed by the 
+		<title linktype="simple">Redress of Poetry</title> in 1995. In the fall of that year,
+		Heaney was awarded the Nobel Prize in Literature.</p>
+        </bioghist>
+        <scopecontent encodinganalog="520">
+            <head>Scope and Content Note</head>
+            <p>The collection consists of materials relating to Seamus Heaney from
+		  1972-2005 including, writings by Heaney, printed materials, photographs and
+		  correspondence. The manuscript writings in the collection include multiple
+		  drafts of "Fosterage," a two-page typescript on Michael McLaverty (published as
+		  an introduction to McLaverty's 
+		<title linktype="simple">Collected Stories</title> in 1978), a manuscript of a talk on
+		Wordsworth's 
+		<title linktype="simple">Prelude</title> which Heaney wrote for Irish radio around 1974,
+		and settings copies of the poems "Bog Queen," "Punishment," "The Grauballe
+		Man," and "Kinship," with editor's markings and corrections in Heaney's hand.
+		There is also a manuscript of a poem "For Daisy," written on the occasion of
+		Daisy Garnett's christening. Heaney gave the keynote address during Emory
+		University's 2003 commencement and a typescript draft with revisions in his
+		hand is also included in this section.</p>
+            <p>The collection also includes printed promotional posters, programs, a small group of photographs, and a DVD of an interview with Heaney.</p>
+            <p>The restricted correspondence consists of letters from Seamus Heaney
+		  to Sebastian Barker from 1981-1991 and relate to proposed readings, an essay
+		  Heaney was writing on Patrick Kavanagh, and Barker's proposal that Heaney serve
+		  as President of the Poetry Society. Additional correspondence with Mrs. Parker
+		  (1976) and "Robert" (1978) relate to items found in the writing series of this
+		  collection and the J. Howard Woolmer correspondence relates to the publication
+		  of 
+		<title linktype="simple">Stern</title>, a poem in memory of Ted Hughes.</p>
+        </scopecontent>
+        <arrangement encodinganalog="351">
+            <head>Arrangement Note</head>
+            <p>Organized into five series: (1) Writings by Seamus Heaney, (2) Printed
+		  material, (3) Photographs, (4) Restricted correspondence, and (5) Audio-visual materials.</p>
+        </arrangement>
+        <controlaccess>
+            <head>Selected Search Terms</head>
+            <controlaccess>
+                <head>Personal Names</head>
+                <persname encodinganalog="600 or 700">Barker, Sebastian.</persname>
+                <persname encodinganalog="600 or 700">Kavanagh, P. J. (Patrick Joseph),
+			 1931-</persname>
+                <persname encodinganalog="600 or 700">McLaverty, Michael.</persname>
+                <persname encodinganalog="600 or 700">Wordsworth, William,
+			 1770-1850.</persname>
+            </controlaccess>
+            <controlaccess>
+                <head>Topical Terms</head>
+                <subject encodinganalog="650" source="lcsh">English poetry--Irish
+			 authors--20th century.</subject>
+                <subject encodinganalog="650" source="lcsh">Irish literature--20th
+			 century.</subject>
+                <subject encodinganalog="650" source="lcsh">Poets, Irish--20th
+			 century.</subject>
+            </controlaccess>
+            <controlaccess>
+                <head>Geographic Names</head>
+                <geogname encodinganalog="651">Ireland.</geogname>
+            </controlaccess>
+            <controlaccess>
+                <head>Form/Genre Terms</head>
+                <genreform encodinganalog="655" source="aat">Manuscripts.</genreform>
+                <genreform encodinganalog="655" source="aat">Video
+			 recordings.</genreform>
+            </controlaccess>
+            <controlaccess>
+                <head>Occupation</head>
+                <occupation encodinganalog="656" source="aat">Poet.</occupation>
+            </controlaccess>
+        </controlaccess>
+        <separatedmaterial encodinganalog="544 0">
+            <head>Related Materials in This Repository</head>
+            <p>Ciaran Carson papers, Peter Fallon/The Gallery Press Collection,
+		  Seamus Heaney papers, Ted Hughes papers, Thomas Kinsella papers, Michael
+		  Longley papers, Derek Mahon papers, Medbh McGuckian papers, Charles Montieth
+		  papers, Paul Muldoon papers, Edna O'Brien papers, Desmond O'Grady papers, Frank
+		  Ormsby papers, Tom Paulin papers, and James Simmons papers</p>
+        </separatedmaterial>
+        <dsc type="combined">
+            <head>Description of Series</head>
+            <c01 level="series">
+                <did>
+                    <unitid>Series 1</unitid>
+                    <unittitle encodinganalog="245$a">Writings by Seamus
+				Heaney</unittitle>
+                    <physdesc encodinganalog="300">Box 1: folders 1-12</physdesc>
+                </did>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">1</container>
+                        <unittitle>"For Daisy Garnett," holograph manuscript, 2pp. Poem
+				  written for the christening of Polly Devlin's (Garnett) daughter Daisy Garnett.
+				  [See also Series 3, Photographs: "Polly Garnett and three children," and Series
+				  4, Restricted correspondence: "Mrs. Parker"]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">2</container>
+                        <unittitle>Four Poems: "Bog Queen," "Punishment," "The Grauballe
+				  Man," "Kinship," setting copy with editor's markings and corrections in
+				  Heaney's hand, 7 pp.</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">3</container>
+                        <unittitle>"Fosterage" [variant titles "Stylist," "To Michael
+				  McLaverty," and "Friendship's Garland"], multiple holograph and typescript
+				  drafts, 10 pp. [See also Series 4, Restricted correspondence:
+				  "Robert"]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">4</container>
+                        <unittitle>"Introduction" [from Michael McLaverty's 
+				  <title linktype="simple">Collected Stories</title>], photocopied typescript, 2
+				  pp.</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">5</container>
+                        <unittitle>
+                            <title linktype="simple">James Joyce Quarterly</title>, Spring 1974, corrected
+				  guest editor's galley proofs.</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">6</container>
+                        <unittitle>
+                            <title linktype="simple">James Joyce Quarterly</title>, Spring 1974, revised page
+				  proofs.</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">7</container>
+                        <unittitle> 
+				  "Leavings," typescript with corrections in Heaney's hand</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">8</container>
+                        <unittitle>"The Placeless Heaven: Another Look at Kavanagh," 13 pp.
+				  photocopy typescript, Series 4, Restricted correspondence: Sebastian Barker, 26
+				  March 1987]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">9</container>
+                        <unittitle>"The Prelude" [on William Wordsworth], holograph
+				  manuscript, 11 pp. with 8 pp. of typed quotations from "The
+				  Prelude"</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">10</container>
+                        <unittitle>"Strange Fruit," multiple holograph and typescript
+				  drafts, 12 pp</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Speeches/Addresses</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">11</container>
+                        <unittitle>Commencement Address, University of Pennsylvania, 30 May
+				  2000, reprint in 
+				  <title linktype="simple">University of Pennsylvania Almanac</title>
+                        </unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">12</container>
+                        <unittitle>Commencement Keynote Address, Emory University, 12 May
+				  2003, TS with corrections, 9pp. [also includes signed copy of Commencement
+				  program]</unittitle>
+                    </did>
+                </c02>
+            </c01>
+            <c01 level="series">
+                <did>
+                    <unitid>Series 2</unitid>
+                    <unittitle encodinganalog="245$a">Printed material</unittitle>
+                    <physdesc encodinganalog="300">Box 2: folders 13-15; OP1-3 and
+				5-12</physdesc>
+                </did>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Posters</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP7</container>
+                        <container/>
+                        <unittitle>
+                            <title linktype="simple">Beowulf</title>, promotional poster for Faber and
+				  Faber</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP1</container>
+                        <container/>
+                        <unittitle>
+                            <title linktype="simple">The Cure at Troy</title>, promotional poster for the Abbey
+				  Theatre production</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP5</container>
+                        <container/>
+                        <unittitle>
+                            <title linktype="simple">Know the Sign of a Poet</title>, promotional poster for
+				  Faber and Faber poetry books, printed signatures of 34 poets, including Seamus
+				  Heaney</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP9</container>
+                        <container/>
+                        <unittitle>Seamus Heaney, Faber and Faber promotional poster for
+				  Heaney's Nobel Prize for literature 1995 and Whitbread Book of the Year for 
+				  <title linktype="simple">The Spirit Level</title> [2 copies]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP3</container>
+                        <container/>
+                        <unittitle>Seamus Heaney, Nobel Prize promotional poster,
+				  1995</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP8</container>
+                        <container/>
+                        <unittitle>
+                            <title linktype="simple">Stations</title>, promotional poster for Ulster Youth
+				  Theatre performance at Saranmilis College based on 
+				  <title linktype="simple">Station Island</title> by Seamus Heaney, 7-11 November
+				  [19??]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP2</container>
+                        <container/>
+                        <unittitle>
+                            <title linktype="simple">The Spirit Level</title>, promotional poster for Faber and
+				  Faber edition</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP6</container>
+                        <container/>
+                        <unittitle>
+                            <title linktype="simple">Sweeney's Flight</title>, promotional poster for
+				  photographic exhibition, Rachel Giese, photographer with descriptive captions
+				  by Seamus Heaney, n.d.</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Programs</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">13</container>
+                        <unittitle>
+                            <title linktype="simple">The Cure at Troy</title>, program for Harvard Repertory
+				  Theatre production, n.d. Includes "Sweet Talk and Miracles: notes on 
+				  <title linktype="simple">The Cure at Troy</title>," by Heaney </unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">14</container>
+                        <unittitle>"Love and War" reading to benefit the Arvon Foundation,
+				  program, 2 March 1997</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">15</container>
+                        <unittitle>"The Poet and the Piper," concert program for Belfast
+				  Waterfront Hall, 10 November 2001 [Seamus Heaney, Liam O'Flynn and the works of
+				  John B. Vallely]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Prospectuses</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP10</container>
+                        <container/>
+                        <unittitle>
+                            <title linktype="simple">Squarings</title>, prospectus, The Arion Press, 2003 [with
+				  envelope]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Articles</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP11</container>
+                        <container/>
+                        <unittitle>"Bags of Enlightenment," [Partners in Poetry: Heaney on
+				  Hughes], 
+				  <title linktype="simple">The Guardian</title>, Review section, 25 October
+				  2003</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP12</container>
+                        <container/>
+                        <unittitle>"Seamus Heaney toi Nobelin Eurooppaan," 
+				  <title linktype="simple">Helsigin Sanomat</title>, Kulttuuri section, 6 October
+				  1995</unittitle>
+                    </did>
+                </c02>
+            </c01>
+            <c01 level="series">
+                <did>
+                    <unitid>Series 3</unitid>
+                    <unittitle encodinganalog="245$a">Photographs</unittitle>
+                    <physdesc encodinganalog="300">Box 1: folders 16-23; OP4</physdesc>
+                </did>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Heaney alone</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">16</container>
+                        <unittitle>Seamus Heaney at Harvard, Fall 1983, 6 black and white
+				  photographs</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">17</container>
+                        <unittitle>Seamus Heaney at home of Ron Schuchard, 1988, 2
+				  photographs</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">OP4</container>
+                        <container/>
+                        <unittitle>Seamus Heaney, large black and white photograph,
+				  n.d</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Heaney with others</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">-</container>
+                        <container type="folder">-</container>
+                        <unittitle>Seamus Heaney and Ted Walker, color photograph, 12
+				  August 1972. Pasted on verso of half-title of 
+				  <title linktype="simple">Death of a Naturalist</title> [PR6058.E2 D401
+				  1969]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">18</container>
+                        <unittitle>Richard Ellmann and Seamus Heaney at the Hill of Howth,
+				  [1982], 4 color photographs</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">19</container>
+                        <unittitle>Seamus Heaney with Marie Heaney in the background at the
+				  Poetry Library, London, 1990, 1 black and white photograph by John
+				  Minihan</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">20</container>
+                        <unittitle>Seamus Heaney with Bernard O'Donoghue outside Kenny's
+				  Bookshop, Galway, Ireland, 1998, 1 black and white photograph by John
+				  Minihan</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">21</container>
+                        <unittitle>Seamus Heaney and John Montague, n.d., 1 color
+				  photograph by John Minihan</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">22</container>
+                        <unittitle>Seamus Heaney at dedication of Gerard Manley Hopkins
+				  memorial, three black and white photographs by Bill Storey, n.d.</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Others</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">1</container>
+                        <container type="folder">23</container>
+                        <unittitle>Polly Devlin (Garnett) and her 3 children on the
+				  occasion of her daughter Daisy's christening, color photograph, n.d. [See also
+				  Series 4, Restricted Correspondence: "Mrs. Parker" and Series 1: Writings: "For
+				  Daisy Garnett"]</unittitle>
+                    </did>
+                </c02>
+            </c01>
+            <c01 level="series">
+                <did>
+                    <unitid>Series 4</unitid>
+                    <unittitle encodinganalog="245$a">Restricted
+				correspondence</unittitle>
+                    <physdesc encodinganalog="300">Box 2</physdesc>
+                </did>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Sebastian Barker</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">1</container>
+                        <unittitle>SH to Sebastian Barker, 19 February 1981, ALS, 1 p. with
+				  envelope</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">2</container>
+                        <unittitle>SH to Sebastian Barker, 19 July 1982, ALS, 1
+				  p.</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">3</container>
+                        <unittitle>SH to Sebastian Barker, 24 February 1985, ALS, 1 p. with
+				  envelope</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">4</container>
+                        <unittitle>SH to Sebastian Barker, [25 January 1987],
+				  ACS</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">5</container>
+                        <unittitle>SH to Sebastian Barker, 26 March 1987, TLS, 1 p. [See
+				  also Series 1, Writings: "The Placeless Heaven: Another Look at
+				  Kavanagh"]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">6</container>
+                        <unittitle>SH to Sebastian Barker, [16 April 1990], ACS</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">7</container>
+                        <unittitle>SH to Sebastian Barker, 6 December 1991, TLS, 1 p. with
+				  envelope</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Mrs. Parker</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">8</container>
+                        <unittitle>SH to Mrs. Parker, 26 November 1976, ALS, 1 p. [See also
+				  Series 1, Writings: "For Daisy Garnett" and Series 3: Photographs: "Polly
+				  Devlin (Garnet)"]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <unittitle>Rolando Pieraccini</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">9</container>
+                        <unittitle>SH to Rolando Pieraccini, 28 March 1989, ALS, 1 p. with
+				  envelope</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">10</container>
+                        <unittitle>SH to Rolando Pieraccini, 20 June 1989, ALS, 1 p. with
+				  envelope</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">11</container>
+                        <unittitle>SH to Rolando Pieraccini, 16 January 1990, ALS, 1 p.
+				  with envelope</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">11</container>
+                        <unittitle>SH to Rolando Pieraccini, 20 January 1990, TLS, 1 p.
+				  </unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">13</container>
+                        <unittitle>SH to Rolando Pieraccini, 27 February 1990, TLS, 1 p.
+				  with envelope</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <unittitle>"Robert"</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">14</container>
+                        <unittitle>SH to "Robert", 30 May 1978, ALS, 1 p. [See also Series
+				  3, Writings: "Fosterage"]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <unittitle>J. Howard Woolmer [regarding publication of 
+				  <title linktype="simple">Stern</title>, a poem in memory of Ted Hughes]</unittitle>
+                    </did>
+                </c02>
+                <c02 level="file">
+                    <did>
+                        <container type="box">2</container>
+                        <container type="folder">15</container>
+                        <unittitle>20 October 2004-8 January 2005</unittitle>
+                    </did>
+                </c02>
+            </c01>
+            <c01 level="series">
+                <did>
+                    <unitid>Series 5</unitid>
+                    <unittitle encodinganalog="245$a">Audio-visual Material</unittitle>
+                    <physdesc encodinganalog="300">Box 3</physdesc>
+                </did>
+                <c02 level="file">
+                    <did>
+                        <container type="box">3</container>
+                        <container type="folder">1</container>
+                        <unittitle>"Quis Est Deus?: Bridges of the Spirit" [includes interview with Seamus Heaney], January 2006</unittitle>
+                    </did>
+                </c02>
+            </c01>
+        </dsc>
+    </archdesc>
+</ead>
