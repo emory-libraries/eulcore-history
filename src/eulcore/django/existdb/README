@@ -1,6 +1,12 @@
-This provides methods to connect and query eXist databases.
+eulcore.django.existdb is a django-aware extension of eulcore.existdb,
+which provides methods to connect and query eXist databases.
 
-These settings need to be added to settings.py
+Dependencies
+============
+ * eulcore.django.testsetup
+
+
+These settings should be added to settings.py
 
 #Exist DB Settings
 EXISTDB_SERVER_PROTOCOL = "" # i.e. http:// or https://
