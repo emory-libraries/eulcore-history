@@ -2,6 +2,7 @@ from Ft.Xml.Domlette import NonvalidatingReader
 from Ft.Xml.XPath.Context import Context
 from Ft.Xml.XPath import Compile, Evaluate
 from datetime import datetime
+from Ft.Lib import Uri
 
 parseUri = NonvalidatingReader.parseUri
 parseString = NonvalidatingReader.parseString
@@ -11,6 +12,22 @@ class XmlObject(object):
         self.dom_node = dom_node
         self.context = context or Context(dom_node, 
             processorNss=dict([(n.localName, n.value) for n in dom_node.xpathNamespaces]))
+
+def load_xmlobject_from_string(string, xmlclass=XmlObject):
+    """Convenience function to initialize an XmlObject from a string"""
+    # parseString wants a uri, but context doesn't really matter for a string...
+    parsed_str= parseString(string, "urn:bogus")
+    return xmlclass(parsed_str.documentElement)
+
+def load_xmlobject_from_file(filename, xmlclass=XmlObject):
+    """Convenience function to initialize an XmlObject from a file"""
+    file_uri = Uri.OsPathToUri(filename)
+    parsed_file = parseUri(file_uri)
+    return xmlclass(parsed_file.documentElement)
+
+#    file_uri = Uri.OsPathToUri('spam.xml')
+#doc = NonvalidatingReader.parseUri(file_uri)
+
 
 class XPathDescriptor(object):
     def __init__(self, xpath):

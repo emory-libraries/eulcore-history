@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import unittest
+import tempfile
 
-from eulcore import xmlmap
+import eulcore.xmlmap.core as xmlmap
 
 class TestDescriptors(unittest.TestCase):
     FIXTURE_TEXT = '''
@@ -85,6 +86,50 @@ class TestDescriptors(unittest.TestCase):
         child_vals = [ child.val for child in obj.children ]
         self.assertEqual(child_vals, [42, 13])
         self.assertEqual(obj.missing, [])
+
+
+# NOTE: using TestDescriptors fixture text for the init tests
+
+class TestXmlObjectStringInit(unittest.TestCase):
+
+    def test_load_from_string(self):
+        """Test using shortcut to initialize XmlObject from string"""
+        obj = xmlmap.load_xmlobject_from_string(TestDescriptors.FIXTURE_TEXT)
+        self.assert_(isinstance(obj, xmlmap.XmlObject))
+
+    def test_load_from_string_with_classname(self):
+        """Test using shortcut to initialize named XmlObject class from string"""
+        
+        class TestObject(xmlmap.XmlObject):
+            pass
+        
+        obj = xmlmap.load_xmlobject_from_string(TestDescriptors.FIXTURE_TEXT, TestObject)
+        self.assert_(isinstance(obj, TestObject))
+
+
+class TestXmlObjectFileInit(unittest.TestCase):
+    
+    def setUp(self):
+        self.FILE = tempfile.NamedTemporaryFile(mode="w")
+        self.FILE.write(TestDescriptors.FIXTURE_TEXT)
+        self.FILE.flush()
+
+    def tearDown(self):
+        self.FILE.close()
+    def test_load_from_file(self):
+        """Test using shortcut to initialize XmlObject from a file"""
+        obj = xmlmap.load_xmlobject_from_file(self.FILE.name)
+        self.assert_(isinstance(obj, xmlmap.XmlObject))
+
+    def test_load_from_file_with_classname(self):
+        """Test using shortcut to initialize named XmlObject class from string"""
+        
+        class TestObject(xmlmap.XmlObject):
+            pass
+        
+        obj = xmlmap.load_xmlobject_from_file(self.FILE.name, TestObject)
+        self.assert_(isinstance(obj, TestObject))
+
 
 
 if __name__ == '__main__':
