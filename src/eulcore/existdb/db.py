@@ -129,7 +129,7 @@ class QueryResult(xmlmap.XmlObject):
     def __init__(self, response_str):
         self.response_str = response_str
         # parseString wants a url for context; giving it something
-        url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'eXist_respones')
+        url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'eXist_response')
         self.dom = xmlmap.parseString(response_str, url)
         self.dom_node = self.dom.documentElement
         xmlmap.XmlObject.__init__(self, self.dom_node)
