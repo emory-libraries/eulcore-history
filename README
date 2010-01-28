@@ -2,14 +2,6 @@ eulcore,
 being a collection of reusable Python components produced by Emory
 University Libraries.
 
-Note that there's a related repository called django-eulcore containing
-reusable Django components. The current branch of python-eulcore (and a
-related branch of django-eulcore) is a stab at integrating that code into
-python-eulcore. It is our intention that this task will begin with including
-the django-eulcore code as externals. Ultimately we will replace those
-externals with the actual code, making this the official repository for
-shared EUL django code.
-
 Dependencies
 ============
  * eulcore.fedora depends on Python rdflib for RELS-EXT and
@@ -20,3 +12,10 @@ Dependencies
    http://trac.optio.webfactional.com/
  * eulcore.xmlmap depends on 4suite-xml. Debian/Ubuntu users can apt-get
    install python-4suite-xml. Other users can check http://4suite.org/
+ * eulcore.django depends on django, of course.
+ * eulcore.django.soap also depends on soaplib. Debian/Ubuntu users can
+   apt-get install python-soaplib. Other users can check
+   http://trac.optio.webfactional.com/
+ * eulcore.django.ldap depends on python-ldap. Debian/Ubuntu users can
+   apt-get install python-ldap. Other users can check
+   http://www.python-ldap.org/
