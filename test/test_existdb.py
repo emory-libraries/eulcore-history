@@ -99,6 +99,57 @@ class ExistDBTest(unittest.TestCase):
 
         self.assertFalse(qres.results) #empty list evaluates to false
 
+
+    def test_executeQuery(self):
+        """Test executeQuery & dependent functions (querySummary, getHits, retrieve)"""
+        xqry = 'for $x in collection("/db%s")/root/element where $x/@name="two" return $x' % (self.COLLECTION, )        
+        result_id = self.db.executeQuery(xqry)
+        self.assert_(isinstance(result_id, int), "executeQuery returns integer result id")
+
+        # run querySummary on result from executeQuery
+        summary = self.db.querySummary(result_id)
+        self.assertEqual(2, summary['hits'], "querySummary returns correct hit count of 2")
+        self.assert_(isinstance(summary['queryTime'], int), "querySummary return includes int queryTime")
+        # any reasonable way to check what is in the documents summary info?
+        # documents should be an array of arrays - document name, id, and # hits
+
+        # getHits on result
+        hits = self.db.getHits(result_id)
+        self.assert_(isinstance(hits, int), "getHits returns integer hit count")
+        self.assertEqual(2, hits, "getHits returns correct count of 2")
+
+        # retrieve first result
+        result = self.db.retrieve(result_id, 0)
+        self.assertEqual('<element name="two">Two</element>', result,
+                "retrieve index 0 returns first element with @name='two'")
+        # retrieve second result
+        result = self.db.retrieve(result_id, 1)
+        self.assertEqual('<element name="two">Three</element>', result,
+                "retrieve index 0 returns first element with @name='two'")
+
+    def test_executeQuery_noresults(self):
+        """Test executeQuery & dependent functions (querySummary, getHits, retrieve) - xquery with no results"""
+        xqry = 'collection("/db%s")/root/element[@name="bogus"]' % (self.COLLECTION, )
+        result_id = self.db.executeQuery(xqry)
+        # run querySummary on result from executeQuery
+        summary = self.db.querySummary(result_id)
+        self.assertEqual(0, summary['hits'], "querySummary returns hit count of 0")
+        self.assertEqual([], summary['documents'], "querySummary document list is empty")
+        
+        # getHits 
+        hits = self.db.getHits(result_id)
+        self.assertEqual(0, hits, "getHits returns correct count of 0 for query with no match")
+
+        # retrieve non-existent result
+        self.assertRaises(ExistDBException, self.db.retrieve, result_id, 0)
+
+    def test_executeQuery_bad_xquery(self):
+        """Check that an invalid xquery raises an exception"""
+        #invalid xqry missing "
+        xqry = 'collection("/db%s")//root/element[@name=two"]' % (self.COLLECTION, )
+        self.assertRaises(ExistDBException, self.db.executeQuery, xqry)
+
+
     def test_load_invalid_xml(self):
         """Check that loading invaliid xml raises an exception"""
         xml = '<root><element></root>'

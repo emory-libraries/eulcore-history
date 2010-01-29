@@ -119,6 +119,43 @@ class ExistDB:
             return self.resultType(xml_s)
         except xmlrpclib.Fault, e:
             raise ExistDBException(e)
+    
+    def executeQuery(self, xqry):
+        '''Execute an xquery and return a result id which can be used to retrieve the results
+         or summary information about the results'''
+        try:
+            # NOTE: requires hash of parameters, unknown what options are supported
+            # should result_id be stored and used for subsequent requests that require a result_id?
+            return self.server.executeQuery(xqry, {})
+        except xmlrpclib.Fault, e:
+            raise ExistDBException(e)
+
+    def querySummary(self, result_id):
+        '''Summary information about xquery results for a result set by id returned from executeQuery.
+           Returns a list of hits, documents (list of document name, integer id, and number of hits),
+           and the tiem it took to run the query.'''
+        try:
+            # should response be converted to some kind of object format?
+            return self.server.querySummary(result_id)
+        except xmlrpclib.Fault, e:
+            raise ExistDBException(e)
+
+    def getHits(self, result_id):
+        '''Return the number of hits in an xquery resultby id returned from executeQuery'''
+        try:
+            return self.server.getHits(result_id)
+        except xmlrpclib.Fault, e:
+            raise ExistDBException(e)
+
+    def retrieve(self, result_id, position, options={}):
+        '''Retrieve a single result fragment from result id, by position'''
+        try:
+            return self.server.retrieve(result_id, position, options)
+        except xmlrpclib.Fault, e:
+            raise ExistDBException(e)
+
+
+            
 
 
 class QueryResult(xmlmap.XmlObject):
