@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
-from test_existdb.test_core import settings
+from test_existdb.test_db import settings
 from eulcore.existdb.db import ExistDB
 from eulcore.existdb.query import QuerySet
 import eulcore.xmlmap.core as xmlmap
