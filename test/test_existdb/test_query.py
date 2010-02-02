@@ -3,7 +3,7 @@
 import unittest
 from test_existdb.test_db import settings
 from eulcore.existdb.db import ExistDB
-from eulcore.existdb.query import QuerySet
+from eulcore.existdb.query import QuerySet, Xquery
 import eulcore.xmlmap.core as xmlmap
 
 class QueryTestModel(xmlmap.XmlObject):
@@ -92,6 +92,45 @@ class ExistQueryTest(unittest.TestCase):
         self.qs.filter(contains="two")
         self.qs.reset()
         self.assertEqual(2, self.qs.count(), "count should be 2 after filter is reset")
+
+    def test_order_by(self):
+        self.qs.order_by('name')        
+        self.assertEqual('one', self.qs[0].name)
+        self.assertEqual('two', self.qs[1].name)
+
+
+class XqueryTest(unittest.TestCase):
+
+    def test_defaults(self):
+        xq = Xquery()
+        self.assertEquals('/node()', xq.getQuery())
+
+    def test_xpath(self):
+        xq = Xquery(xpath='/path/to/el')
+        self.assertEquals('/path/to/el', xq.getQuery())
+
+    def test_coll(self):
+        xq = Xquery(collection='myExistColl')
+        self.assertEquals('collection("/db/myExistColl")/node()', xq.getQuery())
+
+        xq = Xquery(xpath='/root/el', collection='/coll/sub')
+        self.assertEquals('collection("/db/coll/sub")/root/el', xq.getQuery())
+
+    def test_sort(self):
+        xq = Xquery(collection="mycoll")        
+        xq.sort('@id')
+        self.assert_('order by $n/@id' in xq.getQuery())
+        self.assert_('collection("/db/mycoll")' in xq.getQuery())
+
+    def test_filters(self):
+        xq = Xquery(xpath='/el')
+        xq.add_filter('contains(., "dog")')
+        self.assertEquals('/el[contains(., "dog")]', xq.getQuery())
+        # filters are additive
+        xq.add_filter('startswith(., "S")')
+        self.assertEquals('/el[contains(., "dog")][startswith(., "S")]', xq.getQuery())
+
+
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner
