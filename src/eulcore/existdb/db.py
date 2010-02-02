@@ -154,6 +154,13 @@ class ExistDB:
         except xmlrpclib.Fault, e:
             raise ExistDBException(e)
 
+    def releaseQueryResult(self, result_id):
+        '''Force a result set to be released on the server.
+        No return value, no exception when releasing an invalid result id.'''
+        try:
+            self.server.releaseQueryResult(result_id)
+        except xmlrpclib.Fault, e:
+            raise ExistDBException(e)
 
             
 

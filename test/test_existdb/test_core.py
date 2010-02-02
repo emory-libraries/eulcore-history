@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-import os
 import unittest
 from eulcore.existdb.db import *
-
 
 class settings:
     EXISTDB_SERVER_PROTOCOL = "http://"
@@ -142,6 +140,7 @@ class ExistDBTest(unittest.TestCase):
 
         # retrieve non-existent result
         self.assertRaises(ExistDBException, self.db.retrieve, result_id, 0)
+        
 
     def test_executeQuery_bad_xquery(self):
         """Check that an invalid xquery raises an exception"""
@@ -149,6 +148,12 @@ class ExistDBTest(unittest.TestCase):
         xqry = 'collection("/db%s")//root/element[@name=two"]' % (self.COLLECTION, )
         self.assertRaises(ExistDBException, self.db.executeQuery, xqry)
 
+    def test_releaseQuery(self):
+        xqry = 'collection("/db%s")/root/element[@name="two"]' % (self.COLLECTION, )
+        result_id = self.db.executeQuery(xqry)
+        self.db.releaseQueryResult(result_id)
+        # attempting to get data from a result that has been released should cause an error
+        self.assertRaises(Exception, self.db.getHits, result_id)
 
     def test_load_invalid_xml(self):
         """Check that loading invaliid xml raises an exception"""
@@ -181,6 +186,8 @@ class ExistDBTest(unittest.TestCase):
         self.assertFalse(qres.hasMore())
         self.assertEquals(qres.show_from, 4)
         self.assertEquals(qres.show_to, 4)
+
+
 
 
 
