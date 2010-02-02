@@ -13,6 +13,11 @@ class XmlObject(object):
         self.context = context or Context(dom_node, 
             processorNss=dict([(n.localName, n.value) for n in dom_node.xpathNamespaces]))
 
+def getXmlObjectXPath(obj, var):
+    "Return the xpath string for an xmlmap field that belongs to the specified XmlObject"
+    if obj.__dict__[var]:
+        return obj.__dict__[var].xpath
+
 def load_xmlobject_from_string(string, xmlclass=XmlObject):
     """Convenience function to initialize an XmlObject from a string"""
     # parseString wants a uri, but context doesn't really matter for a string...
@@ -31,10 +36,11 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject):
 
 class XPathDescriptor(object):
     def __init__(self, xpath):
-        self.xpath = Compile(xpath)
+        self.xpath = xpath  # xpath string
+        self._xpath = Compile(xpath) # compiled xpath for actual use
 
     def __get__(self, obj, objtype):
-        nodes = Evaluate(self.xpath, obj.dom_node, obj.context)
+        nodes = Evaluate(self._xpath, obj.dom_node, obj.context)
         cnodes = [ self.convert_node(node) for node in nodes ]
         return self.convert_nodelist(cnodes)
 

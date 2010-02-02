@@ -7,6 +7,7 @@ from eulcore.existdb.query import QuerySet, Xquery
 import eulcore.xmlmap.core as xmlmap
 
 class QueryTestModel(xmlmap.XmlObject):
+            id = xmlmap.XPathString('@id')
             name = xmlmap.XPathString('name')
             description = xmlmap.XPathString('description')
 
@@ -14,13 +15,13 @@ class ExistQueryTest(unittest.TestCase):
     COLLECTION = settings.EXISTDB_TEST_COLLECTION
 
     FIXTURE_ONE = '''
-        <root>
+        <root id="one">
             <name>one</name>
             <description>this one has one one</description>
         </root>
     '''
     FIXTURE_TWO = '''
-        <root>
+        <root id="abc">
             <name>two</name>
             <description>this one only has two</description>
         </root>
@@ -57,6 +58,12 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual(1, self.qs.count(), "count returns 1 when filtered on name = 'one' (got %s)"
             % self.qs.count())
         self.assertEqual("one", self.qs[0].name, "name matches filter")
+
+    def test_filter_field_xpath(self):
+        self.qs.filter(id="abc")
+        self.assertEqual(1, self.qs.count(), "count returns 1 when filtered on @id = 'abc' (got %s)"
+            % self.qs.count())
+        self.assertEqual("two", self.qs[0].name, "name returned is correct for id filter")
 
     def test_filter_field_contains(self):
         self.assertEqual(2, self.qs.filter(name__contains="o").count(),
@@ -98,6 +105,10 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual('one', self.qs[0].name)
         self.assertEqual('two', self.qs[1].name)
 
+    def test_order_by(self):
+        self.qs.order_by('id')
+        self.assertEqual('abc', self.qs[0].id)
+        self.assertEqual('one', self.qs[1].id)
 
 class XqueryTest(unittest.TestCase):
 

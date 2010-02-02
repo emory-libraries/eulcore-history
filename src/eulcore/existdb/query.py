@@ -1,5 +1,5 @@
 from eulcore.existdb.db import ExistDB
-from eulcore.xmlmap.core import load_xmlobject_from_string
+from eulcore.xmlmap.core import load_xmlobject_from_string, getXmlObjectXPath
 
 
 class QuerySet(object):
@@ -8,7 +8,7 @@ class QuerySet(object):
     """
     
     def __init__(self, model=None, xpath=None, using=None, collection=None):
-        self.model = model
+        self.model = model     
         self._db = using        
         self.query = Xquery(xpath=xpath, collection=collection)
 
@@ -34,18 +34,28 @@ class QuerySet(object):
         for arg, value in kwargs.items():
             parts = arg.split('__')
             if parts and len(parts) > 1:
+                xpath = parts[0]
+                if self.model:
+                    xpath = getXmlObjectXPath(self.model, parts[0]) or parts[0]
                 if parts[1] == 'contains':
-                    self.query.add_filter('contains(%s, "%s")' % (parts[0], value))
+                    self.query.add_filter('contains(%s, "%s")' % (xpath, value))
                 if parts[1] == 'startswith':
-                    self.query.add_filter('starts-with(%s, "%s")' % (parts[0], value))
+                    self.query.add_filter('starts-with(%s, "%s")' % (xpath, value))
             else:
-                self.query.add_filter('%s = "%s"' % (arg, value))
+                xpath = arg
+                if self.model:
+                   xpath = getXmlObjectXPath(self.model, arg)
+                self.query.add_filter('%s = "%s"' % (xpath, value))
 
         # return self so additional filters can be added or get() called
         return self
 
     def order_by(self, field):
-        return self.query.sort(field)
+        xpath = field
+        if self.model:
+            xpath = getXmlObjectXPath(self.model, field) or field
+            
+        return self.query.sort(xpath)
 
     # exclude?
     # order by      -- probably need an xquery class to handle this (xpath or flowr as needed)
