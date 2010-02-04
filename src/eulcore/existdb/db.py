@@ -133,7 +133,7 @@ class ExistDB:
     def querySummary(self, result_id):
         '''Summary information about xquery results for a result set by id returned from executeQuery.
            Returns a list of hits, documents (list of document name, integer id, and number of hits),
-           and the tiem it took to run the query.'''
+           and the time it took to run the query.'''
         try:
             # should response be converted to some kind of object format?
             return self.server.querySummary(result_id)
@@ -141,7 +141,7 @@ class ExistDB:
             raise ExistDBException(e)
 
     def getHits(self, result_id):
-        '''Return the number of hits in an xquery resultby id returned from executeQuery'''
+        '''Return the number of hits in an xquery result by id returned from executeQuery'''
         try:
             return self.server.getHits(result_id)
         except xmlrpclib.Fault, e:
