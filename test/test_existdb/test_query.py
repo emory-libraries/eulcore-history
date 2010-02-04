@@ -3,7 +3,7 @@
 import unittest
 from test_existdb.test_db import settings
 from eulcore.existdb.db import ExistDB
-from eulcore.existdb.query import QuerySet, Xquery
+from eulcore.existdb.query import QuerySet, Xquery, PartialResultObject
 import eulcore.xmlmap.core as xmlmap
 
 class QueryTestModel(xmlmap.XmlObject):
@@ -48,30 +48,31 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual("two", self.qs[0].name)
         self.assertEqual("one", self.qs[1].name)
 
-    def test_filter(self):
-        self.qs.filter(contains="two")
-        self.assertEqual(1, self.qs.count(), "count returns 1 when filtered - contains 'two'")
-        self.assertEqual("two", self.qs[0].name, "name matches filter")
+    def test_filter(self):        
+        self.assertEqual(1, self.qs.filter(contains="two").count(), "count returns 1 when filtered - contains 'two'")
+        self.assertEqual("two", self.qs.filter(contains="two")[0].name, "name matches filter")
 
     def test_filter_field(self):
         self.qs.filter(name="one")
-        self.assertEqual(1, self.qs.count(), "count returns 1 when filtered on name = 'one' (got %s)"
+        self.assertEqual(1, self.qs.filter(name="one").count(), "count returns 1 when filtered on name = 'one' (got %s)"
             % self.qs.count())
-        self.assertEqual("one", self.qs[0].name, "name matches filter")
+        self.assertEqual("one", self.qs.filter(name="one")[0].name, "name matches filter")
 
     def test_filter_field_xpath(self):
         self.qs.filter(id="abc")
-        self.assertEqual(1, self.qs.count(), "count returns 1 when filtered on @id = 'abc' (got %s)"
+        self.assertEqual(1, self.qs.filter(id="abc").count(), "count returns 1 when filtered on @id = 'abc' (got %s)"
             % self.qs.count())
-        self.assertEqual("two", self.qs[0].name, "name returned is correct for id filter")
+        self.assertEqual("two", self.qs.filter(id="abc")[0].name, "name returned is correct for id filter")
 
     def test_filter_field_contains(self):
-        self.assertEqual(2, self.qs.filter(name__contains="o").count(),
-            "should get 2 matches for filter on name contains 'o' (got %s)" % self.qs.count())
+        fqs = self.qs.filter(name__contains="o")
+        self.assertEqual(2, fqs.count(),
+            "should get 2 matches for filter on name contains 'o' (got %s)" % fqs.count())
 
-    def test_filter_field_startswith(self):        
-        self.assertEqual(1, self.qs.filter(name__startswith="o").count(),
-            "should get 1 match for filter on name starts with 'o' (got %s)" % self.qs.count())
+    def test_filter_field_startswith(self):
+        fqs = self.qs.filter(name__startswith="o")
+        self.assertEqual(1, fqs.count(),
+            "should get 1 match for filter on name starts with 'o' (got %s)" % fqs.count())
 
     def test_get(self):
         result  = self.qs.get(contains="two")
@@ -101,14 +102,25 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual(2, self.qs.count(), "count should be 2 after filter is reset")
 
     def test_order_by(self):
-        self.qs.order_by('name')        
-        self.assertEqual('one', self.qs[0].name)
-        self.assertEqual('two', self.qs[1].name)
+        fqs = self.qs.order_by('name')
+        self.assertEqual('one', fqs[0].name)
+        self.assertEqual('two', fqs[1].name)
 
     def test_order_by(self):
-        self.qs.order_by('id')
-        self.assertEqual('abc', self.qs[0].id)
-        self.assertEqual('one', self.qs[1].id)
+        fqs = self.qs.order_by('id')
+        self.assertEqual('abc', fqs[0].id)
+        self.assertEqual('one', fqs[1].id)
+
+    def test_only(self):
+        fqs = self.qs.filter(id='one').only(['name','id'])
+        
+        self.assert_(isinstance(fqs[0], PartialResultObject))
+        self.assertTrue(hasattr(fqs[0], "name"))
+        self.assertTrue(hasattr(fqs[0], "id"))
+        self.assertFalse(hasattr(fqs[0], "description"))
+        self.assertEqual('one', fqs[0].id)
+        self.assertEqual('one', fqs[0].name)
+
 
 class XqueryTest(unittest.TestCase):
 
@@ -141,6 +153,32 @@ class XqueryTest(unittest.TestCase):
         xq.add_filter('startswith(., "S")')
         self.assertEquals('/el[contains(., "dog")][startswith(., "S")]', xq.getQuery())
 
+    def test_return_only(self):
+        xq = Xquery(xpath='/el')
+        xq.return_only(['@id', 'name'])
+        self.assert_('return <el>' in xq._constructReturn('$n'))
+        self.assert_('{$n/@id}' in xq._constructReturn('$n'))
+        self.assert_('{$n/name}' in xq._constructReturn('$n'))
+        self.assert_('</el>' in xq._constructReturn('$n'))
+
+        xq = Xquery(xpath='/some/el/notroot')
+        xq.return_only(['@id'])
+        self.assert_('return <notroot>' in xq._constructReturn('$n'))
+
+
+class PartialResultObjectTest(unittest.TestCase):
+    xml = '''
+    <root id="007">
+         <name>James</name>
+         <date>2010</date>
+    </root>
+    '''
+    def test_init(self):
+        partial = xmlmap.load_xmlobject_from_string(self.xml, PartialResultObject)
+        self.assertEquals('James', partial.name)
+        self.assertEquals('2010', partial.date)
+        self.assertEquals('007', partial.id)
+
 
 
 if __name__ == '__main__':
@@ -153,3 +191,4 @@ if __name__ == '__main__':
         pass
 
     unittest.main(testRunner=runner)
+
