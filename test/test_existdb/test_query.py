@@ -25,15 +25,21 @@ class ExistQueryTest(unittest.TestCase):
             <name>two</name>
             <description>this one only has two</description>
         </root>
-    '''    
+    '''
+    FIXTURE_THREE = '''
+        <root id="xyz">
+            <name>three</name>
+            <description>third!</description>
+        </root>
+    '''
 
     def setUp(self):
         self.db = ExistDB(server_url=settings.EXISTDB_SERVER_URL)
         self.db.createCollection(self.COLLECTION, True)
 
         self.db.load(self.FIXTURE_ONE, self.COLLECTION + '/f1.xml', True)
-        
         self.db.load(self.FIXTURE_TWO, self.COLLECTION + '/f2.xml', True)
+        self.db.load(self.FIXTURE_THREE, self.COLLECTION + '/f3.xml', True)
 
         self.qs = QuerySet(using=self.db, collection=self.COLLECTION, model=QueryTestModel)
 
@@ -41,12 +47,30 @@ class ExistQueryTest(unittest.TestCase):
         self.db.removeCollection(self.COLLECTION)
 
     def test_count(self):
-        self.assertEqual(2, self.qs.count(), "queryset count returns 2")
+        self.assertEqual(3, self.qs.count(), "queryset count returns 3")
 
     def test_getitem(self):        
-        # NOTE: default sort seems to be last-modified, so reverse order that they were saved
-        self.assertEqual("two", self.qs[0].name)
-        self.assertEqual("one", self.qs[1].name)
+        # what is default sort order? is this test reliable?
+        self.assertEqual("one", self.qs[0].name)
+        self.assertEqual("two", self.qs[1].name)
+        self.assertEqual("three", self.qs[2].name)
+
+    def test_getitem_typeerror(self):
+        self.assertRaises(TypeError, self.qs.__getitem__, "foo")
+
+    def test_getitem_indexerror(self):
+        self.assertRaises(IndexError, self.qs.__getitem__, -1)
+        self.assertRaises(IndexError, self.qs.__getitem__, 23)
+
+    def test_getslice(self):
+        slice = self.qs[0:1]
+        self.assert_(isinstance(slice, QuerySet))
+        self.assert_(isinstance(slice[0], QueryTestModel))        
+        self.assertEqual(2, slice.count())
+        self.assertEqual('one', slice[0].name)
+
+        slice = self.qs[1:2]
+        self.assertEqual('two', slice[0].name)
 
     def test_filter(self):        
         self.assertEqual(1, self.qs.filter(contains="two").count(), "count returns 1 when filtered - contains 'two'")
@@ -83,7 +107,7 @@ class ExistQueryTest(unittest.TestCase):
         self.assertRaises(Exception, self.qs.get, contains="one")
 
     def test_get_nomatch(self):
-        self.assertRaises(Exception, self.qs.get, contains="three")
+        self.assertRaises(Exception, self.qs.get, contains="fifty-four")
 
 
     def test_get_byname(self):
@@ -99,17 +123,19 @@ class ExistQueryTest(unittest.TestCase):
     def test_reset(self):
         self.qs.filter(contains="two")
         self.qs.reset()
-        self.assertEqual(2, self.qs.count(), "count should be 2 after filter is reset")
+        self.assertEqual(3, self.qs.count(), "count should be 3 after filter is reset")
 
     def test_order_by(self):
+        # element
         fqs = self.qs.order_by('name')
         self.assertEqual('one', fqs[0].name)
-        self.assertEqual('two', fqs[1].name)
-
-    def test_order_by(self):
+        self.assertEqual('three', fqs[1].name)
+        self.assertEqual('two', fqs[2].name)
+        # attribute
         fqs = self.qs.order_by('id')
         self.assertEqual('abc', fqs[0].id)
         self.assertEqual('one', fqs[1].id)
+        self.assertEqual('xyz', fqs[2].id)
 
     def test_only(self):
         fqs = self.qs.filter(id='one').only(['name','id'])
@@ -120,6 +146,10 @@ class ExistQueryTest(unittest.TestCase):
         self.assertFalse(hasattr(fqs[0], "description"))
         self.assertEqual('one', fqs[0].id)
         self.assertEqual('one', fqs[0].name)
+
+    def test_iter(self):
+        for q in self.qs:
+            self.assert_(isinstance(q, QueryTestModel))
 
 
 class XqueryTest(unittest.TestCase):
@@ -164,6 +194,39 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery(xpath='/some/el/notroot')
         xq.return_only(['@id'])
         self.assert_('return <notroot>' in xq._constructReturn('$n'))
+
+    def test_set_limits(self):
+        # subsequence with xpath
+        xq = Xquery(xpath='/el')
+        xq.set_limits(low=0, high=4)
+        self.assertEqual('subsequence(/el, 1, 5)', xq.getQuery())
+        # subsequence with FLWR query
+        xq.return_only(['name'])
+        self.assert_('subsequence(for $n in' in xq.getQuery())
+        
+        # additive limits
+        xq = Xquery(xpath='/el')
+        xq.set_limits(low=2, high=10)
+        xq.set_limits(low=1, high=5)
+        # FIXME: is this math right?
+        self.assertEqual('subsequence(/el, 4, 5)', xq.getQuery())
+
+        # no high specified
+        xq = Xquery(xpath='/el')
+        xq.set_limits(low=10)
+        self.assertEqual('subsequence(/el, 11, )', xq.getQuery())
+
+        # no low
+        xq = Xquery(xpath='/el')
+        xq.set_limits(high=15)
+        self.assertEqual('subsequence(/el, 1, 16)', xq.getQuery())
+
+    def test_clear_limits(self):
+        xq = Xquery(xpath='/el')
+        xq.set_limits(low=2, high=5)
+        xq.clear_limits()
+        self.assertEqual('/el', xq.getQuery())
+
 
 
 class PartialResultObjectTest(unittest.TestCase):

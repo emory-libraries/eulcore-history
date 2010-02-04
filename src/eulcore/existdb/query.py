@@ -29,9 +29,13 @@ class QuerySet(object):
         # FIXME: need to test this - how does hits differ from count?
         return self._db.getHits(self.result_id)
 
+    # FIXME: how do you get the count for the non-limited set?
+
     def _getCopy(self):
         # copy current queryset - for modification via filter/order/etc
-        return QuerySet(model=self.model, xquery=self.query.getCopy(), using=self._db)
+        copy = QuerySet(model=self.model, xquery=self.query.getCopy(), using=self._db)        
+        copy.partial_return = self.partial_return
+        return copy
 
     def filter(self, contains=None, *args, **kwargs):
 
@@ -80,6 +84,8 @@ class QuerySet(object):
         qscopy.partial_return = True
         return qscopy
 
+    def all(self):
+        return self._getCopy()
 
 
     # exclude?
@@ -105,13 +111,24 @@ class QuerySet(object):
             raise Exception("get() did not return 1 match - got %s with params %s"
                 % (fqs.count(), kwargs))
 
-    def __getitem__(self, i):
+    def __getitem__(self, k):
         """
-        Return a single result from the query, by index
-        """
-        # FIXME: check not negative, in range?
-        # todo: support slice?
-        item = self._db.retrieve(self.result_id, i)        
+        Return a single result or slice of results from the query
+        """        
+        if not isinstance(k, (slice, int, long)):
+           raise TypeError
+
+        if isinstance(k, slice):
+            qs = self._getCopy()
+            qs.query.set_limits(low=k.start, high=k.stop)            
+            return qs
+
+        # check that index is in range
+        # for now, not handling any fancy python indexing
+        if k < 0 or k > self.count():
+            raise IndexError
+       
+        item = self._db.retrieve(self.result_id, k)
         if self.model is None:
             return item.data
         if self.partial_return:
@@ -119,10 +136,15 @@ class QuerySet(object):
         else:
             return load_xmlobject_from_string(item.data, self.model)
 
+    def __iter__(self):
+        # rudimentary iterator (django queryset one much more complicated...)
+        for i in range(0, self.count()):
+            yield self.__getitem__(i)
+
     def _runQuery(self):
         """
         execute whatever query is currently set
-        """        
+        """
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
 
@@ -141,6 +163,8 @@ class Xquery(object):
         self.filters = []
         self.order_by = None
         self.return_fields = []
+        self.start = 0
+        self.end = None
 
     def __str__(self):
         return self.getQuery()
@@ -150,6 +174,7 @@ class Xquery(object):
         for f in self.filters:
             xq.filters.append(f)
         xq.order_by = self.order_by
+        xq.return_fields = self.return_fields
         return xq
 
     def getQuery(self):
@@ -175,10 +200,23 @@ class Xquery(object):
                 flowr_order = ''
             flowr_where = ''
             flowr_return = self._constructReturn("$n")
-            return '\n'.join([flowr_for, flowr_let, flowr_order, flowr_where, flowr_return])
+            query = '\n'.join([flowr_for, flowr_let, flowr_order, flowr_where, flowr_return])
+        else:
+            # if FLOWR is not required, just use plain xpath
+            query = xpath
 
-        # if FLOWR is not required, just return the xpath
-        return xpath
+        # if either start or end is specified, only retrieve the specified set of results
+        # limits need to be done after any sorting or filtering, so subsequencing entire query
+        if self.start != 0 or self.end is not None:
+            # subsequence takes nodeset, starting position, number of records to return
+            # note: xquery starts counting at 1 instead of 0
+            if self.end is None:
+                end = ''                            # no limit
+            else:
+                end = self.end - self.start + 1     # number to return
+            query = "subsequence(%s, %i, %s)" % (query, self.start + 1, end)
+
+        return query
 
     def sort(self, field):
         "Add ordering to xquery; sort field assumed relative to base xpath"
@@ -221,6 +259,32 @@ class Xquery(object):
 
     def clear_filters(self):
         self.filters = []
+
+    def set_limits(self, low=None, high=None):
+        """
+        Adjusts the limits on the results to be retrieved.
+
+        Any limits passed in here are applied relative to the existing
+        constraints. So low is added to the current low value and both will be
+        clamped to any existing high value.
+        """
+        # based on set_limits from django.db.models.sql.query
+        if high is not None:
+            if self.end is not None:
+                self.end = min(self.end, self.start + high)
+            else:
+                self.end = (self.start or 0) + high
+        if low is not None:
+            if self.end is not None:
+                self.start = min(self.end, self.start + low)
+            else:
+                self.start = (self.start or 0) + low
+
+    def clear_limits(self):
+        "Clear any existing limits."
+        self.start = 0
+        self.end = None
+
 
 
 class PartialResultObject(object):
