@@ -15,7 +15,7 @@ class XmlObject(object):
 
 def getXmlObjectXPath(obj, var):
     "Return the xpath string for an xmlmap field that belongs to the specified XmlObject"
-    if obj.__dict__[var]:
+    if var in obj.__dict__:
         return obj.__dict__[var].xpath
 
 def load_xmlobject_from_string(string, xmlclass=XmlObject):

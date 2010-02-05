@@ -10,6 +10,7 @@ class QueryTestModel(xmlmap.XmlObject):
             id = xmlmap.XPathString('@id')
             name = xmlmap.XPathString('name')
             description = xmlmap.XPathString('description')
+            wnn = xmlmap.XPathString('wacky_node_name')
 
 class ExistQueryTest(unittest.TestCase):
     COLLECTION = settings.EXISTDB_TEST_COLLECTION
@@ -18,6 +19,7 @@ class ExistQueryTest(unittest.TestCase):
         <root id="one">
             <name>one</name>
             <description>this one has one one</description>
+            <wacky_node_name>a</wacky_node_name>
         </root>
     '''
     FIXTURE_TWO = '''
@@ -147,6 +149,10 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual('one', fqs[0].id)
         self.assertEqual('one', fqs[0].name)
 
+        fqs = self.qs.filter(id='one').only(['wnn'])
+        self.assertTrue(hasattr(fqs[0], "wnn"))
+        self.assertEqual('a', fqs[0].wnn)
+
     def test_iter(self):
         for q in self.qs:
             self.assert_(isinstance(q, QueryTestModel))
@@ -177,22 +183,22 @@ class XqueryTest(unittest.TestCase):
 
     def test_filters(self):
         xq = Xquery(xpath='/el')
-        xq.add_filter('contains(., "dog")')
+        xq.add_filter('.', 'contains', 'dog')
         self.assertEquals('/el[contains(., "dog")]', xq.getQuery())
         # filters are additive
-        xq.add_filter('startswith(., "S")')
-        self.assertEquals('/el[contains(., "dog")][startswith(., "S")]', xq.getQuery())
+        xq.add_filter('.', 'startswith', 'S')
+        self.assertEquals('/el[contains(., "dog")][starts-with(., "S")]', xq.getQuery())
 
     def test_return_only(self):
         xq = Xquery(xpath='/el')
-        xq.return_only(['@id', 'name'])
+        xq.return_only({'myid':'@id', 'some_name':'name'})
         self.assert_('return <el>' in xq._constructReturn('$n'))
-        self.assert_('{$n/@id}' in xq._constructReturn('$n'))
-        self.assert_('{$n/name}' in xq._constructReturn('$n'))
+        self.assert_('attribute myid {$n/@id}' in xq._constructReturn('$n'))
+        self.assert_('element some_name {$n/name/node()}' in xq._constructReturn('$n'))
         self.assert_('</el>' in xq._constructReturn('$n'))
 
         xq = Xquery(xpath='/some/el/notroot')
-        xq.return_only(['@id'])
+        xq.return_only({'id':'@id'})
         self.assert_('return <notroot>' in xq._constructReturn('$n'))
 
     def test_set_limits(self):
@@ -201,7 +207,7 @@ class XqueryTest(unittest.TestCase):
         xq.set_limits(low=0, high=4)
         self.assertEqual('subsequence(/el, 1, 5)', xq.getQuery())
         # subsequence with FLWR query
-        xq.return_only(['name'])
+        xq.return_only({'name':'name'})
         self.assert_('subsequence(for $n in' in xq.getQuery())
         
         # additive limits

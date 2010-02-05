@@ -1,4 +1,3 @@
-from eulcore.existdb.db import ExistDB
 from eulcore.xmlmap.core import load_xmlobject_from_string, getXmlObjectXPath
 
 
@@ -17,6 +16,7 @@ class QuerySet(object):
 
         self._result_id = None
         self.partial_return = False
+        self._count = None
 
     @property
     def result_id(self):
@@ -27,7 +27,9 @@ class QuerySet(object):
 
     def count(self):
         # FIXME: need to test this - how does hits differ from count?
-        return self._db.getHits(self.result_id)
+        if self._count is None:
+            self._count = self._db.getHits(self.result_id)
+        return self._count
 
     # FIXME: how do you get the count for the non-limited set?
 
@@ -37,37 +39,41 @@ class QuerySet(object):
         copy.partial_return = self.partial_return
         return copy
 
-    def filter(self, contains=None, *args, **kwargs):
+    def filter(self, *args, **kwargs):
+        # django-style filters (field__lookuptype)
+        #  exact, contains, startswith
+        # possibilities to add:
+        #   gt/gte,lt/lte, endswith, range, date, isnull (?), regex (?)
+        #   search (full-text search with full-text indexing - like contains but faster)
 
         # create a copy of the current queryset and add filters to the *copy*
         # so the current queryset remains unchanged
         qscopy= self._getCopy()
-        # TODO: filter should not modify current queryset, but create a new one and return it
-        if contains is not None:
-            # proper xquery syntax?  use |= or &= ?
-            qscopy.query.add_filter('contains(., "%s")' % contains)
-
-        # very simplistic dynamic field search - for now, using field name as xpath (should get from model)
+        
         for arg, value in kwargs.items():
-            parts = arg.split('__')
-            if parts and len(parts) > 1:
-                xpath = parts[0]
-                if self.model:
-                    xpath = getXmlObjectXPath(self.model, parts[0]) or parts[0]
-                if parts[1] == 'contains':
-                    qscopy.query.add_filter('contains(%s, "%s")' % (xpath, value))
-                if parts[1] == 'startswith':
-                    qscopy.query.add_filter('starts-with(%s, "%s")' % (xpath, value))
+            if '__' in arg:
+                parts = arg.split('__')
+                if parts and len(parts) > 1:
+                    field = parts[0]
+                    lookuptype = parts[1]
             else:
-                xpath = arg
-                if self.model:
-                   xpath = getXmlObjectXPath(self.model, arg)
-                qscopy.query.add_filter('%s = "%s"' % (xpath, value))
+                # if arg is just field=foo, check for special terms
+                if arg ==  'contains':  #  contains=foo : contains anywhere in node
+                    field = '.'         # relative to base query node
+                    lookuptype = arg
+                else:
+                    # otherwise, set lookup type to exact
+                    field = arg
+                    lookuptype = 'exact'
 
+            # lookup xpath for field; using field as fall-back
+            xpath = getXmlObjectXPath(self.model, field) or field
+            qscopy.query.add_filter(xpath, lookuptype, value)
         # return copy query string so additional filters can be added or get() called
         return qscopy
 
     def order_by(self, field):
+        # todo: allow multiple fields, ascending/descending
         xpath = field
         if self.model:
             xpath = getXmlObjectXPath(self.model, field) or field
@@ -77,9 +83,11 @@ class QuerySet(object):
         return qscopy
 
     def only(self, fields):
-        "Limit which fields should be returned"
+        "Limit which fields should be returned; fields should be xpath properties on associated model"
         qscopy = self._getCopy()
-        xp_fields = [getXmlObjectXPath(self.model, f) for f in fields ]
+        xp_fields = {}
+        for f in fields:
+            xp_fields[f] = getXmlObjectXPath(self.model, f)
         qscopy.query.return_only(xp_fields)
         qscopy.partial_return = True
         return qscopy
@@ -87,18 +95,16 @@ class QuerySet(object):
     def all(self):
         return self._getCopy()
 
-
     # exclude?
-    # order by      -- probably need an xquery class to handle this (xpath or flowr as needed)
-    # only - fields to be returned (need xpath...)
 
     def reset(self):
         """reset any filters and query, reverting to base query created on init"""
-        self.query.clear_filters()
+        self.query.clear_filters()        
         # if a query has been made to eXist - release result & reset result id
         if self._result_id is not None:
             self.db.releaseQueryResult(self._result_id)
             self._result_id = None
+            self._count = None          # clear any count based on this result set
         
 
     def get(self, *args, **kwargs):
@@ -143,7 +149,7 @@ class QuerySet(object):
 
     def _runQuery(self):
         """
-        execute whatever query is currently set
+        execute the currently configured xquery
         """
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
@@ -162,7 +168,7 @@ class Xquery(object):
         self.collection = collection
         self.filters = []
         self.order_by = None
-        self.return_fields = []
+        self.return_fields = {}
         self.start = 0
         self.end = None
 
@@ -178,6 +184,10 @@ class Xquery(object):
         return xq
 
     def getQuery(self):
+        """
+        Generate and return xquery based on configured filters, sorting, return fields.
+        Returns xpath or FLOWR XQuery if required based on sorting and return
+        """
         xpath = ''
         if self.collection is not None:
             xpath += 'collection("/db/'+ self.collection.lstrip('/') + '")'
@@ -223,36 +233,53 @@ class Xquery(object):
         # todo: multiple sort fields; asc/desc?
         self.order_by = field
 
-    def add_filter(self, filter):
-        # NOTE: taking as entire string for now, refine later...
-        # what form SHOULD filters be accepted in?  queryset syntax?
+    def add_filter(self, xpath, type, value):
+        """
+        Add a filter to the xpath.  Takes xpath, type of filter, and value.
+        Filter types currently implemented: contains, startswith, exact
+        """
+        # possibilities to be added:
+        #   gt/gte,lt/lte, endswith, range, date, isnull (?), regex (?)
+        #   search (full-text search with full-text indexing - like contains but faster)
+        
+        if type == 'contains':
+            filter = 'contains(%s, "%s")' % (xpath, value)
+        if type == 'startswith':
+            filter = 'starts-with(%s, "%s")' % (xpath, value)
+        if type == 'exact':
+            filter = '%s = "%s"' % (xpath, value)
         self.filters.append(filter)
 
+
     def return_only(self, fields):
-        "Only return the specified fields."
-        for f in fields:
-            # attribute fields must be returned first when constructing FLOWR return
-            # putting attributes at the beginning of the list of fields
-            if '@' in f:
-                self.return_fields.insert(0, f)
-            else:
-                self.return_fields.append(f)
+        "Only return the specified fields.  fields should be a dictionary of return name -> xpath"
+        for name, xpath in fields.iteritems():
+            if name not in self.return_fields:
+                self.return_fields[name] = xpath
 
     def _constructReturn(self, xpath_var):
         """Construct the return portion of a FLOWR xquery.
-        xpath_var is the xpath variable which return fields should be relative to, ,.g. $n
+        xpath_var is the xpath variable which return fields should be relative to, e.g. $n
         """
         # return element - use last node of base xpath
         return_el = self.xpath.split('/')[-1]
-        if return_el == 'node()':
+        if return_el == 'node()':       # FIXME: other () expressions?
             return_el = 'node'
 
         if len(self.return_fields):
             rblocks = []
-            for rf in self.return_fields:
+            for name, xpath in self.return_fields.iteritems():
+                # construct return element with specified field name and xpath
                 # return fields are presumed relative to root return variable
-                rblocks.append('{%s/%s}' % (xpath_var, rf))      # e.g., {$n/@id}
-            r = 'return <%s>\n ' % (return_el)  + '\n '.join(rblocks) + '\n</%s>' % (return_el)
+                if xpath[0] == '@':
+                    rblocks.insert(0, 'attribute %s {%s/%s}' % (name, xpath_var, xpath))
+                    # attribute fields must be returned first when constructing FLOWR return
+                    # putting attributes at the beginning of the list of return blocks
+                else:
+                    # define element, e.g. element id {$n/@id/node()}
+                    # note: using node() so element *contents* will be in named element instead of nesting elements
+                    rblocks.append('element %s {%s/%s/node()}' % (name, xpath_var, xpath))
+            r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
         else:
             r = 'return %s' % xpath_var
         return r
@@ -281,7 +308,7 @@ class Xquery(object):
                 self.start = (self.start or 0) + low
 
     def clear_limits(self):
-        "Clear any existing limits."
+        "Clear any existing limits"
         self.start = 0
         self.end = None
 
