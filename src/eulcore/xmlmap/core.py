@@ -104,20 +104,25 @@ class XPathIntegerList(XPathDescriptor):
         return int(node.xpath('number()'))
 
 
-class XPathDate(XPathDescriptor):
-    def parse_date(self, rep):
-        if rep.endswith('Z'): # strip Z
-            rep = rep[:-1]
-        if rep[-6] in '+-': # strip tz
-            rep = rep[:-6]
-        dt = datetime.strptime(rep, '%Y-%m-%dT%H:%M:%S')
-        return dt
+def parse_date(rep):
+    if rep.endswith('Z'): # strip Z
+        rep = rep[:-1]
+    if rep[-6] in '+-': # strip tz
+        rep = rep[:-6]
+    dt = datetime.strptime(rep, '%Y-%m-%dT%H:%M:%S')
+    return dt
 
+class XPathDate(XPathDescriptor):
     def convert_node(self, node):
         rep = node.xpath('string()')
-        return self.parse_date(rep)
+        return parse_date(rep)
 
     def convert_nodelist(self, nodes):
         if nodes:
             # better hope there's only one
             return nodes[0]
+
+class XPathDateList(XPathDescriptor):
+    def convert_node(self, node):
+        rep = node.xpath('string()')
+        return parse_date(rep)
