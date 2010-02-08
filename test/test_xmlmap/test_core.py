@@ -16,7 +16,20 @@ class TestDescriptors(unittest.TestCase):
             </bar>
         </foo>
     '''
+    # simple xsl for testing xslTransform - converts bar/baz to just baz
+    FIXTURE_XSL = '''<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+        <xsl:template match="bar">
+            <xsl:apply-templates select="baz"/>
+            </xsl:template>
 
+        <xsl:template match="@*|node()">
+            <xsl:copy>
+                <xsl:apply-templates select="@*|node()"/>
+            </xsl:copy>
+        </xsl:template>
+
+    </xsl:stylesheet>'''
+    
     def setUp(self):
         # parseString wants a url. let's give it a proper one.
         url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'FIXTURE_TEXT')
@@ -86,6 +99,33 @@ class TestDescriptors(unittest.TestCase):
         child_vals = [ child.val for child in obj.children ]
         self.assertEqual(child_vals, [42, 13])
         self.assertEqual(obj.missing, [])
+
+    def test_xslTransform(self):
+        class TestObject(xmlmap.XmlObject):
+            bar_baz = xmlmap.XPathString('bar[1]/baz')
+            nobar_baz = xmlmap.XPathString('baz[1]')
+
+        # xsl in string
+        obj = TestObject(self.fixture.documentElement)
+        result = obj.xslTransform(xsl=self.FIXTURE_XSL)
+        newobj = xmlmap.load_xmlobject_from_string(result, TestObject)
+        self.assertEqual('42', newobj.nobar_baz)
+        self.assertEqual(None, newobj.bar_baz)
+
+        # xsl in file
+        self.FILE = tempfile.NamedTemporaryFile(mode="w")
+        self.FILE.write(TestDescriptors.FIXTURE_XSL)
+        self.FILE.flush()
+
+        obj = TestObject(self.fixture.documentElement)
+        result = obj.xslTransform(filename=self.FILE.name)
+        newobj = xmlmap.load_xmlobject_from_string(result, TestObject)
+        self.assertEqual('42', newobj.nobar_baz)
+        self.assertEqual(None, newobj.bar_baz)
+
+        self.FILE.close()
+
+        # not yet tested: xsl with parameters
 
 
 # NOTE: using TestDescriptors fixture text for the init tests

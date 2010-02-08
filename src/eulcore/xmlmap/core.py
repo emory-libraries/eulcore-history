@@ -1,6 +1,7 @@
 from Ft.Xml.Domlette import NonvalidatingReader
 from Ft.Xml.XPath.Context import Context
 from Ft.Xml.XPath import Compile, Evaluate
+from Ft.Xml.Xslt import Processor
 from datetime import datetime
 from Ft.Lib import Uri
 
@@ -12,6 +13,18 @@ class XmlObject(object):
         self.dom_node = dom_node
         self.context = context or Context(dom_node, 
             processorNss=dict([(n.localName, n.value) for n in dom_node.xpathNamespaces]))
+
+    def xslTransform(self, filename=None, xsl=None, params={}):
+        """Run an xslt transform on the contents of the XmlObject.
+           XSLT can be passed as filename or string.
+        """
+        xslproc = Processor.Processor()
+        if filename is not None:
+            xslt = parseUri(Uri.OsPathToUri(filename))
+        if xsl is not None:
+            xslt = parseString(xsl, "urn:bogus")
+        xslproc.appendStylesheetNode(xslt)
+        return xslproc.runNode(self.dom_node.ownerDocument, topLevelParams=params)
 
 def getXmlObjectXPath(obj, var):
     "Return the xpath string for an xmlmap field that belongs to the specified XmlObject"
@@ -29,10 +42,6 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject):
     file_uri = Uri.OsPathToUri(filename)
     parsed_file = parseUri(file_uri)
     return xmlclass(parsed_file.documentElement)
-
-#    file_uri = Uri.OsPathToUri('spam.xml')
-#doc = NonvalidatingReader.parseUri(file_uri)
-
 
 class XPathDescriptor(object):
     def __init__(self, xpath):
