@@ -1,5 +1,5 @@
 from eulcore.xmlmap.core import load_xmlobject_from_string, getXmlObjectXPath
-
+import re
 
 class QuerySet(object):
     """
@@ -17,6 +17,7 @@ class QuerySet(object):
         self._result_id = None
         self.partial_return = False
         self._count = None
+        self._return_also = []
 
     @property
     def result_id(self):
@@ -37,6 +38,7 @@ class QuerySet(object):
         # copy current queryset - for modification via filter/order/etc
         copy = QuerySet(model=self.model, xquery=self.query.getCopy(), using=self._db)        
         copy.partial_return = self.partial_return
+        copy._return_also = self._return_also
         return copy
 
     def filter(self, *args, **kwargs):
@@ -92,6 +94,18 @@ class QuerySet(object):
         qscopy.partial_return = True
         return qscopy
 
+    def also(self, fields):
+        "Specify additional fields to be returned; fields should be xpath properties on associated model"        
+        qscopy = self._getCopy()
+        xp_fields = {}
+        for f in fields:
+            xp_fields[f] = getXmlObjectXPath(self.model, f)
+        qscopy.query.return_also(xp_fields)
+        # save field names so they can be mapped in return object
+        qscopy._return_also = fields
+        return qscopy
+
+
     def all(self):
         return self._getCopy()
 
@@ -140,7 +154,11 @@ class QuerySet(object):
         if self.partial_return:
             return load_xmlobject_from_string(item.data, PartialResultObject)
         else:
-            return load_xmlobject_from_string(item.data, self.model)
+            obj =  load_xmlobject_from_string(item.data, self.model)
+            for f in self._return_also:
+                # map additional return fields in the return object (similar to PartialResultObject)
+                setattr(obj, f, obj.dom_node.xpath('string(%s)' % f))
+            return obj
 
     def __iter__(self):
         # rudimentary iterator (django queryset one much more complicated...)
@@ -153,6 +171,10 @@ class QuerySet(object):
         """
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
+    def getDocument(self, docname):        
+        data = self._db.getDoc('/'.join([self.query.collection, docname]))
+        # getDoc returns unicode instead of string-- need to decode before handing off to parseString
+        return load_xmlobject_from_string(data.encode('utf_8'), self.model)
 
 class Xquery(object):
     """
@@ -169,6 +191,7 @@ class Xquery(object):
         self.filters = []
         self.order_by = None
         self.return_fields = {}
+        self.additional_return_fields = {}
         self.start = 0
         self.end = None
 
@@ -181,6 +204,7 @@ class Xquery(object):
             xq.filters.append(f)
         xq.order_by = self.order_by
         xq.return_fields = self.return_fields
+        xq.additional_return_fields = self.additional_return_fields
         return xq
 
     def getQuery(self):
@@ -197,9 +221,8 @@ class Xquery(object):
         for f in self.filters:
             xpath += '[%s]' % (f)
 
-        # requires FLOWR instead of just XQuery
-        # (sort, return only, ...?)
-        if self.order_by or len(self.return_fields):
+        # requires FLOWR instead of just XQuery  (sort, customized return, etc.)
+        if self.order_by or len(self.return_fields) or len(self.additional_return_fields):            
             # NOTE: use constructed xpath, with collection (if any)
             flowr_for = 'for $n in ' + xpath
             flowr_let = ''
@@ -257,6 +280,14 @@ class Xquery(object):
             if name not in self.return_fields:
                 self.return_fields[name] = xpath
 
+    def return_also(self, fields):
+        """Return additional specified fields.  fields should be a dictionary of return name -> xpath.
+           Not compatible with return_only."""
+        for name, xpath in fields.iteritems():
+            if name not in self.additional_return_fields:
+                self.additional_return_fields[name] = xpath
+
+
     def _constructReturn(self, xpath_var):
         """Construct the return portion of a FLOWR xquery.
         xpath_var is the xpath variable which return fields should be relative to, e.g. $n
@@ -278,6 +309,17 @@ class Xquery(object):
                 else:
                     # define element, e.g. element id {$n/@id/node()}
                     # note: using node() so element *contents* will be in named element instead of nesting elements
+                    rblocks.append('element %s {%s/%s/node()}' % (name, xpath_var, xpath))
+            r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
+        elif len(self.additional_return_fields):
+            # return everything under matched node - all attributes, all nodes
+            rblocks = ["%s/@*" % xpath_var, "%s/node()" % xpath_var]
+            for name, xpath in self.additional_return_fields.iteritems():
+                # same logic as return fields above (how to consolidate?)
+                if re.search('@[^/]+$', xpath):     # last element in path is an attribute node
+                    # set attributes as fields to avoid attribute conflict;
+                    rblocks.insert(0, 'element %s {%s/string(%s)}' % (name, xpath_var, xpath))
+                else:
                     rblocks.append('element %s {%s/%s/node()}' % (name, xpath_var, xpath))
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
         else:

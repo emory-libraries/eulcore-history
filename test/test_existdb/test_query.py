@@ -141,7 +141,6 @@ class ExistQueryTest(unittest.TestCase):
 
     def test_only(self):
         fqs = self.qs.filter(id='one').only(['name','id'])
-        
         self.assert_(isinstance(fqs[0], PartialResultObject))
         self.assertTrue(hasattr(fqs[0], "name"))
         self.assertTrue(hasattr(fqs[0], "id"))
@@ -156,6 +155,23 @@ class ExistQueryTest(unittest.TestCase):
     def test_iter(self):
         for q in self.qs:
             self.assert_(isinstance(q, QueryTestModel))
+
+    def test_also(self):        
+        class SubqueryTestModel(xmlmap.XmlObject):
+            name = xmlmap.XPathString('.')
+            parent_id = xmlmap.XPathString('parent::root/@id')
+
+        qs = QuerySet(using=self.db, collection=self.COLLECTION, model=SubqueryTestModel, xpath='//name')
+        name = qs.also(['parent_id']).get(name__exact='two')
+        self.assertEqual('abc', name.parent_id,
+            "parent id set correctly when retuning at name level with also parent_id specified; should be 'abc', got '"
+            + name.parent_id + "'")
+
+    def test_getDocument(self):
+      obj = self.qs.getDocument("f1.xml")
+      self.assert_(isinstance(obj, QueryTestModel),
+            "object returned by getDocument is instance of QueryTestModel")
+      self.assertEqual("one", obj.name)
 
 
 class XqueryTest(unittest.TestCase):
@@ -200,6 +216,14 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery(xpath='/some/el/notroot')
         xq.return_only({'id':'@id'})
         self.assert_('return <notroot>' in xq._constructReturn('$n'))
+
+    def test_return_also(self):
+        xq = Xquery(xpath='/el')
+        xq.return_also({'myid':'@id', 'some_name':'name'})
+        self.assert_('$n/@*,' in xq._constructReturn('$n'))
+        self.assert_('$n/node(),' in xq._constructReturn('$n'))
+        self.assert_('element myid {$n/string(@id)},' in xq._constructReturn('$n'))
+
 
     def test_set_limits(self):
         # subsequence with xpath
