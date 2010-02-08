@@ -173,6 +173,13 @@ class ExistQueryTest(unittest.TestCase):
             "object returned by getDocument is instance of QueryTestModel")
       self.assertEqual("one", obj.name)
 
+    def test_distinct(self):
+        qs = QuerySet(using=self.db, collection=self.COLLECTION, xpath='//name')
+        vals = qs.distinct()
+        self.assertEqual('one', vals[0])
+        self.assertEqual('two', vals[1])
+        self.assertEqual('three', vals[2])
+
 
 class XqueryTest(unittest.TestCase):
 
@@ -257,6 +264,11 @@ class XqueryTest(unittest.TestCase):
         xq.clear_limits()
         self.assertEqual('/el', xq.getQuery())
 
+    def test_distinct(self):
+        # distinct-values
+        xq = Xquery(xpath='/el')
+        xq.distinct()
+        self.assertEqual('distinct-values(/el)', xq.getQuery())
 
 
 class PartialResultObjectTest(unittest.TestCase):

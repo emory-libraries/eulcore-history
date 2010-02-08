@@ -105,6 +105,12 @@ class QuerySet(object):
         qscopy._return_also = fields
         return qscopy
 
+    def distinct(self):
+        """ Return distinct values for specified query"""
+        qscopy = self._getCopy()
+        qscopy.query.distinct()
+        return qscopy
+
 
     def all(self):
         return self._getCopy()
@@ -168,7 +174,7 @@ class QuerySet(object):
     def _runQuery(self):
         """
         execute the currently configured xquery
-        """        
+        """
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
     def getDocument(self, docname):        
@@ -194,6 +200,7 @@ class Xquery(object):
         self.additional_return_fields = {}
         self.start = 0
         self.end = None
+        self._distinct = False
 
     def __str__(self):
         return self.getQuery()
@@ -205,6 +212,7 @@ class Xquery(object):
         xq.order_by = self.order_by
         xq.return_fields = self.return_fields
         xq.additional_return_fields = self.additional_return_fields
+        xq._distinct = self._distinct
         return xq
 
     def getQuery(self):
@@ -249,12 +257,18 @@ class Xquery(object):
                 end = self.end - self.start + 1     # number to return
             query = "subsequence(%s, %i, %s)" % (query, self.start + 1, end)
 
+        if self._distinct:
+            query = "distinct-values(%s)" % query
+
         return query
 
     def sort(self, field):
         "Add ordering to xquery; sort field assumed relative to base xpath"
         # todo: multiple sort fields; asc/desc?
         self.order_by = field
+
+    def distinct(self):
+        self._distinct = True
 
     def add_filter(self, xpath, type, value):
         """
@@ -286,7 +300,6 @@ class Xquery(object):
         for name, xpath in fields.iteritems():
             if name not in self.additional_return_fields:
                 self.additional_return_fields[name] = xpath
-
 
     def _constructReturn(self, xpath_var):
         """Construct the return portion of a FLOWR xquery.
