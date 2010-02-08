@@ -27,9 +27,16 @@ class XmlObject(object):
         return xslproc.runNode(self.dom_node.ownerDocument, topLevelParams=params)
 
 def getXmlObjectXPath(obj, var):
-    "Return the xpath string for an xmlmap field that belongs to the specified XmlObject"
+    "Return the xpath string for an xmlmap field that belongs to the specified XmlObject"    
     if var in obj.__dict__:
         return obj.__dict__[var].xpath
+    if hasattr(obj, '__bases__'):
+        for baseclass in obj.__bases__:
+            # FIXME: should this check isinstance of XmlObject ?
+            xpath = getXmlObjectXPath(baseclass, var)
+            if xpath:
+                return xpath
+
 
 def load_xmlobject_from_string(string, xmlclass=XmlObject):
     """Convenience function to initialize an XmlObject from a string"""

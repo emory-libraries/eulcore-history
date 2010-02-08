@@ -171,6 +171,21 @@ class TestXmlObjectFileInit(unittest.TestCase):
         self.assert_(isinstance(obj, TestObject))
 
 
+class TestGetXmlObjectXPath(unittest.TestCase):    
+
+    def test_getXmlObjectXPath(self):
+
+        class TestObject(xmlmap.XmlObject):
+            val = xmlmap.XPathString('bar[1]/baz')
+
+        class TestSubObject(TestObject):
+            subval = xmlmap.XPathString('foo/bar')
+
+        self.assertEqual("bar[1]/baz", xmlmap.getXmlObjectXPath(TestObject, 'val'))
+        self.assertEqual("foo/bar", xmlmap.getXmlObjectXPath(TestSubObject, 'subval'))
+        self.assertEqual("bar[1]/baz", xmlmap.getXmlObjectXPath(TestSubObject, 'val'))
+
+
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner
