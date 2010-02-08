@@ -168,7 +168,7 @@ class QuerySet(object):
     def _runQuery(self):
         """
         execute the currently configured xquery
-        """
+        """        
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
     def getDocument(self, docname):        
@@ -318,7 +318,7 @@ class Xquery(object):
                 # same logic as return fields above (how to consolidate?)
                 if re.search('@[^/]+$', xpath):     # last element in path is an attribute node
                     # set attributes as fields to avoid attribute conflict;
-                    rblocks.insert(0, 'element %s {%s/string(%s)}' % (name, xpath_var, xpath))
+                    rblocks.append('element %s {%s/string(%s)}' % (name, xpath_var, xpath))
                 else:
                     rblocks.append('element %s {%s/%s/node()}' % (name, xpath_var, xpath))
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
