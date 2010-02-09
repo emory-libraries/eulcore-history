@@ -45,6 +45,8 @@ class TestTei(unittest.TestCase):
         self.assertEqual('The Choice', div.div[0].title)
         self.assertEqual('Rudyard Kipling', div.div[0].author)
 
+        self.assert_("THE RIVERSIDE PRESS LIMITED, EDINBURGH" in self.tei.back.div[1].text)
+
     def testTeiFigure(self):
         self.assert_(isinstance(self.tei.figure[0], TeiFigure))
         self.assertEqual("chateau_thierry2", self.tei.figure[0].entity)

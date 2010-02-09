@@ -7,6 +7,7 @@ class TeiDiv(xmlmap.XmlObject):
     type	= xmlmap.XPathString('@type')
     author 	= xmlmap.XPathString('docAuthor')
     title 	= xmlmap.XPathString('@n')          # is this mapping relevant/valid/useful?
+    text    = xmlmap.XPathString('.')       # short-hand mapping for full text of a div (e.g., for short divs)
     # reference to top-level elements, e.g. for retrieving a single div
     doctitle    = xmlmap.XPathString('ancestor::TEI.2/teiHeader/fileDesc/titleStmt/title')
     doc_id      = xmlmap.XPathString('ancestor::TEI.2/@id')
