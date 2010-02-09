@@ -1,15 +1,18 @@
 import httplib
-import rdflib
 from StringIO import StringIO
 from base64 import standard_b64encode as b64encode
-from eulcore import xmlmap
+from urllib import urlencode
+from urllib2 import urlopen, Request
+from urlparse import urljoin, urlsplit
+
+import rdflib
 from soaplib.client import make_service_client
 from soaplib.serializers import primitive as soap_types
 from soaplib.service import soapmethod
 from soaplib.wsgi_soap import SimpleWSGISoapApp
-from urllib import urlencode
-from urllib2 import urlopen, Request
-from urlparse import urljoin, urlsplit
+from Ft.Xml.Domlette import NonvalidatingReader
+
+from eulcore import xmlmap
 
 # a repository object, basically a handy facade for easy api access
 
@@ -28,6 +31,12 @@ class Repository(object):
     @property
     def rest_api(self):
         return REST_API(self.fedora_root, self.username, self.password)
+
+    def ingest(self, *args, **kwargs):
+        return self.rest_api.ingest(*args, **kwargs)
+
+    def purge_object(self, *args, **kwargs):
+        return self.rest_api.purgeObject(*args, **kwargs)
 
     def get_objects_with_cmodel(self, cmodel_uri, type=None):
         uris = self.risearch.get_subjects(URI_HAS_MODEL, cmodel_uri)
@@ -204,6 +213,33 @@ class ObjectTypeDescriptor(object):
 
 # fedora apis
 
+class RequestContextManager(object):
+    def __init__(self, method, url, body=None, headers=None):
+        self.method = method
+        self.url = url
+        self.body = body
+        self.headers = headers
+
+    def __enter__(self):
+        urlparts = urlsplit(self.url)
+        if urlparts.scheme == 'http':
+            connection = httplib.HTTPConnection(urlparts.hostname, urlparts.port)
+        elif urlparts.scheme == 'https':
+            connection = httplib.HTTPSConnection(urlparts.hostname, urlparts.port)
+        self.connection = connection
+
+        try:
+            connection.request(self.method, self.url, self.body, self.headers)
+            # FIXME: throw exceptions for HTTP errors
+            return connection.getresponse()
+        except:
+            connection.close()
+            raise
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        self.connection.close()
+
+
 class HTTP_API_Base(object):
     def __init__(self, root, username=None, password=None):
         self.fedora_root = root
@@ -213,8 +249,14 @@ class HTTP_API_Base(object):
 
     def read_relative_uri(self, relative_uri, read=None):
         read = read or self.read_uri
-        return read(self.fedora_root + relative_uri)
-        
+        return read(urljoin(self.fedora_root, rel_path))
+
+    def relative_request(self, method, rel_path, body=None, headers={}):
+        path = urljoin(self.fedora_root, rel_path)
+        headers = headers.copy()
+        headers.update(auth_headers(self.username, self.password))
+        return RequestContextManager(method, path, body, headers)
+
 
 class API_A_LITE(HTTP_API_Base):
     def getDatastreamDissemination(self, pid, ds_name, read=None):
@@ -232,9 +274,52 @@ class REST_API(HTTP_API_Base):
         if session_token:
             http_args['sessionToken'] = session_token
         return self.read_relative_uri('objects?' + urlencode(http_args), read)
-        
+
+    def getNextPID(self, num_pids=None, namespace=None):
+        http_args = { 'format': 'xml' }
+        if num_pids:
+            http_args['numPIDs'] = num_pids
+        if namespace:
+            http_args['namespace'] = namespace
+
+        rel_url = 'objects/nextPID?' + urlencode(http_args)
+        url = urljoin(self.fedora_root, rel_url)
+        with self.relative_request('POST', url, '', {}) as response:
+            text = response.read()
+        dom = NonvalidatingReader.parseString(text, url)
+        pids = [ node.nodeValue for node in dom.xpath('/pidList/pid/text()') ]
+
+        if num_pids is None:
+            return pids[0]
+        else:
+            return pids
+
+    def ingest(self, text, log_message=None):
+        http_args = {}
+        if log_message:
+            http_args['logMessage'] = log_message
+
+        headers = { 'Content-Type': 'text/xml' }
+
+        url = 'objects/new?' + urlencode(http_args)
+        with self.relative_request('POST', url, text, headers) as response:
+            pid = response.read()
+
+        return pid
+            
     def listDatastreams(self, pid, read=None):
         return self.read_relative_uri('objects/%s/datastreams.xml' % (pid,), read)
+
+    def purgeObject(self, pid, log_message=None):
+        http_args = {}
+        if log_message:
+            http_args['logMessage'] = log_message
+        
+        url = 'objects/' + pid
+        with self.relative_request('DELETE', url, '', {}) as response:
+            # FIXME: either do something with this response, or else don't
+            #   use a context manager here.
+            pass
 
 
 class API_M(SimpleWSGISoapApp):

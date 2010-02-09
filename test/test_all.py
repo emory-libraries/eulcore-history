@@ -3,7 +3,11 @@
 import unittest
 
 # add any new modules to be tested here
-modules_to_test = ('test_xmlmap', 'test_existdb')
+modules_to_test = (
+    'test_existdb',
+    'test_fedora',
+    'test_xmlmap', 
+    )
 
 
 def suite():
