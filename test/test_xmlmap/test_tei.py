@@ -3,13 +3,16 @@
 import unittest
 from os import path
 
-from eulcore.xmlmap  import load_xmlobject_from_file
-from eulcore.xmlmap.teimap import Tei, TeiSection, TeiDiv
+from eulcore.xmlmap  import load_xmlobject_from_file, XPathNodeList
+from eulcore.xmlmap.teimap import Tei, TeiSection, TeiDiv, TeiFigure, TeiInterpGroup, TeiInterp
 
 class TestTei(unittest.TestCase):
     FIXTURE_FILE = path.join(path.dirname(path.abspath(__file__)) ,
                              'fixtures', 'tei_clarke.xml')
     def setUp(self):
+        # additional mappings for testing
+        Tei.figure = XPathNodeList('//figure', TeiFigure)
+        Tei.interpGroup = XPathNodeList('//interpGrp', TeiInterpGroup)
         self.tei = load_xmlobject_from_file(self.FIXTURE_FILE, Tei)
 
     def testInit(self):
@@ -41,8 +44,24 @@ class TestTei(unittest.TestCase):
         self.assertEqual('clarke006', div.div[0].id)
         self.assertEqual('The Choice', div.div[0].title)
         self.assertEqual('Rudyard Kipling', div.div[0].author)
-        
 
+    def testTeiFigure(self):
+        self.assert_(isinstance(self.tei.figure[0], TeiFigure))
+        self.assertEqual("chateau_thierry2", self.tei.figure[0].entity)
+        self.assertEqual("Chateau-Thierry", self.tei.figure[0].head)
+        self.assertEqual("nat-fr mil-f con-r im-ph t-wwi", self.tei.figure[0].ana)
+        self.assert_("photo of ruined houses" in self.tei.figure[0].description)
+
+    def testTeiInterpGroup(self):
+        self.assert_(isinstance(self.tei.interpGroup[0], TeiInterpGroup))
+        self.assert_(isinstance(self.tei.interpGroup[0].interp[0], TeiInterp))
+        self.assertEqual("image", self.tei.interpGroup[0].type)
+        self.assertEqual("time period", self.tei.interpGroup[1].type)
+        self.assertEqual("im-ph", self.tei.interpGroup[0].interp[0].id)
+        self.assertEqual("photo", self.tei.interpGroup[0].interp[0].value)
+        self.assertEqual("mil-na", self.tei.interpGroup[2].interp[1].id)
+        
+        
 if __name__ == '__main__':
     runner = unittest.TextTestRunner
 

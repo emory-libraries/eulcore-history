@@ -1,5 +1,7 @@
 from eulcore import xmlmap
 
+# TODO: generic/base tei xml object with common attributes?
+
 class TeiDiv(xmlmap.XmlObject):
     id	 	= xmlmap.XPathString('@id')
     type	= xmlmap.XPathString('@type')
@@ -16,6 +18,23 @@ TeiDiv.div = xmlmap.XPathNodeList('div', TeiDiv)
 class TeiSection(xmlmap.XmlObject):
     # top-level sections -- front/body/back
     div = xmlmap.XPathNodeList('div', TeiDiv)
+
+# note: not currently mapped to any of the existing tei objects...  where to add?
+class TeiFigure(xmlmap.XmlObject):
+    entity      = xmlmap.XPathString("@entity")
+    # TODO: ana should be a more generic attribute, common to many elements...
+    ana         = xmlmap.XPathString("@ana")	# FIXME: how to split on spaces? should be a list...
+    head        = xmlmap.XPathString("head")
+    description = xmlmap.XPathString("figDesc")
+
+# currently not mapped... should it be mapped by default? at what level?
+class TeiInterp(xmlmap.XmlObject):
+    id          = xmlmap.XPathString("@id")
+    value       = xmlmap.XPathString("@value")
+
+class TeiInterpGroup(xmlmap.XmlObject):
+    type        = xmlmap.XPathString("@type")
+    interp      = xmlmap.XPathNodeList("interp", TeiInterp)
 
 class Tei(xmlmap.XmlObject):
     """xmlmap object for a TEI (Text Encoding Initiative) XML document """

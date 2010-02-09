@@ -149,6 +149,7 @@
                 <p/>
             </div>
             <pb n="xxv"/>
+
             <div id="clarke003" type="Chapter" n="Introduction">
                 <head rend="center">Introduction</head>
                 <p>
@@ -381,6 +382,37 @@ They ratify also the spirit of those poems in the present volume which seek to i
                     </lg>
                     <byline>Vachel Lindsay</byline>
                 </div>
+
+<!-- postcard figures for testing -->
+<figure entity="chateau_thierry2" ana="nat-fr mil-f con-r im-ph t-wwi">
+<head>Chateau-Thierry</head>
+<figDesc>This postcard is a black and white photo of ruined houses and ruins in the street. Five soldiers are walking through the ruins. Text at bottom center: "Chateau-Thierry -- Barricade et Ruines rue Carnot". Text at bottom right: "'La Pensee'". On reverse: blank.</figDesc>
+</figure>
+
+<figure entity="fighting_fifth" ana="nat-brit mil-a mil-f im-ph t-wwi"><head>The "Fighting
+Fifth"</head><figDesc>This black and white photograph shows
+soldiers cheering. At bottom: The "Fighting Fifth" (Northumberland
+Fusiliers) after the battle of St. Eloi. In small script at the top:
+Official Photograph Crown Copyright Reserved, and at bottom, Daily
+Mail War Pictures. On reverse: Assisted by the Royal Fusiliers, the
+"Fighting Fifth" (Northumberland Fusiliers) took with splendid dash
+the first and second line trenches at St. Eloi. At left on reverse:
+Official War Photographs/Crown Copryright Reserved/Series 6. No. 46.</figDesc></figure>
+
+<interpGrp type="image">    
+    <interp id="im-ph" value="photo"/>        
+    <interp id="im-ca" value="cartoon"/>
+</interpGrp>
+<interpGrp type="time period">
+    <interp id="t-pre" value="pre Great War"/>
+    <interp id="t-wwi" value="during Great War"/>
+    <interp id="t-ww2" value="World War II"/>
+</interpGrp>
+<interpGrp type="military">
+    <interp id="mil-a" value="Army"/>
+    <interp id="mil-na" value="Navy"/>
+    <interp id="mil-f" value="battle front"/>
+</interpGrp>
  	  </div>
 	</body>
         <back>
