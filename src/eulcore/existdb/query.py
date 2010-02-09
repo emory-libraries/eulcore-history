@@ -32,6 +32,12 @@ class QuerySet(object):
             self._count = self._db.getHits(self.result_id)
         return self._count
 
+    def queryTime(self):
+        """Return time (in milliseconds) it took for eXist to run the last query"""
+        # cache summary? is this useful?
+        summary = self._db.querySummary(self.result_id)
+        return summary['queryTime']
+
     # FIXME: how do you get the count for the non-limited set?
 
     def _getCopy(self):
@@ -60,7 +66,7 @@ class QuerySet(object):
                     lookuptype = parts[1]
             else:
                 # if arg is just field=foo, check for special terms
-                if arg ==  'contains':  #  contains=foo : contains anywhere in node
+                if arg ==  'contains' or arg == 'startswith':  #  contains=foo : contains anywhere in node
                     field = '.'         # relative to base query node
                     lookuptype = arg
                 else:
@@ -155,7 +161,7 @@ class QuerySet(object):
             raise IndexError
        
         item = self._db.retrieve(self.result_id, k)
-        if self.model is None:
+        if self.model is None or self.query._distinct:
             return item.data
         if self.partial_return:
             return load_xmlobject_from_string(item.data, PartialResultObject)
@@ -210,9 +216,10 @@ class Xquery(object):
         for f in self.filters:
             xq.filters.append(f)
         xq.order_by = self.order_by
-        xq.return_fields = self.return_fields
-        xq.additional_return_fields = self.additional_return_fields
         xq._distinct = self._distinct
+        # return *copies* of dictionaries, not references to the ones in this object!
+        xq.return_fields = self.return_fields.copy()
+        xq.additional_return_fields = self.additional_return_fields.copy()
         return xq
 
     def getQuery(self):
@@ -246,6 +253,9 @@ class Xquery(object):
             # if FLOWR is not required, just use plain xpath
             query = xpath
 
+        if self._distinct:
+            query = "distinct-values(%s)" % query
+
         # if either start or end is specified, only retrieve the specified set of results
         # limits need to be done after any sorting or filtering, so subsequencing entire query
         if self.start != 0 or self.end is not None:
@@ -256,9 +266,6 @@ class Xquery(object):
             else:
                 end = self.end - self.start + 1     # number to return
             query = "subsequence(%s, %i, %s)" % (query, self.start + 1, end)
-
-        if self._distinct:
-            query = "distinct-values(%s)" % query
 
         return query
 
@@ -306,7 +313,7 @@ class Xquery(object):
         xpath_var is the xpath variable which return fields should be relative to, e.g. $n
         """
         # return element - use last node of base xpath
-        return_el = self.xpath.split('/')[-1]
+        return_el = self.xpath.split('/')[-1].strip('@')
         if return_el == 'node()':       # FIXME: other () expressions?
             return_el = 'node'
 
@@ -314,15 +321,17 @@ class Xquery(object):
             rblocks = []
             for name, xpath in self.return_fields.iteritems():
                 # construct return element with specified field name and xpath
-                # return fields are presumed relative to root return variable
+                # - return fields are presumed relative to root return variable
+                # - attributes returned as elements for simplicity, use with distinct, etc.
                 if xpath[0] == '@':
-                    rblocks.insert(0, 'attribute %s {%s/%s}' % (name, xpath_var, xpath))
-                    # attribute fields must be returned first when constructing FLOWR return
-                    # putting attributes at the beginning of the list of return blocks
-                else:
-                    # define element, e.g. element id {$n/@id/node()}
-                    # note: using node() so element *contents* will be in named element instead of nesting elements
-                    rblocks.append('element %s {%s/%s/node()}' % (name, xpath_var, xpath))
+                    xpath = "string(%s)" % xpath        # put contents of attribute in constructed element
+                elif '(' not in xpath:          # do not add node() if xpath contains a function (likely to breaks things)
+                    # note: using node() so element *contents* will be in named element instead of nesting elements                    
+                    xpath = "%s/node()" % xpath
+                    
+                # define element, e.g. element id {$n/title/node()} or {$n/string(@id)}
+                rblocks.append('element %s {%s/%s}' % (name, xpath_var, xpath))
+                
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
         elif len(self.additional_return_fields):
             # return everything under matched node - all attributes, all nodes
@@ -333,7 +342,11 @@ class Xquery(object):
                     # set attributes as fields to avoid attribute conflict;
                     rblocks.append('element %s {%s/string(%s)}' % (name, xpath_var, xpath))
                 else:
-                    rblocks.append('element %s {%s/%s/node()}' % (name, xpath_var, xpath))
+                    if '(' in xpath:
+                        node = ""
+                    else:
+                        node = "/node()"
+                    rblocks.append('element %s {%s/%s%s}' % (name, xpath_var, xpath, node))
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
         else:
             r = 'return %s' % xpath_var

@@ -74,36 +74,43 @@ class ExistQueryTest(unittest.TestCase):
         slice = self.qs[1:2]
         self.assertEqual('two', slice[0].name)
 
-    def test_filter(self):        
-        self.assertEqual(1, self.qs.filter(contains="two").count(), "count returns 1 when filtered - contains 'two'")
-        self.assertEqual("two", self.qs.filter(contains="two")[0].name, "name matches filter")
+    def test_filter(self):
+        fqs = self.qs.filter(contains="two")
+        self.assertEqual(1, fqs.count(), "count returns 1 when filtered - contains 'two'")
+        self.assertEqual("two", fqs[0].name, "name matches filter")
+        self.assertEqual(3, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field(self):
-        self.qs.filter(name="one")
-        self.assertEqual(1, self.qs.filter(name="one").count(), "count returns 1 when filtered on name = 'one' (got %s)"
+        fqs = self.qs.filter(name="one")
+        self.assertEqual(1, fqs.count(), "count returns 1 when filtered on name = 'one' (got %s)"
             % self.qs.count())
-        self.assertEqual("one", self.qs.filter(name="one")[0].name, "name matches filter")
+        self.assertEqual("one", fqs[0].name, "name matches filter")
+        self.assertEqual(3, self.qs.count(), "main queryset unchanged by filter")
 
     def test_filter_field_xpath(self):
-        self.qs.filter(id="abc")
-        self.assertEqual(1, self.qs.filter(id="abc").count(), "count returns 1 when filtered on @id = 'abc' (got %s)"
+        fqs = self.qs.filter(id="abc")
+        self.assertEqual(1, fqs.count(), "count returns 1 when filtered on @id = 'abc' (got %s)"
             % self.qs.count())
-        self.assertEqual("two", self.qs.filter(id="abc")[0].name, "name returned is correct for id filter")
+        self.assertEqual("two", fqs[0].name, "name returned is correct for id filter")
+        self.assertEqual(3, self.qs.count(), "main queryset unchanged by filter")
 
     def test_filter_field_contains(self):
         fqs = self.qs.filter(name__contains="o")
         self.assertEqual(2, fqs.count(),
             "should get 2 matches for filter on name contains 'o' (got %s)" % fqs.count())
+        self.assertEqual(3, self.qs.count(), "main queryset unchanged by filter")
 
     def test_filter_field_startswith(self):
         fqs = self.qs.filter(name__startswith="o")
         self.assertEqual(1, fqs.count(),
             "should get 1 match for filter on name starts with 'o' (got %s)" % fqs.count())
+        self.assertEqual(3, self.qs.count(), "main queryset unchanged by filter")
 
     def test_get(self):
         result  = self.qs.get(contains="two")
         self.assert_(isinstance(result, QueryTestModel), "get() with contains returns single result")
         self.assertEqual(result.name, "two", "result returned by get() has correct data")
+        self.assertEqual(3, self.qs.count(), "main queryset unchanged by get()")
 
     def test_get_toomany(self):
         self.assertRaises(Exception, self.qs.get, contains="one")
@@ -111,16 +118,17 @@ class ExistQueryTest(unittest.TestCase):
     def test_get_nomatch(self):
         self.assertRaises(Exception, self.qs.get, contains="fifty-four")
 
-
     def test_get_byname(self):
         result  = self.qs.get(name="one")
         self.assert_(isinstance(result, QueryTestModel), "get() with contains returns single result")
         self.assertEqual(result.name, "one", "result returned by get() has correct data")
+        self.assertEqual(3, self.qs.count(), "main queryset unchanged by get()")
     
     def test_filter_get(self):        
         result = self.qs.filter(contains="one").filter(name="two").get()
         self.assert_(isinstance(result, QueryTestModel))
         self.assertEqual("two", result.name, "filtered get() returns correct data")
+        self.assertEqual(3, self.qs.count(), "main queryset unchanged by filtered get()")
 
     def test_reset(self):
         self.qs.filter(contains="two")
@@ -133,13 +141,17 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual('one', fqs[0].name)
         self.assertEqual('three', fqs[1].name)
         self.assertEqual('two', fqs[2].name)
+        self.assert_('order by ' not in self.qs.query.getQuery(), "main queryset unchanged by order_by()")
         # attribute
         fqs = self.qs.order_by('id')
         self.assertEqual('abc', fqs[0].id)
         self.assertEqual('one', fqs[1].id)
         self.assertEqual('xyz', fqs[2].id)
 
-    def test_only(self):
+    def test_only(self):        
+        self.qs.only(['name'])
+        self.assert_('element name {' not in self.qs.query.getQuery(), "main queryset unchanged by only()")
+        
         fqs = self.qs.filter(id='one').only(['name','id'])
         self.assert_(isinstance(fqs[0], PartialResultObject))
         self.assertTrue(hasattr(fqs[0], "name"))
@@ -151,6 +163,8 @@ class ExistQueryTest(unittest.TestCase):
         fqs = self.qs.filter(id='one').only(['wnn'])
         self.assertTrue(hasattr(fqs[0], "wnn"))
         self.assertEqual('a', fqs[0].wnn)
+
+        
 
     def test_iter(self):
         for q in self.qs:
@@ -214,10 +228,11 @@ class XqueryTest(unittest.TestCase):
 
     def test_return_only(self):
         xq = Xquery(xpath='/el')
-        xq.return_only({'myid':'@id', 'some_name':'name'})
+        xq.return_only({'myid':'@id', 'some_name':'name', 'first_letter':'substring(@n,1,1)'})
         self.assert_('return <el>' in xq._constructReturn('$n'))
-        self.assert_('attribute myid {$n/@id}' in xq._constructReturn('$n'))
+        self.assert_('element myid {$n/string(@id)}' in xq._constructReturn('$n'))
         self.assert_('element some_name {$n/name/node()}' in xq._constructReturn('$n'))
+        self.assert_('element first_letter {$n/substring(@n,1,1)}' in xq._constructReturn('$n'))
         self.assert_('</el>' in xq._constructReturn('$n'))
 
         xq = Xquery(xpath='/some/el/notroot')
