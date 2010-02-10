@@ -2,13 +2,13 @@
 
 import os
 import unittest
-from eulcore.fedora import Repository
+from eulcore.fedora.server import Repository
 
 REPO_ROOT = 'https://dev11.library.emory.edu:8643/fedora/'
 REPO_USER = 'fedoraAdmin'
 REPO_PASS = 'fedoraAdmin'
 
-FIXTURE_ROOT = os.path.join(os.path.dirname(__file__), 'fixtures')
+FIXTURE_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'fixtures')
 
 class FedoraTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
