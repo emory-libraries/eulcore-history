@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
-from test_fedora.base import FedoraTestCase
+from test_fedora.base import FedoraTestCase, load_fixture_data
 
 class TestBasicFedoraFunctionality(FedoraTestCase):
     def testGetNextPID(self):
@@ -20,7 +20,7 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
 
 
     def testIngestWithoutPid(self):
-        object = self.loadFixtureData('basic-object.foxml')
+        object = load_fixture_data('basic-object.foxml')
         pid = self.repo.ingest(object)
         self.assertTrue(pid)
         self.repo.purge_object(pid)

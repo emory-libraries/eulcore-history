@@ -7,6 +7,12 @@ REPO_USER = 'fedoraAdmin'
 REPO_PASS = 'fedoraAdmin'
 
 FIXTURE_ROOT = os.path.join(os.path.dirname(__file__), 'fixtures')
+def fixture_path(fname):
+    return os.path.join(FIXTURE_ROOT, fname)
+
+def load_fixture_data(fname):
+    with open(fixture_path(fname)) as f:
+        return f.read()
 
 class FedoraTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -24,12 +30,10 @@ class FedoraTestCase(unittest.TestCase):
             self.repo.purge_object(pid)
 
     def loadFixtureData(self, fname):
-        fname = os.path.join(FIXTURE_ROOT, fname)
-        with open(fname) as f:
-            return f.read()
+        return load_fixture_data(fname)
 
     def ingestFixture(self, fname):
-        object = self.loadFixtureData(fname)
+        object = load_fixture_data(fname)
         pid = self.repo.ingest(object)
         if pid:
             # we'd like this always to be true. if ingest fails we should
