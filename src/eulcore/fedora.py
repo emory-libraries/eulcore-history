@@ -32,11 +32,25 @@ class Repository(object):
     def rest_api(self):
         return REST_API(self.fedora_root, self.username, self.password)
 
-    def ingest(self, *args, **kwargs):
-        return self.rest_api.ingest(*args, **kwargs)
+    def get_next_pid(self, namespace=None, count=None):
+        kwargs = {}
+        if namespace:
+            kwargs['namespace'] = namespace
+        if count:
+            kwargs['numPIDs'] = count
+        return self.rest_api.getNextPID(**kwargs)
 
-    def purge_object(self, *args, **kwargs):
-        return self.rest_api.purgeObject(*args, **kwargs)
+    def ingest(self, text, log_message=None):
+        kwargs = { 'text': text }
+        if log_message:
+            kwargs['logMessage'] = log_message
+        return self.rest_api.ingest(**kwargs)
+
+    def purge_object(self, pid, log_message=None):
+        kwargs = { 'pid': pid }
+        if log_message:
+            kwargs['logMessage'] = log_message
+        return self.rest_api.purgeObject(**kwargs)
 
     def get_objects_with_cmodel(self, cmodel_uri, type=None):
         uris = self.risearch.get_subjects(URI_HAS_MODEL, cmodel_uri)
@@ -275,10 +289,10 @@ class REST_API(HTTP_API_Base):
             http_args['sessionToken'] = session_token
         return self.read_relative_uri('objects?' + urlencode(http_args), read)
 
-    def getNextPID(self, num_pids=None, namespace=None):
+    def getNextPID(self, numPIDs=None, namespace=None):
         http_args = { 'format': 'xml' }
-        if num_pids:
-            http_args['numPIDs'] = num_pids
+        if numPIDs:
+            http_args['numPIDs'] = numPIDs
         if namespace:
             http_args['namespace'] = namespace
 
@@ -289,15 +303,15 @@ class REST_API(HTTP_API_Base):
         dom = NonvalidatingReader.parseString(text, url)
         pids = [ node.nodeValue for node in dom.xpath('/pidList/pid/text()') ]
 
-        if num_pids is None:
+        if numPIDs is None:
             return pids[0]
         else:
             return pids
 
-    def ingest(self, text, log_message=None):
+    def ingest(self, text, logMessage=None):
         http_args = {}
-        if log_message:
-            http_args['logMessage'] = log_message
+        if logMessage:
+            http_args['logMessage'] = logMessage
 
         headers = { 'Content-Type': 'text/xml' }
 
@@ -310,10 +324,10 @@ class REST_API(HTTP_API_Base):
     def listDatastreams(self, pid, read=None):
         return self.read_relative_uri('objects/%s/datastreams.xml' % (pid,), read)
 
-    def purgeObject(self, pid, log_message=None):
+    def purgeObject(self, pid, logMessage=None):
         http_args = {}
-        if log_message:
-            http_args['logMessage'] = log_message
+        if logMessage:
+            http_args['logMessage'] = logMessage
         
         url = 'objects/' + pid
         with self.relative_request('DELETE', url, '', {}) as response:
