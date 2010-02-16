@@ -180,7 +180,7 @@ class QuerySet(object):
     def _runQuery(self):
         """
         execute the currently configured xquery
-        """
+        """        
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
     def getDocument(self, docname):        
@@ -193,7 +193,8 @@ class Xquery(object):
     xpath/xquery object
     """
 
-    xpath = '/node()'
+    xpath = '/node()'       # default generic xpath
+    xq_var = '$n'           # xquery variable to use when constructing flowr query
 
     def __init__(self, xpath=None, collection=None):
         if xpath is not None:
@@ -239,15 +240,16 @@ class Xquery(object):
         # requires FLOWR instead of just XQuery  (sort, customized return, etc.)
         if self.order_by or len(self.return_fields) or len(self.additional_return_fields):            
             # NOTE: use constructed xpath, with collection (if any)
-            flowr_for = 'for $n in ' + xpath
+            flowr_for = 'for %s in %s' % (self.xq_var, xpath)
             flowr_let = ''
             # for now, assume sort relative to root element
-            if self.order_by:
-                flowr_order = 'order by $n/' + self.order_by.lstrip('/')
+            if self.order_by:                
+                order = self.prep_xpath(self.order_by)                    
+                flowr_order = 'order by %s/%s' % (self.xq_var, order.lstrip('/'))
             else:
                 flowr_order = ''
             flowr_where = ''
-            flowr_return = self._constructReturn("$n")
+            flowr_return = self._constructReturn()
             query = '\n'.join([flowr_for, flowr_let, flowr_order, flowr_where, flowr_return])
         else:
             # if FLOWR is not required, just use plain xpath
@@ -308,10 +310,8 @@ class Xquery(object):
             if name not in self.additional_return_fields:
                 self.additional_return_fields[name] = xpath
 
-    def _constructReturn(self, xpath_var):
-        """Construct the return portion of a FLOWR xquery.
-        xpath_var is the xpath variable which return fields should be relative to, e.g. $n
-        """
+    def _constructReturn(self):
+        """Construct the return portion of a FLOWR xquery."""
         # return element - use last node of base xpath
         return_el = self.xpath.split('/')[-1].strip('@')
         if return_el == 'node()':       # FIXME: other () expressions?
@@ -328,28 +328,30 @@ class Xquery(object):
                 elif '(' not in xpath:          # do not add node() if xpath contains a function (likely to breaks things)
                     # note: using node() so element *contents* will be in named element instead of nesting elements                    
                     xpath = "%s/node()" % xpath
+                xpath = self.prep_xpath(xpath)
                     
                 # define element, e.g. element id {$n/title/node()} or {$n/string(@id)}
-                rblocks.append('element %s {%s/%s}' % (name, xpath_var, xpath))
+                rblocks.append('element %s {%s/%s}' % (name, self.xq_var, xpath))
                 
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
         elif len(self.additional_return_fields):
             # return everything under matched node - all attributes, all nodes
-            rblocks = ["%s/@*" % xpath_var, "%s/node()" % xpath_var]
+            rblocks = ["%s/@*" % self.xq_var, "%s/node()" % self.xq_var]
             for name, xpath in self.additional_return_fields.iteritems():
-                # same logic as return fields above (how to consolidate?)
+                    
+                # similar logic as return fields above (how to consolidate?)
                 if re.search('@[^/]+$', xpath):     # last element in path is an attribute node
                     # set attributes as fields to avoid attribute conflict;
-                    rblocks.append('element %s {%s/string(%s)}' % (name, xpath_var, xpath))
+                    rblocks.append('element %s {%s/string(%s)}' % (name, self.xq_var, xpath))
                 else:
                     if '(' in xpath:
                         node = ""
                     else:
                         node = "/node()"
-                    rblocks.append('element %s {%s/%s%s}' % (name, xpath_var, xpath, node))
+                    rblocks.append('element %s {%s/%s%s}' % (name, self.xq_var, xpath, node))
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
         else:
-            r = 'return %s' % xpath_var
+            r = 'return %s' % self.xq_var
         return r
 
     def clear_filters(self):
@@ -380,7 +382,14 @@ class Xquery(object):
         self.start = 0
         self.end = None
 
+    def prep_xpath(self, xpath):
+        # common xpath clean-up before handing off to exist
+        # FIXME: move return field xpath manip here?  perhaps add param to set type of xpath?
 
+        # mutiple nodes |ed together- fix context issuse by replacing . with xq variable
+        if '|./' in xpath:
+            xpath  = xpath.replace("|./", "|%s/" % self.xq_var)
+        return xpath
 
 class PartialResultObject(object):
     """

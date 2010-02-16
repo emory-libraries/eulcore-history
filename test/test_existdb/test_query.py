@@ -213,10 +213,16 @@ class XqueryTest(unittest.TestCase):
         self.assertEquals('collection("/db/coll/sub")/root/el', xq.getQuery())
 
     def test_sort(self):
-        xq = Xquery(collection="mycoll")        
+        xq = Xquery(collection="mycoll")
+        xq.xq_var = '$n'
         xq.sort('@id')
         self.assert_('order by $n/@id' in xq.getQuery())
         self.assert_('collection("/db/mycoll")' in xq.getQuery())
+
+        # prep_xpath function should clean up more complicated xpaths
+        xq.sort('name|./@id')
+        self.assert_('order by $n/name|$n/@id' in xq.getQuery())
+        
 
     def test_filters(self):
         xq = Xquery(xpath='/el')
@@ -228,28 +234,31 @@ class XqueryTest(unittest.TestCase):
 
     def test_return_only(self):
         xq = Xquery(xpath='/el')
+        xq.xq_var = '$n'
         xq.return_only({'myid':'@id', 'some_name':'name', 'first_letter':'substring(@n,1,1)'})
-        self.assert_('return <el>' in xq._constructReturn('$n'))
-        self.assert_('element myid {$n/string(@id)}' in xq._constructReturn('$n'))
-        self.assert_('element some_name {$n/name/node()}' in xq._constructReturn('$n'))
-        self.assert_('element first_letter {$n/substring(@n,1,1)}' in xq._constructReturn('$n'))
-        self.assert_('</el>' in xq._constructReturn('$n'))
+        self.assert_('return <el>' in xq._constructReturn())
+        self.assert_('element myid {$n/string(@id)}' in xq._constructReturn())
+        self.assert_('element some_name {$n/name/node()}' in xq._constructReturn())
+        self.assert_('element first_letter {$n/substring(@n,1,1)}' in xq._constructReturn())
+        self.assert_('</el>' in xq._constructReturn())
 
         xq = Xquery(xpath='/some/el/notroot')
         xq.return_only({'id':'@id'})
-        self.assert_('return <notroot>' in xq._constructReturn('$n'))
+        self.assert_('return <notroot>' in xq._constructReturn())
 
     def test_return_also(self):
         xq = Xquery(xpath='/el')
+        xq.xq_var = '$n'
         xq.return_also({'myid':'@id', 'some_name':'name'})
-        self.assert_('$n/@*,' in xq._constructReturn('$n'))
-        self.assert_('$n/node(),' in xq._constructReturn('$n'))
-        self.assert_('element myid {$n/string(@id)},' in xq._constructReturn('$n'))
+        self.assert_('$n/@*,' in xq._constructReturn())
+        self.assert_('$n/node(),' in xq._constructReturn())
+        self.assert_('element myid {$n/string(@id)},' in xq._constructReturn())
 
 
     def test_set_limits(self):
         # subsequence with xpath
         xq = Xquery(xpath='/el')
+        xq.xq_var = '$n'
         xq.set_limits(low=0, high=4)
         self.assertEqual('subsequence(/el, 1, 5)', xq.getQuery())
         # subsequence with FLWR query
@@ -284,6 +293,12 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery(xpath='/el')
         xq.distinct()
         self.assertEqual('distinct-values(/el)', xq.getQuery())
+
+    def test_prep_xpath(self):
+        xq = Xquery()
+        xq.xq_var = '$n'
+        self.assertEqual("./name|$n/title", xq.prep_xpath("./name|./title"))
+
 
 
 class PartialResultObjectTest(unittest.TestCase):
