@@ -16,8 +16,13 @@ def use_test_collection(sender, **kwargs):
 
 def restore_root_collection(sender, **kwargs):
     global _stored_default_collection
-    print "Restoring eXist Root Collection: %s" % (_stored_default_collection,)
-    settings.EXISTDB_ROOT_COLLECTION = _stored_default_collection
+    # if use_test_collection didn't run, don't change anything
+    if _stored_default_collection is None:
+        print "eXist test-start handler does not appear to have run; not restoring eXist Root Collection"
+        print "Is 'eulcore.django.existdb' in your installed apps?"
+    else:
+        print "Restoring eXist Root Collection: %s" % (_stored_default_collection,)
+        settings.EXISTDB_ROOT_COLLECTION = _stored_default_collection
 
 
 starting_tests.connect(use_test_collection)
