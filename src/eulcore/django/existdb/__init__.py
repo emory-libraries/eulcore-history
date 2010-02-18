@@ -1,4 +1,5 @@
 from eulcore.django.testsetup import starting_tests, finished_tests
+from eulcore.django.existdb.db import ExistDB
 from django.conf import settings
 
 _stored_default_collection = None
@@ -12,7 +13,13 @@ def use_test_collection(sender, **kwargs):
     else:
         settings.EXISTDB_ROOT_COLLECTION = getattr(settings, "EXISTDB_ROOT_COLLECTION", "/default") + "_test"
 
-    print "Setting eXist Test Collection: %s" % (settings.EXISTDB_ROOT_COLLECTION,)
+    print "Creating eXist Test Collection: %s" % (settings.EXISTDB_ROOT_COLLECTION,)
+    # now that existdb root collection has been set to test collection, init db connection
+    db = ExistDB()
+    # create test collection (don't complain if collection already exists)
+    db.createCollection(settings.EXISTDB_ROOT_COLLECTION, True)
+
+    
 
 def restore_root_collection(sender, **kwargs):
     global _stored_default_collection
@@ -21,6 +28,12 @@ def restore_root_collection(sender, **kwargs):
         print "eXist test-start handler does not appear to have run; not restoring eXist Root Collection"
         print "Is 'eulcore.django.existdb' in your installed apps?"
     else:
+        print "Removing eXist Test Collection: %s" % (settings.EXISTDB_ROOT_COLLECTION,)
+        # before restoring existdb non-test root collection, init db connection
+        db = ExistDB()
+        # remove test collection
+        db.removeCollection(settings.EXISTDB_ROOT_COLLECTION)
+
         print "Restoring eXist Root Collection: %s" % (_stored_default_collection,)
         settings.EXISTDB_ROOT_COLLECTION = _stored_default_collection
 
