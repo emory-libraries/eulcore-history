@@ -1,5 +1,5 @@
 from eulcore.django.testsetup import starting_tests, finished_tests
-from eulcore.django.existdb.db import ExistDB
+from eulcore.django.existdb.db import ExistDB, ExistDBException
 from django.conf import settings
 
 _stored_default_collection = None
@@ -31,8 +31,11 @@ def restore_root_collection(sender, **kwargs):
         print "Removing eXist Test Collection: %s" % (settings.EXISTDB_ROOT_COLLECTION,)
         # before restoring existdb non-test root collection, init db connection
         db = ExistDB()
-        # remove test collection
-        db.removeCollection(settings.EXISTDB_ROOT_COLLECTION)
+        try:            
+            # remove test collection
+            db.removeCollection(settings.EXISTDB_ROOT_COLLECTION)
+        except  ExistDBException, e:
+            print "Error removing collection " + settings.EXISTDB_ROOT_COLLECTION + e.message
 
         print "Restoring eXist Root Collection: %s" % (_stored_default_collection,)
         settings.EXISTDB_ROOT_COLLECTION = _stored_default_collection
