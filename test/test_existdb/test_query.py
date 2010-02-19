@@ -51,11 +51,11 @@ class ExistQueryTest(unittest.TestCase):
     def test_count(self):
         self.assertEqual(3, self.qs.count(), "queryset count returns 3")
 
-    def test_getitem(self):        
-        # what is default sort order? is this test reliable?
-        self.assertEqual("one", self.qs[0].name)
-        self.assertEqual("two", self.qs[1].name)
-        self.assertEqual("three", self.qs[2].name)
+    def test_getitem(self):                
+        qs = self.qs.order_by('id')     # adding sort order to test reliably
+        self.assertEqual("abc", qs[0].id)
+        self.assertEqual("one", qs[1].id)
+        self.assertEqual("xyz", qs[2].id)
 
     def test_getitem_typeerror(self):
         self.assertRaises(TypeError, self.qs.__getitem__, "foo")
@@ -65,14 +65,16 @@ class ExistQueryTest(unittest.TestCase):
         self.assertRaises(IndexError, self.qs.__getitem__, 23)
 
     def test_getslice(self):
-        slice = self.qs[0:1]
+        slice = self.qs.order_by('id')[0:1]
         self.assert_(isinstance(slice, QuerySet))
         self.assert_(isinstance(slice[0], QueryTestModel))        
         self.assertEqual(2, slice.count())
-        self.assertEqual('one', slice[0].name)
+        self.assertEqual('abc', slice[0].id)
+        self.assertEqual('one', slice[1].id)
 
-        slice = self.qs[1:2]
-        self.assertEqual('two', slice[0].name)
+        slice = self.qs.order_by('id')[1:2]
+        self.assertEqual('one', slice[0].id)
+        self.assertEqual('xyz', slice[1].id)
 
     def test_filter(self):
         fqs = self.qs.filter(contains="two")
@@ -190,9 +192,10 @@ class ExistQueryTest(unittest.TestCase):
     def test_distinct(self):
         qs = QuerySet(using=self.db, collection=self.COLLECTION, xpath='//name')
         vals = qs.distinct()
-        self.assertEqual('one', vals[0])
-        self.assertEqual('two', vals[1])
-        self.assertEqual('three', vals[2])
+        self.assert_('one'  in vals)
+        self.assert_('two' in vals)
+        self.assert_('three' in vals)
+        self.assert_('abc' not in vals)
 
 
 class XqueryTest(unittest.TestCase):
