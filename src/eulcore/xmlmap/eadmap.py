@@ -81,7 +81,7 @@ class ArchivalDescription(xmlmap.XmlObject):
     """archdesc element, Archival description; makes up the bulk of an EAD document"""
     origination = xmlmap.XPathString("did/origination")
     unitid = xmlmap.XPathString("did/unitid")
-    extent = xmlmap.XPathString("did/physdesc/extent")
+    extent = xmlmap.XPathStringList("did/physdesc/extent")
     langmaterial = xmlmap.XPathString("did/langmaterial")
     location = xmlmap.XPathString("did/physloc")
     access_restriction = xmlmap.XPathNode("accessrestrict", Section)

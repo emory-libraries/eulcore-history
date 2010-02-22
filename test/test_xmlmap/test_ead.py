@@ -24,7 +24,8 @@ class TestEad(unittest.TestCase):
         # whitespace makes fields with tags a bit messier...
         self.assert_("Seamus Heaney collection," in self.ead.unittitle)
         self.assert_("1972-2005" in self.ead.unittitle)
-        # several different extents in the physical description
+        # several different extents in the physical description;
+        # FIXME: all smashed together
         self.assert_("1 linear ft." in self.ead.physical_desc)
         self.assert_("(3 boxes)" in self.ead.physical_desc)
         self.assert_("12 oversized papers (OP)" in self.ead.physical_desc)
@@ -36,7 +37,9 @@ class TestEad(unittest.TestCase):
         self.assert_("Heaney, Seamus, 1939-" in ad.origination)  #whitespace variance
         self.assertEqual("Manuscript Collection No.653", ad.unitid)
         self.assertEqual("Manuscript Collection No.653", ad.unitid)
-        self.assertEqual("1 linear ft.(3 boxes)12 oversized papers (OP)", ad.extent)    #FIXME: multiple/list?
+        self.assertEqual("1 linear ft.", ad.extent[0])
+        self.assertEqual("(3 boxes)", ad.extent[1])
+        self.assertEqual("12 oversized papers (OP)", ad.extent[2])
         self.assertEqual("Materials entirely in English.", ad.langmaterial)
         self.assertEqual("In the Archives.", ad.location)
         self.assert_(isinstance(ad.access_restriction, Section))
