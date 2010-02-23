@@ -1,9 +1,12 @@
+from Ft.Lib import Uri
 from Ft.Xml.Domlette import NonvalidatingReader
-from Ft.Xml.XPath.Context import Context
 from Ft.Xml.XPath import Compile, Evaluate
+from Ft.Xml.XPath.Context import Context
 from Ft.Xml.Xslt import Processor
 from datetime import datetime
-from Ft.Lib import Uri
+
+__all__ = [ 'XmlObject', 'parseUri', 'parseString',
+    'load_xmlobject_from_string', 'load_xmlobject_from_file' ]
 
 parseUri = NonvalidatingReader.parseUri
 parseString = NonvalidatingReader.parseString
@@ -52,7 +55,4 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject):
 
 # Import these for backward compatibility. Should consider deprecating these
 # and asking new code to pull them from descriptor
-from eulcore.xmlmap.descriptor import XPathDate, XPathDateList
-from eulcore.xmlmap.descriptor import XPathInteger, XPathIntegerList
-from eulcore.xmlmap.descriptor import XPathNode, XPathNodeList
-from eulcore.xmlmap.descriptor import XPathString, XPathStringList
+from eulcore.xmlmap.descriptor import *

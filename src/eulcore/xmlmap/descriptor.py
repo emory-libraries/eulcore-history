@@ -1,6 +1,15 @@
 from Ft.Xml.XPath import Compile, Evaluate
 from datetime import datetime
 
+__all__ = [
+    'XPathNode', 'XPathNodeList',
+    'XPathString', 'XPathStringList',
+    'XPathInteger', 'XPathIntegerList',
+# NOTE: XPathDate and XPathDateList are undertested and underdocumented. If
+#   you really need them, you should import them explicitly. Or even better,
+#   flesh them out so they can be properly released.
+]
+
 # base classes for single-item and list descriptors
 
 class XPathItemDescriptor(object):
