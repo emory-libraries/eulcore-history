@@ -4,6 +4,7 @@ import unittest
 import tempfile
 
 import eulcore.xmlmap.core as xmlmap
+from testcore import main
 
 class TestXsl(unittest.TestCase):
     FIXTURE_TEXT = '''
@@ -124,12 +125,4 @@ class TestGetXmlObjectXPath(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner
-
-    try:
-        import xmlrunner
-        runner = xmlrunner.XMLTestRunner(output='test-results')
-    except ImportError:
-        pass
-
-    unittest.main(testRunner=runner)
+    main()

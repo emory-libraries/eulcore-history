@@ -1,5 +1,16 @@
+from functools import wraps
 import xmlrpclib
 from eulcore import xmlmap
+
+def _wrap_xmlrpc_fault(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except xmlrpclib.Fault, e:
+            raise ExistDBException(e)
+    return wrapper
+
 
 class ExistDB:
     #Class to manipualate eXist DB
@@ -32,16 +43,18 @@ class ExistDB:
 
     def __init__(self, server_url, resultType=None, encoding=None, verbose=None):
         # override default settings if passed in
+        self.resultType = resultType or QueryResult
         if (encoding):
             self.SERVER_ENCODING = encoding
-        if (verbose != None):
+        if (verbose is not None):
             self.SERVER_VERBOSE = verbose
-            
-        self.server = xmlrpclib.ServerProxy(uri=server_url, encoding=self.SERVER_ENCODING,  verbose=self.SERVER_VERBOSE, allow_none=self.SERVER_ALLOW_NONE)
-        if resultType:
-            self.resultType = resultType
-        else:
-            self.resultType = QueryResult
+
+        self.server = xmlrpclib.ServerProxy(
+                uri=server_url,
+                encoding=self.SERVER_ENCODING,
+                verbose=self.SERVER_VERBOSE,
+                allow_none=self.SERVER_ALLOW_NONE
+            )
 
     def getDoc(self, name, **kwargs):
         """
@@ -63,6 +76,7 @@ class ExistDB:
 
         return self.server.createCollection(collection_name)
 
+    @_wrap_xmlrpc_fault
     def removeCollection(self, collection_name):
         """
         Removes the named collection from the database.
@@ -71,11 +85,7 @@ class ExistDB:
         """
         if (not self.hasCollection(collection_name)):
             raise ExistDBException(collection_name + " does not exist")
-
-        try:
-            return self.server.removeCollection(collection_name)
-        except xmlrpclib.Fault, e:
-            raise ExistDBException(e)
+        return self.server.removeCollection(collection_name)
 
     def hasCollection(self, collection_name):
         """
@@ -93,15 +103,14 @@ class ExistDB:
             else:
                 raise ExistDBException(e)
 
+    @_wrap_xmlrpc_fault
     def load(self, xml, filename, overwrite=False):
-        try:
-            if not isinstance(xml, str):
-                xml = xml.read()
+        if not isinstance(xml, str):
+            xml = xml.read()
 
-            self.server.parse(xml, filename, int(overwrite))
-        except xmlrpclib.Fault, e:
-            raise ExistDBException(e)
+        self.server.parse(xml, filename, int(overwrite))
 
+    @_wrap_xmlrpc_fault
     def query(self, xqry, start=1, how_many=10, **kwargs):
         '''
         Executes an XQuery and returns a xml string
@@ -109,60 +118,45 @@ class ExistDB:
         <exist:result xmlns:exist="http://exist.sourceforge.net/NS/exist" hits="2" start="1" count="2">
         if hits > count more results remain call again with start=count for remaining results
         '''
-        try:            
-            xml_s = self.server.query(xqry, how_many, start, kwargs)
-            #xmlrpc will sometimes return unicode, force to UTF-8
+        xml_s = self.server.query(xqry, how_many, start, kwargs)
+        #xmlrpc will sometimes return unicode, force to UTF-8
 
-            if isinstance(xml_s, unicode):
-                xml_s = xml_s.encode("UTF-8")
+        if isinstance(xml_s, unicode):
+            xml_s = xml_s.encode("UTF-8")
 
-            return self.resultType(xml_s)
-        except xmlrpclib.Fault, e:
-            raise ExistDBException(e)
+        return self.resultType(xml_s)
     
+    @_wrap_xmlrpc_fault
     def executeQuery(self, xqry):
         '''Execute an xquery and return a result id which can be used to retrieve the results
          or summary information about the results'''
-        try:
-            # NOTE: requires hash of parameters, unknown what options are supported
-            # should result_id be stored and used for subsequent requests that require a result_id?
-            return self.server.executeQuery(xqry, {})
-        except xmlrpclib.Fault, e:
-            raise ExistDBException(e)
+        # NOTE: requires hash of parameters, unknown what options are supported
+        # should result_id be stored and used for subsequent requests that require a result_id?
+        return self.server.executeQuery(xqry, {})
 
+    @_wrap_xmlrpc_fault
     def querySummary(self, result_id):
         '''Summary information about xquery results for a result set by id returned from executeQuery.
            Returns a list of hits, documents (list of document name, integer id, and number of hits),
            and the time it took to run the query.'''
-        try:
-            # should response be converted to some kind of object format?
-            return self.server.querySummary(result_id)
-        except xmlrpclib.Fault, e:
-            raise ExistDBException(e)
+        # should response be converted to some kind of object format?
+        return self.server.querySummary(result_id)
 
+    @_wrap_xmlrpc_fault
     def getHits(self, result_id):
         '''Return the number of hits in an xquery result by id returned from executeQuery'''
-        try:
-            return self.server.getHits(result_id)
-        except xmlrpclib.Fault, e:
-            raise ExistDBException(e)
+        return self.server.getHits(result_id)
 
+    @_wrap_xmlrpc_fault
     def retrieve(self, result_id, position, options={}):
         '''Retrieve a single result fragment from result id, by position'''
-        try:
-            return self.server.retrieve(result_id, position, options)
-        except xmlrpclib.Fault, e:
-            raise ExistDBException(e)
+        return self.server.retrieve(result_id, position, options)
 
+    @_wrap_xmlrpc_fault
     def releaseQueryResult(self, result_id):
         '''Force a result set to be released on the server.
         No return value, no exception when releasing an invalid result id.'''
-        try:
-            self.server.releaseQueryResult(result_id)
-        except xmlrpclib.Fault, e:
-            raise ExistDBException(e)
-
-            
+        self.server.releaseQueryResult(result_id)
 
 
 class QueryResult(xmlmap.XmlObject):
@@ -209,6 +203,7 @@ class QueryResult(xmlmap.XmlObject):
         if (self.hits == None or self.start == None or self.count == None):
             return False
         return self.hits > (self.start + self.count)
+
 
 class ExistDBException(Exception):
     pass

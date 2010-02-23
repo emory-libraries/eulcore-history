@@ -6,6 +6,7 @@ from os import path
 from eulcore.xmlmap  import load_xmlobject_from_file, load_xmlobject_from_string
 #from eulcore.xmlmap.eadmap import EncodedArchivalDescription, ArchivalDescription, ControlledAccessHeadings, Section, Heading, SubordinateComponents, Component
 from eulcore.xmlmap.eadmap import *
+from testcore import main
 
 class TestEad(unittest.TestCase):
     FIXTURE_FILE = path.join(path.dirname(path.abspath(__file__)) ,
@@ -159,12 +160,4 @@ class TestEad(unittest.TestCase):
 
         
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner
-
-    try:
-        import xmlrunner
-        runner = xmlrunner.XMLTestRunner(output='test-results')
-    except ImportError:
-        pass
-
-    unittest.main(testRunner=runner)
+    main()

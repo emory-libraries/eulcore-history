@@ -2,6 +2,7 @@
 
 import unittest
 from test_fedora.base import FedoraTestCase, load_fixture_data
+from testcore import main
 
 class TestBasicFedoraFunctionality(FedoraTestCase):
     def testGetNextPID(self):
@@ -29,10 +30,4 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
 
 
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner
-    try:
-        import xmlrunner
-        runner = xmlrunner.XMLTestRunner(output='test-results')
-    except ImportError:
-        pass
-    unittest.main(testRunner=runner)
+    main()

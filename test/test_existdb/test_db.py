@@ -1,24 +1,19 @@
 #!/usr/bin/env python
+
 import unittest
-from eulcore.existdb.db import *
+from urlparse import urlsplit, urlunsplit
 
-class settings:
-    EXISTDB_SERVER_PROTOCOL = "http://"
-    EXISTDB_SERVER_HOST     = "kamina.library.emory.edu:8080/exist/xmlrpc"
-    EXISTDB_SERVER_USER     = ""
-    EXISTDB_SERVER_PWD      = ""
-    #EXISTDB_SERVER_URL      = EXISTDB_SERVER_PROTOCOL + EXISTDB_SERVER_USER + ":" \
-    #    + EXISTDB_SERVER_PWD + "@" + EXISTDB_SERVER_HOST
-    EXISTDB_SERVER_URL      = EXISTDB_SERVER_PROTOCOL + EXISTDB_SERVER_HOST
-    EXISTDB_ROOT_COLLECTION = "/eulcore"
-    EXISTDB_TEST_COLLECTION = "/eulcore_test"
+from eulcore.existdb import db
+from testcore import main
 
+EXISTDB_SERVER_URL = "http://kamina.library.emory.edu:8080/exist/xmlrpc"
+EXISTDB_TEST_COLLECTION = '/eulcore_test'
 
 class ExistDBTest(unittest.TestCase):
-    COLLECTION = settings.EXISTDB_TEST_COLLECTION
+    COLLECTION = EXISTDB_TEST_COLLECTION
 
     def setUp(self):
-        self.db = ExistDB(server_url=settings.EXISTDB_SERVER_URL)        
+        self.db = db.ExistDB(server_url=EXISTDB_SERVER_URL)        
         self.db.createCollection(self.COLLECTION, True)
 	
         self.db.load('<hello>World</hello>', self.COLLECTION + '/hello.xml', True)
@@ -51,7 +46,7 @@ class ExistDBTest(unittest.TestCase):
             "failed to create new collection")
 
         #attempt create collection again expects ExistDBException
-        self.assertRaises(ExistDBException,
+        self.assertRaises(db.ExistDBException,
             self.db.createCollection, self.COLLECTION + "/new_collection")
 
         #create new collection again with over_write = True
@@ -61,7 +56,7 @@ class ExistDBTest(unittest.TestCase):
     def test_removeCollection(self):
         """Test removing collections from eXist"""
         #attempt to remove non-existent collection expects ExistDBException
-        self.assertRaises(ExistDBException,
+        self.assertRaises(db.ExistDBException,
             self.db.removeCollection, self.COLLECTION + "/new_collection")
 
         #create collection to test removal
@@ -83,7 +78,7 @@ class ExistDBTest(unittest.TestCase):
         """Check that an invalid xquery raises an exception"""
         #invalid xqry missing "
         xqry = 'for $x in collection("/db%s")//root/element where $x/@name=two" return $x' % (self.COLLECTION, )
-        self.assertRaises(ExistDBException,
+        self.assertRaises(db.ExistDBException,
             self.db.query, xqry)
 
     def test_query_with_no_result(self):
@@ -139,14 +134,14 @@ class ExistDBTest(unittest.TestCase):
         self.assertEqual(0, hits, "getHits returns correct count of 0 for query with no match")
 
         # retrieve non-existent result
-        self.assertRaises(ExistDBException, self.db.retrieve, result_id, 0)
+        self.assertRaises(db.ExistDBException, self.db.retrieve, result_id, 0)
         
 
     def test_executeQuery_bad_xquery(self):
         """Check that an invalid xquery raises an exception"""
         #invalid xqry missing "
         xqry = 'collection("/db%s")//root/element[@name=two"]' % (self.COLLECTION, )
-        self.assertRaises(ExistDBException, self.db.executeQuery, xqry)
+        self.assertRaises(db.ExistDBException, self.db.executeQuery, xqry)
 
     def test_releaseQuery(self):
         xqry = 'collection("/db%s")/root/element[@name="two"]' % (self.COLLECTION, )
@@ -158,16 +153,20 @@ class ExistDBTest(unittest.TestCase):
     def test_load_invalid_xml(self):
         """Check that loading invaliid xml raises an exception"""
         xml = '<root><element></root>'
-        self.assertRaises(ExistDBException,
+        self.assertRaises(db.ExistDBException,
             self.db.load, xml, self.COLLECTION + 'invalid.xml')
 
     def test_failed_authentication(self):
         """Check that connecting with invaliid user credentials raises an exception"""
-        test_db = ExistDB(server_url=settings.EXISTDB_SERVER_PROTOCOL + \
-                          settings.EXISTDB_SERVER_USER + ":bad_password@" + \
-                          settings.EXISTDB_SERVER_HOST)
-        self.assertRaises(ExistDBException,
-                  test_db.hasCollection, self.COLLECTION)
+        parts = urlsplit(EXISTDB_SERVER_URL)
+        netloc = 'bad_user:bad_password@' + parts.hostname
+        if parts.port:
+            netloc += ':' + str(parts.port)
+        bad_uri = urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+
+        test_db = db.ExistDB(server_url=bad_uri)
+        self.assertRaises(db.ExistDBException,
+                test_db.hasCollection, self.COLLECTION)
 
     def test_hasMore(self):
         """Test hasMore, show_to, and show_from based on numbers in xquery result"""
@@ -188,16 +187,5 @@ class ExistDBTest(unittest.TestCase):
         self.assertEquals(qres.show_to, 4)
 
 
-
-
-
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner
-
-    try:
-        import xmlrunner
-        runner = xmlrunner.XMLTestRunner(output='test-results')
-    except ImportError:
-        pass
-
-    unittest.main(testRunner=runner)
+    main()

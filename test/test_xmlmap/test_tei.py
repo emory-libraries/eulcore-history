@@ -5,6 +5,7 @@ from os import path
 
 from eulcore.xmlmap  import load_xmlobject_from_file, XPathNodeList
 from eulcore.xmlmap.teimap import Tei, TeiSection, TeiDiv, TeiFigure, TeiInterpGroup, TeiInterp
+from testcore import main
 
 class TestTei(unittest.TestCase):
     FIXTURE_FILE = path.join(path.dirname(path.abspath(__file__)) ,
@@ -65,14 +66,4 @@ class TestTei(unittest.TestCase):
         
         
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner
-
-    try:
-        import xmlrunner
-        runner = xmlrunner.XMLTestRunner(output='test-results')
-    except ImportError:
-        pass
-
-    unittest.main(testRunner=runner)
-
-
+    main()

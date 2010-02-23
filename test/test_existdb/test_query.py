@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
 import unittest
-from test_existdb.test_db import settings
+
+from eulcore import xmlmap
 from eulcore.existdb.db import ExistDB
 from eulcore.existdb.query import QuerySet, Xquery, PartialResultObject
-import eulcore.xmlmap.core as xmlmap
+from testcore import main
+
+from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_TEST_COLLECTION
 
 class QueryTestModel(xmlmap.XmlObject):
             id = xmlmap.XPathString('@id')
@@ -13,7 +16,7 @@ class QueryTestModel(xmlmap.XmlObject):
             wnn = xmlmap.XPathString('wacky_node_name')
 
 class ExistQueryTest(unittest.TestCase):
-    COLLECTION = settings.EXISTDB_TEST_COLLECTION
+    COLLECTION = EXISTDB_TEST_COLLECTION
 
     FIXTURE_ONE = '''
         <root id="one">
@@ -36,7 +39,7 @@ class ExistQueryTest(unittest.TestCase):
     '''
 
     def setUp(self):
-        self.db = ExistDB(server_url=settings.EXISTDB_SERVER_URL)
+        self.db = ExistDB(server_url=EXISTDB_SERVER_URL)
         self.db.createCollection(self.COLLECTION, True)
 
         self.db.load(self.FIXTURE_ONE, self.COLLECTION + '/f1.xml', True)
@@ -320,13 +323,4 @@ class PartialResultObjectTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner
-
-    try:
-        import xmlrunner
-        runner = xmlrunner.XMLTestRunner(output='test-results')
-    except ImportError:
-        pass
-
-    unittest.main(testRunner=runner)
-
+    main()

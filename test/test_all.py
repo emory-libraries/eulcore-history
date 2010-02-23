@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
+from testcore import main
 
 # add any new modules to be tested here
 modules_to_test = (
@@ -12,18 +13,10 @@ modules_to_test = (
 
 def suite():
     alltests = unittest.TestSuite()
-    for module in map(__import__, modules_to_test):
+    for module_name in modules_to_test:
+        module = __import__(module_name)
         alltests.addTest(unittest.findTestCases(module))
     return alltests
 
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner
-
-    try:
-        import xmlrunner
-        runner = xmlrunner.XMLTestRunner(output='test-results')
-    except ImportError:
-        pass
-
-    unittest.main(testRunner=runner,defaultTest='suite')
-
+    main(defaultTest='suite')

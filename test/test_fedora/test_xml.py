@@ -6,6 +6,7 @@ import unittest
 from eulcore.fedora.xml import DigitalObject
 from eulcore.xmlmap import load_xmlobject_from_file
 from test_fedora.base import fixture_path
+from testcore import main
 
 class TestFoxml(unittest.TestCase):
     def setUp(self):
@@ -17,10 +18,4 @@ class TestFoxml(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner
-    try:
-        import xmlrunner
-        runner = xmlrunner.XMLTestRunner(output='test-results')
-    except ImportError:
-        pass
-    unittest.main(testRunner=runner)
+    main()
