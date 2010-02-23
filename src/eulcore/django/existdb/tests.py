@@ -1,8 +1,11 @@
 import os
 import unittest
-from eulcore.django.existdb.db import *
-import eulcore.existdb as nondjangoexistdb
+from urlparse import urlsplit, urlunsplit
+
 from django.conf import settings
+
+import eulcore.existdb as nondjangoexistdb
+from eulcore.django.existdb.db import *
 
 # minimal testing here to confirm djangoified ExistDB works;
 # more extensive tests are in test_existdb
@@ -37,9 +40,14 @@ class ExistDBTest(unittest.TestCase):
             #passwords can be specified in localsettings.py
             # overwrite (and then restore) to ensure that authentication fails
             server_url = settings.EXISTDB_SERVER_URL
-            settings.EXISTDB_SERVER_URL = settings.EXISTDB_SERVER_PROTOCOL + \
-                settings.EXISTDB_SERVER_USER + ":bad_password@" + settings.EXISTDB_SERVER_HOST
 
+            parts = urlsplit(settings.EXISTDB_SERVER_URL)
+            netloc = 'bad_user:bad_password@' + parts.hostname
+            if parts.port:
+                netloc += ':' + str(parts.port)
+            bad_uri = urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+
+            settings.EXISTDB_SERVER_URL = bad_uri
             test_db = ExistDB()
             self.assertRaises(ExistDBException,
                 test_db.hasCollection, self.COLLECTION)

@@ -1,5 +1,8 @@
+from urlparse import urlsplit
+
 # use test database settings from non-django existdb test
-from test_existdb import settings as exist_settings
+#from test_existdb import settings as exist_settings
+from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_TEST_COLLECTION
 
 # Django settings for eulcore project.
 DEBUG = True
@@ -16,15 +19,13 @@ DATABASE_ENGINE = 'sqlite3'
 DATABASE_NAME = 'no_db'
 
 #Exist DB Settings
-EXISTDB_SERVER_PROTOCOL = exist_settings.EXISTDB_SERVER_PROTOCOL
-EXISTDB_SERVER_HOST     = exist_settings.EXISTDB_SERVER_HOST
-EXISTDB_SERVER_USER     = exist_settings.EXISTDB_SERVER_USER
-EXISTDB_SERVER_PWD      = exist_settings.EXISTDB_SERVER_PWD
-#EXISTDB_SERVER_URL      = EXISTDB_SERVER_PROTOCOL + EXISTDB_SERVER_USER + ":" \
-#    + EXISTDB_SERVER_PWD + "@" + EXISTDB_SERVER_HOST
-EXISTDB_SERVER_URL      = EXISTDB_SERVER_PROTOCOL + EXISTDB_SERVER_HOST
-EXISTDB_ROOT_COLLECTION = exist_settings.EXISTDB_ROOT_COLLECTION
-EXISTDB_TEST_COLLECTION =  exist_settings.EXISTDB_TEST_COLLECTION
+url_parts = urlsplit(EXISTDB_SERVER_URL)
+EXISTDB_SERVER_PROTOCOL = url_parts.scheme + '://'
+EXISTDB_SERVER_HOST     = url_parts.hostname
+EXISTDB_SERVER_USER     = url_parts.username
+EXISTDB_SERVER_PWD      = url_parts.password
+#EXISTDB_ROOT_COLLECTION = exist_settings.EXISTDB_ROOT_COLLECTION
+#EXISTDB_TEST_COLLECTION =  exist_settings.EXISTDB_TEST_COLLECTION
 
 
 # Local time zone for this installation. Choices can be found here:
