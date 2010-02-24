@@ -119,12 +119,12 @@ class ExistDB:
         if hits > count more results remain call again with start=count for remaining results
         '''
         xml_s = self.server.query(xqry, how_many, start, kwargs)
-        #xmlrpc will sometimes return unicode, force to UTF-8
 
+        #xmlrpc will sometimes return unicode, force to UTF-8
         if isinstance(xml_s, unicode):
             xml_s = xml_s.encode("UTF-8")
 
-        return self.resultType(xml_s)
+        return xmlmap.load_xmlobject_from_string(xml_s, self.resultType)
     
     @_wrap_xmlrpc_fault
     def executeQuery(self, xqry):
@@ -160,21 +160,17 @@ class ExistDB:
 
 
 class QueryResult(xmlmap.XmlObject):
-    hits = xmlmap.XPathInteger("@hits")
     start = xmlmap.XPathInteger("@start")
     count = xmlmap.XPathInteger("@count")
     
-    def __init__(self, response_str):
-        self.response_str = response_str
-        # parseString wants a url for context; giving it something
-        url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'eXist_response')
-        self.dom = xmlmap.parseString(response_str, url)
-        self.dom_node = self.dom.documentElement
-        xmlmap.XmlObject.__init__(self, self.dom_node)
+    _raw_hits = xmlmap.XPathInteger("@hits")
+    @property
+    def hits(self):
+        return self._raw_hits or 0
 
     @property
     def results(self):
-        return self.dom.xpath('/*/*')
+        return self.dom_node.xpath('*')
 
     @property
     def show_from(self):
@@ -200,7 +196,7 @@ class QueryResult(xmlmap.XmlObject):
             return rVal
 
     def hasMore(self):
-        if (self.hits == None or self.start == None or self.count == None):
+        if (self.hits == 0 or self.start is None or self.count is None):
             return False
         return self.hits > (self.start + self.count)
 

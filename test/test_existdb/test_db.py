@@ -86,7 +86,8 @@ class ExistDBTest(unittest.TestCase):
         """Test xquery with no results"""
         xqry = 'for $x in collection("/db%s")/root/field where $x/@name="notfound" return $x' % (self.COLLECTION, )
         qres = self.db.query(xqry)
-        self.assertEquals(qres.hits, None)
+        self.assertTrue(qres.hits is not None)
+        self.assertEquals(qres.hits, 0)
         self.assertEquals(qres.start, None)
         self.assertEquals(qres.count, None)
         self.assertFalse(qres.hasMore())
