@@ -161,7 +161,11 @@ class ExistDB:
 
 class QueryResult(xmlmap.XmlObject):
     start = xmlmap.XPathInteger("@start")
-    count = xmlmap.XPathInteger("@count")
+
+    _raw_count = xmlmap.XPathInteger("@count")
+    @property
+    def count(self):
+        return self._raw_count or 0
     
     _raw_hits = xmlmap.XPathInteger("@hits")
     @property
@@ -196,7 +200,7 @@ class QueryResult(xmlmap.XmlObject):
             return rVal
 
     def hasMore(self):
-        if (self.hits == 0 or self.start is None or self.count is None):
+        if not self.hits or not self.start or not self.count:
             return False
         return self.hits > (self.start + self.count)
 
