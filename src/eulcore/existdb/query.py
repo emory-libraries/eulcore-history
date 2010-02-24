@@ -10,9 +10,10 @@ class QuerySet(object):
         self.model = model     
         self._db = using
 
-        self.query = Xquery(xpath=xpath, collection=collection)
         if xquery:
             self.query = xquery
+        else:
+            self.query = Xquery(xpath=xpath, collection=collection)
 
         self._result_id = None
         self.partial_return = False
@@ -47,7 +48,7 @@ class QuerySet(object):
         copy._return_also = self._return_also
         return copy
 
-    def filter(self, *args, **kwargs):
+    def filter(self, **kwargs):
         # django-style filters (field__lookuptype)
         #  exact, contains, startswith
         # possibilities to add:
@@ -56,18 +57,18 @@ class QuerySet(object):
 
         # create a copy of the current queryset and add filters to the *copy*
         # so the current queryset remains unchanged
-        qscopy= self._getCopy()
+        qscopy = self._getCopy()
         
-        for arg, value in kwargs.items():
+        for arg, value in kwargs.iteritems():
             if '__' in arg:
                 parts = arg.split('__')
-                if parts and len(parts) > 1:
-                    field = parts[0]
-                    lookuptype = parts[1]
+                if len(parts) != 2:
+                    raise TypeError(repr(arg) + ' is not a valid filter limiter')
+                field, lookuptype = parts
             else:
                 # if arg is just field=foo, check for special terms
-                if arg ==  'contains' or arg == 'startswith':  #  contains=foo : contains anywhere in node
-                    field = '.'         # relative to base query node
+                if arg in ('contains', 'startswith'):  #  contains=foo : contains anywhere in node
+                    field = '.' # relative to base query node
                     lookuptype = arg
                 else:
                     # otherwise, set lookup type to exact
@@ -92,20 +93,18 @@ class QuerySet(object):
 
     def only(self, fields):
         "Limit which fields should be returned; fields should be xpath properties on associated model"
+        xp_fields = dict((f, getXmlObjectXPath(self.model, f))
+                         for f in fields)
         qscopy = self._getCopy()
-        xp_fields = {}
-        for f in fields:
-            xp_fields[f] = getXmlObjectXPath(self.model, f)
         qscopy.query.return_only(xp_fields)
         qscopy.partial_return = True
         return qscopy
 
     def also(self, fields):
         "Specify additional fields to be returned; fields should be xpath properties on associated model"        
+        xp_fields = dict((f, getXmlObjectXPath(self.model, f))
+                         for f in fields)
         qscopy = self._getCopy()
-        xp_fields = {}
-        for f in fields:
-            xp_fields[f] = getXmlObjectXPath(self.model, f)
         qscopy.query.return_also(xp_fields)
         # save field names so they can be mapped in return object
         qscopy._return_also = fields
@@ -116,7 +115,6 @@ class QuerySet(object):
         qscopy = self._getCopy()
         qscopy.query.distinct()
         return qscopy
-
 
     def all(self):
         return self._getCopy()
@@ -131,11 +129,10 @@ class QuerySet(object):
             self.db.releaseQueryResult(self._result_id)
             self._result_id = None
             self._count = None          # clear any count based on this result set
-        
 
-    def get(self, *args, **kwargs):
+    def get(self, **kwargs):
         # store filtered queryset to do count and retrieve on
-        fqs = self.filter(*args, **kwargs)
+        fqs = self.filter(**kwargs)
         if fqs.count() == 1:
             return fqs[0]
         else:
@@ -187,6 +184,7 @@ class QuerySet(object):
         data = self._db.getDoc('/'.join([self.query.collection, docname]))
         # getDoc returns unicode instead of string-- need to decode before handing off to parseString
         return load_xmlobject_from_string(data.encode('utf_8'), self.model)
+
 
 class Xquery(object):
     """
