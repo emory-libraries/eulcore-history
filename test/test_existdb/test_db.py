@@ -7,7 +7,8 @@ from eulcore.existdb import db
 from testcore import main
 
 EXISTDB_SERVER_URL = "http://kamina.library.emory.edu:8080/exist/xmlrpc"
-EXISTDB_TEST_COLLECTION = '/eulcore_test'
+EXISTDB_ROOT_COLLECTION = '/eulcore'
+EXISTDB_TEST_COLLECTION = EXISTDB_ROOT_COLLECTION + '_test'
 
 class ExistDBTest(unittest.TestCase):
     COLLECTION = EXISTDB_TEST_COLLECTION

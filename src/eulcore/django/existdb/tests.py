@@ -11,7 +11,7 @@ from eulcore.django.existdb.db import *
 # more extensive tests are in test_existdb
 
 class ExistDBTest(unittest.TestCase):
-    COLLECTION = settings.EXISTDB_ROOT_COLLECTION
+    COLLECTION = settings.EXISTDB_TEST_COLLECTION
 
     def setUp(self):
         self.db = ExistDB()        
