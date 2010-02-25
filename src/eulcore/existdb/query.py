@@ -171,8 +171,8 @@ class QuerySet(object):
 
     def __iter__(self):
         # rudimentary iterator (django queryset one much more complicated...)
-        for i in range(0, self.count()):
-            yield self.__getitem__(i)
+        for i in range(self.count()):
+            yield self[i]
 
     def _runQuery(self):
         """
@@ -299,16 +299,12 @@ class Xquery(object):
 
     def return_only(self, fields):
         "Only return the specified fields.  fields should be a dictionary of return name -> xpath"
-        for name, xpath in fields.iteritems():
-            if name not in self.return_fields:
-                self.return_fields[name] = xpath
+        self.return_fields.update(fields)
 
     def return_also(self, fields):
         """Return additional specified fields.  fields should be a dictionary of return name -> xpath.
            Not compatible with return_only."""
-        for name, xpath in fields.iteritems():
-            if name not in self.additional_return_fields:
-                self.additional_return_fields[name] = xpath
+        self.additional_return_fields.update(fields)
 
     def _constructReturn(self):
         """Construct the return portion of a FLOWR xquery."""
