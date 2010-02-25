@@ -186,6 +186,9 @@ class QuerySet(object):
         return load_xmlobject_from_string(data.encode('utf_8'), self.model)
 
 
+def _quote_for_string_literal(s):
+    return s.replace('"', '""').replace('&', '&amp;')
+
 class Xquery(object):
     """
     xpath/xquery object
@@ -286,11 +289,11 @@ class Xquery(object):
         #   search (full-text search with full-text indexing - like contains but faster)
         
         if type == 'contains':
-            filter = 'contains(%s, "%s")' % (xpath, value)
+            filter = 'contains(%s, "%s")' % (xpath, _quote_for_string_literal(value))
         if type == 'startswith':
-            filter = 'starts-with(%s, "%s")' % (xpath, value)
+            filter = 'starts-with(%s, "%s")' % (xpath, _quote_for_string_literal(value))
         if type == 'exact':
-            filter = '%s = "%s"' % (xpath, value)
+            filter = '%s = "%s"' % (xpath, _quote_for_string_literal(value))
         self.filters.append(filter)
 
 

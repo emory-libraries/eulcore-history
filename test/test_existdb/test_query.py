@@ -120,6 +120,17 @@ class ExistQueryTest(unittest.TestCase):
             "should get 3 matches for filter on name contains 'o' (got %s)" % fqs.count())
         self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
+    def test_filter_field_contains_special(self):
+        fqs = self.qs.filter(description__contains=' "quote" ')
+        self.assertEqual(1, fqs.count(),
+            "should get 1 match for filter on desc contains ' \"quote\" ' (got %s)" % fqs.count())
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+
+        fqs = self.qs.filter(description__contains=' &!')
+        self.assertEqual(1, fqs.count(),
+            "should get 1 match for filter on desc contains ' &!' (got %s)" % fqs.count())
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+
     def test_filter_field_startswith(self):
         fqs = self.qs.filter(name__startswith="o")
         self.assertEqual(1, fqs.count(),
@@ -253,6 +264,11 @@ class XqueryTest(unittest.TestCase):
         # filters are additive
         xq.add_filter('.', 'startswith', 'S')
         self.assertEquals('/el[contains(., "dog")][starts-with(., "S")]', xq.getQuery())
+
+    def test_filter_escaping(self):
+        xq = Xquery(xpath='/el')
+        xq.add_filter('.', 'contains', '"&')
+        self.assertEquals('/el[contains(., """&amp;")]', xq.getQuery())
 
     def test_return_only(self):
         xq = Xquery(xpath='/el')
