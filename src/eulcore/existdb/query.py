@@ -212,8 +212,7 @@ class Xquery(object):
 
     def getCopy(self):
         xq = Xquery(xpath=self.xpath, collection=self.collection)
-        for f in self.filters:
-            xq.filters.append(f)
+        xq.filters += self.filters
         xq.order_by = self.order_by
         xq._distinct = self._distinct
         # return *copies* of dictionaries, not references to the ones in this object!
@@ -226,17 +225,17 @@ class Xquery(object):
         Generate and return xquery based on configured filters, sorting, return fields.
         Returns xpath or FLOWR XQuery if required based on sorting and return
         """
-        xpath = ''
+        xpath_parts = []
+
         if self.collection is not None:
-            xpath += 'collection("/db/'+ self.collection.lstrip('/') + '")'
+            xpath_parts.append('collection("/db/' + self.collection.lstrip('/') + '")')
 
-        xpath += self.xpath
+        xpath_parts.append(self.xpath)
+        xpath_parts += [ '[%s]' % (f,) for f in self.filters ]
 
-        for f in self.filters:
-            xpath += '[%s]' % (f)
-
+        xpath = ''.join(xpath_parts)
         # requires FLOWR instead of just XQuery  (sort, customized return, etc.)
-        if self.order_by or len(self.return_fields) or len(self.additional_return_fields):            
+        if self.order_by or self.return_fields or self.additional_return_fields:
             # NOTE: use constructed xpath, with collection (if any)
             flowr_for = 'for %s in %s' % (self.xq_var, xpath)
             flowr_let = ''
@@ -254,11 +253,11 @@ class Xquery(object):
             query = xpath
 
         if self._distinct:
-            query = "distinct-values(%s)" % query
+            query = "distinct-values(%s)" % (query,)
 
         # if either start or end is specified, only retrieve the specified set of results
         # limits need to be done after any sorting or filtering, so subsequencing entire query
-        if self.start != 0 or self.end is not None:
+        if self.start or self.end is not None:
             # subsequence takes nodeset, starting position, number of records to return
             # note: xquery starts counting at 1 instead of 0
             if self.end is None:
