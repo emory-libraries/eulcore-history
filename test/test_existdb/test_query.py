@@ -37,6 +37,13 @@ class ExistQueryTest(unittest.TestCase):
             <description>third!</description>
         </root>
     '''
+    FIXTURE_FOUR = '''
+        <root id="def">
+            <name>four</name>
+            <description>this one contains "quote" and &amp;!</description>
+        </root>
+    '''
+    NUM_FIXTURES = 4
 
     def setUp(self):
         self.db = ExistDB(server_url=EXISTDB_SERVER_URL)
@@ -45,6 +52,7 @@ class ExistQueryTest(unittest.TestCase):
         self.db.load(self.FIXTURE_ONE, self.COLLECTION + '/f1.xml', True)
         self.db.load(self.FIXTURE_TWO, self.COLLECTION + '/f2.xml', True)
         self.db.load(self.FIXTURE_THREE, self.COLLECTION + '/f3.xml', True)
+        self.db.load(self.FIXTURE_FOUR, self.COLLECTION + '/f4.xml', True)
 
         self.qs = QuerySet(using=self.db, collection=self.COLLECTION, model=QueryTestModel)
 
@@ -52,13 +60,14 @@ class ExistQueryTest(unittest.TestCase):
         self.db.removeCollection(self.COLLECTION)
 
     def test_count(self):
-        self.assertEqual(3, self.qs.count(), "queryset count returns 3")
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "queryset count returns number of fixtures")
 
     def test_getitem(self):                
         qs = self.qs.order_by('id')     # adding sort order to test reliably
         self.assertEqual("abc", qs[0].id)
-        self.assertEqual("one", qs[1].id)
-        self.assertEqual("xyz", qs[2].id)
+        self.assertEqual("def", qs[1].id)
+        self.assertEqual("one", qs[2].id)
+        self.assertEqual("xyz", qs[3].id)
 
     def test_getitem_typeerror(self):
         self.assertRaises(TypeError, self.qs.__getitem__, "foo")
@@ -73,14 +82,14 @@ class ExistQueryTest(unittest.TestCase):
         self.assert_(isinstance(slice[0], QueryTestModel))        
         self.assertEqual(2, slice.count())
         self.assertEqual('abc', slice[0].id)
-        self.assertEqual('one', slice[1].id)
+        self.assertEqual('def', slice[1].id)
         self.assertRaises(IndexError, slice.__getitem__, 2)
 
         slice = self.qs.order_by('id')[1:3]
-        self.assertEqual('one', slice[0].id)
-        self.assertEqual('xyz', slice[1].id)
+        self.assertEqual('def', slice[0].id)
+        self.assertEqual('one', slice[1].id)
 
-        slice = self.qs.order_by('id')[2:4]
+        slice = self.qs.order_by('id')[3:5]
         self.assertEqual(1, slice.count())
         self.assertEqual('xyz', slice[0].id)
         self.assertRaises(IndexError, slice.__getitem__, 1)
@@ -89,39 +98,39 @@ class ExistQueryTest(unittest.TestCase):
         fqs = self.qs.filter(contains="two")
         self.assertEqual(1, fqs.count(), "count returns 1 when filtered - contains 'two'")
         self.assertEqual("two", fqs[0].name, "name matches filter")
-        self.assertEqual(3, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field(self):
         fqs = self.qs.filter(name="one")
         self.assertEqual(1, fqs.count(), "count returns 1 when filtered on name = 'one' (got %s)"
             % self.qs.count())
         self.assertEqual("one", fqs[0].name, "name matches filter")
-        self.assertEqual(3, self.qs.count(), "main queryset unchanged by filter")
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_xpath(self):
         fqs = self.qs.filter(id="abc")
         self.assertEqual(1, fqs.count(), "count returns 1 when filtered on @id = 'abc' (got %s)"
             % self.qs.count())
         self.assertEqual("two", fqs[0].name, "name returned is correct for id filter")
-        self.assertEqual(3, self.qs.count(), "main queryset unchanged by filter")
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_contains(self):
         fqs = self.qs.filter(name__contains="o")
-        self.assertEqual(2, fqs.count(),
-            "should get 2 matches for filter on name contains 'o' (got %s)" % fqs.count())
-        self.assertEqual(3, self.qs.count(), "main queryset unchanged by filter")
+        self.assertEqual(3, fqs.count(),
+            "should get 3 matches for filter on name contains 'o' (got %s)" % fqs.count())
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_startswith(self):
         fqs = self.qs.filter(name__startswith="o")
         self.assertEqual(1, fqs.count(),
             "should get 1 match for filter on name starts with 'o' (got %s)" % fqs.count())
-        self.assertEqual(3, self.qs.count(), "main queryset unchanged by filter")
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_get(self):
         result  = self.qs.get(contains="two")
         self.assert_(isinstance(result, QueryTestModel), "get() with contains returns single result")
         self.assertEqual(result.name, "two", "result returned by get() has correct data")
-        self.assertEqual(3, self.qs.count(), "main queryset unchanged by get()")
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_get_toomany(self):
         self.assertRaises(Exception, self.qs.get, contains="one")
@@ -133,31 +142,33 @@ class ExistQueryTest(unittest.TestCase):
         result  = self.qs.get(name="one")
         self.assert_(isinstance(result, QueryTestModel), "get() with contains returns single result")
         self.assertEqual(result.name, "one", "result returned by get() has correct data")
-        self.assertEqual(3, self.qs.count(), "main queryset unchanged by get()")
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
     
     def test_filter_get(self):        
         result = self.qs.filter(contains="one").filter(name="two").get()
         self.assert_(isinstance(result, QueryTestModel))
         self.assertEqual("two", result.name, "filtered get() returns correct data")
-        self.assertEqual(3, self.qs.count(), "main queryset unchanged by filtered get()")
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_reset(self):
         self.qs.filter(contains="two")
         self.qs.reset()
-        self.assertEqual(3, self.qs.count(), "count should be 3 after filter is reset")
+        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_order_by(self):
         # element
         fqs = self.qs.order_by('name')
-        self.assertEqual('one', fqs[0].name)
-        self.assertEqual('three', fqs[1].name)
-        self.assertEqual('two', fqs[2].name)
+        self.assertEqual('four', fqs[0].name)
+        self.assertEqual('one', fqs[1].name)
+        self.assertEqual('three', fqs[2].name)
+        self.assertEqual('two', fqs[3].name)
         self.assert_('order by ' not in self.qs.query.getQuery(), "main queryset unchanged by order_by()")
         # attribute
         fqs = self.qs.order_by('id')
         self.assertEqual('abc', fqs[0].id)
-        self.assertEqual('one', fqs[1].id)
-        self.assertEqual('xyz', fqs[2].id)
+        self.assertEqual('def', fqs[1].id)
+        self.assertEqual('one', fqs[2].id)
+        self.assertEqual('xyz', fqs[3].id)
 
     def test_only(self):        
         self.qs.only(['name'])
@@ -174,8 +185,6 @@ class ExistQueryTest(unittest.TestCase):
         fqs = self.qs.filter(id='one').only(['wnn'])
         self.assertTrue(hasattr(fqs[0], "wnn"))
         self.assertEqual('a', fqs[0].wnn)
-
-        
 
     def test_iter(self):
         for q in self.qs:
@@ -204,6 +213,7 @@ class ExistQueryTest(unittest.TestCase):
         self.assert_('one'  in vals)
         self.assert_('two' in vals)
         self.assert_('three' in vals)
+        self.assert_('four' in vals)
         self.assert_('abc' not in vals)
 
 
