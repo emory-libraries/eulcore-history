@@ -68,16 +68,22 @@ class ExistQueryTest(unittest.TestCase):
         self.assertRaises(IndexError, self.qs.__getitem__, 23)
 
     def test_getslice(self):
-        slice = self.qs.order_by('id')[0:1]
+        slice = self.qs.order_by('id')[0:2]
         self.assert_(isinstance(slice, QuerySet))
         self.assert_(isinstance(slice[0], QueryTestModel))        
         self.assertEqual(2, slice.count())
         self.assertEqual('abc', slice[0].id)
         self.assertEqual('one', slice[1].id)
+        self.assertRaises(IndexError, slice.__getitem__, 2)
 
-        slice = self.qs.order_by('id')[1:2]
+        slice = self.qs.order_by('id')[1:3]
         self.assertEqual('one', slice[0].id)
         self.assertEqual('xyz', slice[1].id)
+
+        slice = self.qs.order_by('id')[2:4]
+        self.assertEqual(1, slice.count())
+        self.assertEqual('xyz', slice[0].id)
+        self.assertRaises(IndexError, slice.__getitem__, 1)
 
     def test_filter(self):
         fqs = self.qs.filter(contains="two")
@@ -266,7 +272,7 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery(xpath='/el')
         xq.xq_var = '$n'
         xq.set_limits(low=0, high=4)
-        self.assertEqual('subsequence(/el, 1, 5)', xq.getQuery())
+        self.assertEqual('subsequence(/el, 1, 4)', xq.getQuery())
         # subsequence with FLWR query
         xq.return_only({'name':'name'})
         self.assert_('subsequence(for $n in' in xq.getQuery())
@@ -275,8 +281,7 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery(xpath='/el')
         xq.set_limits(low=2, high=10)
         xq.set_limits(low=1, high=5)
-        # FIXME: is this math right?
-        self.assertEqual('subsequence(/el, 4, 5)', xq.getQuery())
+        self.assertEqual('subsequence(/el, 4, 4)', xq.getQuery())
 
         # no high specified
         xq = Xquery(xpath='/el')
@@ -286,7 +291,7 @@ class XqueryTest(unittest.TestCase):
         # no low
         xq = Xquery(xpath='/el')
         xq.set_limits(high=15)
-        self.assertEqual('subsequence(/el, 1, 16)', xq.getQuery())
+        self.assertEqual('subsequence(/el, 1, 15)', xq.getQuery())
 
     def test_clear_limits(self):
         xq = Xquery(xpath='/el')

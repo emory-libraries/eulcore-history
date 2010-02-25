@@ -154,7 +154,7 @@ class QuerySet(object):
 
         # check that index is in range
         # for now, not handling any fancy python indexing
-        if k < 0 or k > self.count():
+        if k < 0 or k >= self.count():
             raise IndexError
        
         item = self._db.retrieve(self.result_id, k)
@@ -263,7 +263,7 @@ class Xquery(object):
             if self.end is None:
                 end = ''                            # no limit
             else:
-                end = self.end - self.start + 1     # number to return
+                end = self.end - self.start         # number to return
             query = "subsequence(%s, %i, %s)" % (query, self.start + 1, end)
 
         return query
