@@ -2,6 +2,5 @@ eulcore.existdb provides methods to connect and query eXist databases.
 
 To use with django, see eulcore.django.existdb
 
-Dependencies
-============
+Dependencies:
  * eulcore.xmlmap

@@ -2,8 +2,7 @@ eulcore,
 being a collection of reusable Python components produced by Emory
 University Libraries.
 
-Dependencies
-============
+Dependencies:
  * eulcore.fedora depends on Python rdflib for RELS-EXT and
    RISearch RDF logic. Debian/Ubuntu users can apt-get install
    python-rdflib. Other users can easy_install rdflib
