@@ -5,6 +5,7 @@ __all__ = [
     'XPathNode', 'XPathNodeList',
     'XPathString', 'XPathStringList',
     'XPathInteger', 'XPathIntegerList',
+    'XPathItem',
 # NOTE: XPathDate and XPathDateList are undertested and underdocumented. If
 #   you really need them, you should import them explicitly. Or even better,
 #   flesh them out so they can be properly released.
@@ -54,6 +55,11 @@ class DateMapper(object):
         dt = datetime.strptime(rep, '%Y-%m-%dT%H:%M:%S')
         return dt
 
+# do no conversion at all - e.g., if xpath returns a string instead of a node
+class NullMapper(object):
+    def convert_node(self, node):
+        return node
+
 class NodeMapper(object):
     def __init__(self, node_class):
         self.node_class = node_class
@@ -92,4 +98,7 @@ class XPathDate(XPathItemDescriptor, DateMapper):
     pass
 
 class XPathDateList(XPathListDescriptor, DateMapper):
+    pass
+
+class XPathItem(XPathItemDescriptor, NullMapper):
     pass

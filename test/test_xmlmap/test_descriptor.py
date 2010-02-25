@@ -87,6 +87,16 @@ class TestDescriptors(unittest.TestCase):
         self.assertEqual(obj.vals, [42, 13])
         self.assertEqual(obj.missing, [])
 
+    def testItemDescriptor(self):
+        class TestObject(xmlmap.XmlObject):
+            letter = xmlmap.XPathItem('substring(bar/baz, 1, 1)')
+            missing = xmlmap.XPathItem('missing')
+
+        obj = TestObject(self.fixture.documentElement)
+        self.assertEqual(obj.letter, '4')
+        self.assertEqual(obj.missing, None)
+
+
     # FIXME: XPathDate and XPathDateList are hacked together. Until we
     #   work up some proper parsing and good testing for them, they should
     #   be considered untested and undocumented features.
