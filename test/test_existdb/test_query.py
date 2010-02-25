@@ -201,6 +201,12 @@ class ExistQueryTest(unittest.TestCase):
         for q in self.qs:
             self.assert_(isinstance(q, QueryTestModel))
 
+    def test_slice_iter(self):
+        i = 0
+        for q in self.qs[1:2]:
+            i += 1
+        self.assertEqual(1, i)
+
     def test_also(self):        
         class SubqueryTestModel(xmlmap.XmlObject):
             name = xmlmap.XPathString('.')
