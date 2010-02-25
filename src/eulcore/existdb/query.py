@@ -91,7 +91,7 @@ class QuerySet(object):
         qscopy.query.sort(xpath)
         return qscopy
 
-    def only(self, fields):
+    def only(self, *fields):
         "Limit which fields should be returned; fields should be xpath properties on associated model"
         xp_fields = dict((f, getXmlObjectXPath(self.model, f))
                          for f in fields)
@@ -100,7 +100,7 @@ class QuerySet(object):
         qscopy.partial_return = True
         return qscopy
 
-    def also(self, fields):
+    def also(self, *fields):
         "Specify additional fields to be returned; fields should be xpath properties on associated model"        
         xp_fields = dict((f, getXmlObjectXPath(self.model, f))
                          for f in fields)
@@ -384,6 +384,7 @@ class Xquery(object):
 
     def prep_xpath(self, xpath):
         # common xpath clean-up before handing off to exist
+        # FIXME: this will break on /foo[bar="|./"]
         # FIXME: move return field xpath manip here?  perhaps add param to set type of xpath?
 
         # mutiple nodes |ed together- fix context issuse by replacing . with xq variable

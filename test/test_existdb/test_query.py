@@ -182,10 +182,10 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual('xyz', fqs[3].id)
 
     def test_only(self):        
-        self.qs.only(['name'])
+        self.qs.only('name')
         self.assert_('element name {' not in self.qs.query.getQuery(), "main queryset unchanged by only()")
         
-        fqs = self.qs.filter(id='one').only(['name','id'])
+        fqs = self.qs.filter(id='one').only('name','id')
         self.assert_(isinstance(fqs[0], PartialResultObject))
         self.assertTrue(hasattr(fqs[0], "name"))
         self.assertTrue(hasattr(fqs[0], "id"))
@@ -193,7 +193,7 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual('one', fqs[0].id)
         self.assertEqual('one', fqs[0].name)
 
-        fqs = self.qs.filter(id='one').only(['wnn'])
+        fqs = self.qs.filter(id='one').only('wnn')
         self.assertTrue(hasattr(fqs[0], "wnn"))
         self.assertEqual('a', fqs[0].wnn)
 
@@ -207,7 +207,7 @@ class ExistQueryTest(unittest.TestCase):
             parent_id = xmlmap.XPathString('parent::root/@id')
 
         qs = QuerySet(using=self.db, collection=self.COLLECTION, model=SubqueryTestModel, xpath='//name')
-        name = qs.also(['parent_id']).get(name__exact='two')
+        name = qs.also('parent_id').get(name__exact='two')
         self.assertEqual('abc', name.parent_id,
             "parent id set correctly when retuning at name level with also parent_id specified; should be 'abc', got '"
             + name.parent_id + "'")
