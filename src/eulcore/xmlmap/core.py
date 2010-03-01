@@ -12,6 +12,23 @@ parseUri = NonvalidatingReader.parseUri
 parseString = NonvalidatingReader.parseString
 
 class XmlObject(object):
+
+    """A Python object wrapped around an XML DOM node.
+
+    Typical programs will define subclasses of :class:`XmlObject` with
+    various descriptor members. Generally they will use
+    :func:`load_xmlobject_from_string` and :func:`load_xmlobject_from_file`
+    to create instances of these subclasses, though they can be constructed
+    directly if more control is necessary.
+
+    In particular, programs can pass an optional
+    :class:`Ft.Xml.XPath.Context` argument to the constructor to specify an
+    XPath evaluation context with alternate namespace or variable
+    definitions. By default, descriptors are evaluated in an XPath context
+    containing the namespaces of the wrapped DOM node and no variables.
+
+    """
+
     def __init__(self, dom_node, context=None):
         self.dom_node = dom_node
         self.context = context or Context(dom_node, 
@@ -19,7 +36,11 @@ class XmlObject(object):
 
     def xslTransform(self, filename=None, xsl=None, params={}):
         """Run an xslt transform on the contents of the XmlObject.
-           XSLT can be passed as filename or string.
+
+        XSLT can be passed as filename or string. If a params dictionary is
+        specified, its items will be passed as parameters to the XSL
+        transformation.
+
         """
         xslproc = Processor.Processor()
         if filename is not None:
@@ -42,13 +63,25 @@ def getXmlObjectXPath(obj, var):
 
 
 def load_xmlobject_from_string(string, xmlclass=XmlObject):
-    """Convenience function to initialize an XmlObject from a string"""
+    """Initialize an XmlObject from a string.
+
+    If an xmlclass is specified, construct an instance of that class instead
+    of XmlObject. It should be a subclass of XmlObject. The constructor will
+    passed a single DOM node.
+    
+    """
     # parseString wants a uri, but context doesn't really matter for a string...
     parsed_str= parseString(string, "urn:bogus")
     return xmlclass(parsed_str.documentElement)
 
 def load_xmlobject_from_file(filename, xmlclass=XmlObject):
-    """Convenience function to initialize an XmlObject from a file"""
+    """Initialize an XmlObject from a file.
+
+    If an xmlclass is specified, construct an instance of that class instead
+    of XmlObject. It should be a subclass of XmlObject. The constructor will
+    passed a single DOM node.
+    
+    """
     file_uri = Uri.OsPathToUri(filename)
     parsed_file = parseUri(file_uri)
     return xmlclass(parsed_file.documentElement)

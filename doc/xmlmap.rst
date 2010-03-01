@@ -15,7 +15,7 @@ setting them as well.
 General Usage
 -------------
 
-Let's say we have an XML object that looks something like this:
+Suppose we have an XML object that looks something like this:
 
 .. code-block:: xml
 
@@ -52,19 +52,79 @@ this::
   >>> foo.all_baz
   [42, 13]
 
+Concepts
+--------
 
-API
----
+:mod:`~eulcore.xmlmap` simplifies access to XML DOM data in Python. Programs
+can define new :class:`~eulcore.xmlmap.XmlObject` subclasses representing a
+type of XML node with predictable structure. Members of these classes can be
+regular methods and values like in regular Python classes, but they can also
+be special :ref:`descriptor <xmlmap-descriptor>` objects that associate
+XPath expressions with Python data elements. When code accesses these
+descriptor attributes on the object, the code evaluates the associated XPath
+expression and converts the data to a Python value.
 
-.. FIXME: automodules here rely on undoc-members to include undocumented
-     members in the output documentation. We should move away from this,
-     preferring instead to add docstrings and/or reST docs right here) for
-     members that need documentation.
+:class:`XmlObject`
+------------------
 
-.. automodule:: eulcore.xmlmap.core
-   :members:
-   :undoc-members:
+Most programs will use :mod:`~eulcore.xmlmap` by defining a subclass of
+:class:`XmlObject` containing :ref:`descriptor <xmlmap-descriptor>` members.
 
-.. automodule:: eulcore.xmlmap.descriptor
-   :members:
-   :undoc-members:
+.. autoclass:: XmlObject(dom_node[, context])
+
+   It has the following parameters and methods:
+
+   .. attribute:: dom_node
+
+      The DOM node wrapped by the object
+
+   .. automethod:: xslTransform([filename,[ xsl[, params]]])
+
+
+.. _xmlmap-descriptor:
+
+Descriptor types
+----------------
+
+There are several predefined descriptor types. All of them evaluate XPath
+expressions and map the resultant DOM nodes to Python types. They differ
+primarily in how they map those DOM nodes to Python objects as well as in
+whether they expect their XPath expression to match a single DOM node or a
+whole collection of them.
+
+Descriptor objects are typically created as part of an :class:`XmlObject`
+definition and accessed with standard Python object attribute syntax. If a
+:class:`Foo` class defines a :attr:`bar` attribute as an
+:mod:`~eulcore.xmlmap` descriptor object, then an object will reference it
+simply as ``foo.bar``.
+
+.. autoclass:: XPathString(xpath)
+
+.. autoclass:: XPathStringList(xpath)
+
+.. autoclass:: XPathInteger(xpath)
+
+.. autoclass:: XPathIntegerList(xpath)
+
+.. autoclass:: XPathNode(xpath, xml_class)
+
+.. autoclass:: XPathNodeList(xpath, xml_class)
+
+Other facilities
+----------------
+
+.. autofunction:: load_xmlobject_from_string(string[, xmlclass])
+
+.. autofunction:: load_xmlobject_from_file(string[, xmlclass])
+
+.. function:: parseString(string[, base_uri])
+
+   Read an XML document provided as a byte string, and return a
+   :mod:`Ft.Xml.Domlette` document node. string cannot be a Unicode string.
+
+   base_uri should be provided for the calculation of relative URIs.
+
+.. function:: parseUri(uri)
+
+   Read an XML document from a URI, and return a :mod:`Ft.Xml.Domlette`
+   document node.

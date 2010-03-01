@@ -71,34 +71,69 @@ class NodeMapper(object):
 # finished descriptor classes mixing a base with a mapping strategy
 
 class XPathNode(XPathItemDescriptor, NodeMapper):
+
+    """Map an XPath expression to a single :class:`XmlObject` subclass
+    instance. If the XPath expression evaluates to an empty NodeList, an
+    XPathNode descriptor evaluates to `None`."""
+
     def __init__(self, xpath, node_class):
         XPathItemDescriptor.__init__(self, xpath)
         NodeMapper.__init__(self, node_class)
 
 
 class XPathNodeList(XPathListDescriptor, NodeMapper):
+
+    """Map an XPath expression to a list of :class:`XmlObject` subclass
+    instances. If the XPath expression evalues to an empty NodeList, an
+    XPathNodeList descriptor evaluates to an empty list."""
+
     def __init__(self, xpath, node_class):
         XPathListDescriptor.__init__(self, xpath)
         NodeMapper.__init__(self, node_class)
         
 
 class XPathString(XPathItemDescriptor, StringMapper):
-    pass
+    """Map an XPath expression to a single Python string. If the XPath
+    expression evaluates to an empty NodeList, an XPathString descriptor
+    evaluates to `None`."""
 
 class XPathStringList(XPathListDescriptor, StringMapper):
-    pass
+    """Map an XPath expression to a list of Python strings. If the XPath
+    expression evaluates to an empty NodeList, an XPathStringList desriptor
+    evaluates to an empty list."""
 
 class XPathInteger(XPathItemDescriptor, NumberMapper):
-    pass
+    """Map an XPath expression to a single Python integer. If the XPath
+    expression evaluates to an empty NodeList, an XPathInteger descriptor
+    evaluates to `None`."""
 
 class XPathIntegerList(XPathListDescriptor, NumberMapper):
-    pass
+    """Map an XPath expression to a list of Python integers. If the XPath
+    expression evaluates to an empty NodeList, an XPathIntegerList
+    descriptor evaluates to an empty list."""
 
 class XPathDate(XPathItemDescriptor, DateMapper):
-    pass
+    """Map an XPath expression to a single Python `datetime.datetime`. If
+    the XPath expression evaluates to an empty NodeList, an XPathDate
+    descriptor evaluates to `None`.
+
+    .. WARNING::
+       XPathDate processing is minimal, undocumented, and liable to change.
+       It is not part of any official release. Use it at your own risk.
+    """
 
 class XPathDateList(XPathListDescriptor, DateMapper):
+    """Map an XPath expression to a list of Python `datetime.datetime`
+    objects. If the XPath expression evaluates to an empty NodeList, an
+    XPathDateList descriptor evaluates to an empty list.
+
+    .. WARNING::
+       XPathDateList processing is minimal, undocumented, and liable to
+       change. It is not part of any official release. Use it at your own
+       risk.
+    """
     pass
 
 class XPathItem(XPathItemDescriptor, NullMapper):
-    pass
+    """Access the results of an XPath expression directly. This descriptor
+    does no conversion on the result of evaluating the XPath expression."""
