@@ -1,11 +1,13 @@
-.. EULcore documentation master file, created by sphinx-quickstart on Thu Feb 25 13:40:44 2010.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+EULcore |release|
+=================
 
-Welcome to EULcore's documentation!
-===================================
+EULcore is a collection of reusable Python_ components from `Emory
+University Libraries`_. The library contains both released and unreleased
+beta components. Except where noted otherwise, components documented here
+are released and ready for production use.
 
-.. include:: ../README
+.. _Python: http://www.python.org/
+.. _Emory University Libraries: http://web.library.emory.edu/
 
 Contents
 --------
@@ -16,10 +18,14 @@ Contents
    xmlmap
    existdb
 
+Dependencies
+------------
+
+.. include:: ../README.dependencies
+
 Indices and tables
 ------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

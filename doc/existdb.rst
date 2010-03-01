@@ -28,5 +28,3 @@
 .. automodule:: eulcore.django.existdb.db
    :members:
    :undoc-members:
-
-

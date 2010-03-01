@@ -1,0 +1,23 @@
+Among released packages:
+
+ * :mod:`eulcore.xmlmap` depends on 4suite-xml_. Debian/Ubuntu users can
+   ``apt-get install python-4suite-xml``.
+ * :mod:`eulcore.django.existdb` depends on Django_, of course.
+
+.. _4suite-xml: http://4suite.org/
+.. _Django: http://www.djangoproject.com/
+
+EULcore also contains several packages in unreleased beta development. Their
+dependencies are as follows:
+
+ * :mod:`eulcore.fedora` depends on Python rdflib_ for RELS-EXT and
+   RISearch RDF logic. Debian/Ubuntu users can ``apt-get install
+   python-rdflib``. Other users can ``easy_install rdflib``
+ * :mod:`eulcore.fedora` and :mod:`eulcore.django.soap` depend on soaplib_.
+   Debian/Ubuntu users can ``apt-get install python-soaplib``.
+ * :mod:`eulcore.django.ldap` depends on python-ldap_. Debian/Ubuntu users
+   can ``apt-get install python-ldap``.
+
+.. _rdflib: http://www.rdflib.net/
+.. _soaplib: http://trac.optio.webfactional.com/
+.. _python-ldap: http://www.python-ldap.org/
