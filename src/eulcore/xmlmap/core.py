@@ -67,7 +67,7 @@ def load_xmlobject_from_string(string, xmlclass=XmlObject):
 
     If an xmlclass is specified, construct an instance of that class instead
     of XmlObject. It should be a subclass of XmlObject. The constructor will
-    passed a single DOM node.
+    be passed a single DOM node.
     
     """
     # parseString wants a uri, but context doesn't really matter for a string...
@@ -79,7 +79,7 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject):
 
     If an xmlclass is specified, construct an instance of that class instead
     of XmlObject. It should be a subclass of XmlObject. The constructor will
-    passed a single DOM node.
+    be passed a single DOM node.
     
     """
     file_uri = Uri.OsPathToUri(filename)
