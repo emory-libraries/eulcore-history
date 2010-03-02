@@ -1,16 +1,31 @@
 :mod:`eulcore.existdb` -- Store and retrieve data in an eXist database
 ======================================================================
 
-.. include:: ../src/eulcore/existdb/README
+.. automodule:: eulcore.existdb
 
 .. FIXME: automodules here rely on undoc-members to include undocumented
      members in the output documentation. We should move away from this,
      preferring instead to add docstrings and/or reST docs right here) for
      members that need documentation.
 
+Direct database access
+----------------------
+
 .. automodule:: eulcore.existdb.db
-   :members:
-   :undoc-members:
+
+   .. autoclass:: ExistDB(server_url[, resultType[, encoding[, verbose]]])
+      :members:
+      :undoc-members:
+
+   .. autoclass:: QueryResult
+      :members:
+      :undoc-members:
+
+   .. autoexception:: ExistDBException
+
+
+Model-based access
+-----------------------------
 
 .. automodule:: eulcore.existdb.query
    :members:

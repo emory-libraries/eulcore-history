@@ -1,8 +1,13 @@
+EULcore comprises several packages, and these don't always need to be used
+together. Administrators may choose to install only those dependencies used
+by the applications they're installing.
+
 Among released packages:
 
  * :mod:`eulcore.xmlmap` depends on 4suite-xml_. Debian/Ubuntu users can
    ``apt-get install python-4suite-xml``.
- * :mod:`eulcore.django.existdb` depends on Django_, of course.
+ * :mod:`eulcore.existdb` depends on 4suite-xml_.
+ * :mod:`eulcore.django.existdb` depends on 4suite-xml_ and Django_.
 
 .. _4suite-xml: http://4suite.org/
 .. _Django: http://www.djangoproject.com/

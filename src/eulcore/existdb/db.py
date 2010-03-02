@@ -1,6 +1,17 @@
+"""Connect to an eXist XML database and query it.
+
+This module provides :class:`ExistDB` and related classes for connecting to
+an eXist-db_ database and executing XQuery_ queries against it.
+
+.. _XQuery: http://www.w3.org/TR/xquery/
+
+"""
+
 from functools import wraps
 import xmlrpclib
 from eulcore import xmlmap
+
+__all__ = ['ExistDB', 'QueryResult', 'ExistDBException']
 
 def _wrap_xmlrpc_fault(f):
     @wraps(f)
@@ -13,47 +24,34 @@ def _wrap_xmlrpc_fault(f):
 
 
 class ExistDB:
-    #Class to manipualate eXist DB
-    #retrival methods generally accept optional arguments
-    #   indent:                 return pretty print xml [yes|no]
-    #   encoding:               Specifies the character encoding used for the output.
-    #                           If the method returns a string, only the XML declaration
-    #                           will be modified accordingly.
-    #   omit-xml-declaration:   Add XML declaration to the head of the document. [yes | no]
-    #   expand-xincludes:       Expand XInclude elements. [yes | no]
-    #   process-xsl-pi:         Specifying "yes": XSL processing instructions in the document
-    #                           will be processed and the corresponding stylesheet applied to
-    #                           the output. [yes | no]
-    #   highlight-matches:      Database adds special tags to highlight the strings in the text
-    #                           that have triggered a fulltext match. Set to "elements" to
-    #                           highlight matches in element values, "attributes" for attribute
-    #                           values or "both" for both elements and attributes.
-    #   stylesheet:             Use this parameter to specify an XSL stylesheet which should be
-    #                           applied to the output. If the parameter contains a relative path,
-    #                           the stylesheet will be loaded from the database.
-    #   If a stylesheet has been specified with stylesheet, you can also pass it parameters.
-    #   Stylesheet parameters are recognized if they start with the prefix stylesheet-param.,
-    #   followed by the name of the parameter. The leading "stylesheet-param." string will be
-    #   removed before the parameter is passed to the stylesheet.
-    #   stylesheet-param.key1 ... stylesheet-param.key2  Stylesheet paramaters
 
-    SERVER_ENCODING     = 'UTF-8'
-    SERVER_ALLOW_NONE   = True
-    SERVER_VERBOSE      = False
+    """Connect to an eXist database, and manipulate and query it.
 
-    def __init__(self, server_url, resultType=None, encoding=None, verbose=None):
-        # override default settings if passed in
+    Construction doesn't initiate server communication, only store
+    information about where the server is, to be used in later
+    communications.
+
+    :param server_url: The XML-RPC endpoint of the server, typically
+                       ``/xmlrpc`` within the server root.
+    :param resultType: The class to use for returning :meth:`query` results;
+                       defaults to :class:`QueryResult`
+    :param encoding:   The encoding used to communicate with the server;
+                       defaults to "UTF-8"
+    :param verbose:    When True, print XML-RPC debugging messages to stdout
+
+    """
+
+    def __init__(self, server_url, resultType=None, encoding='UTF-8', verbose=False):
+        # FIXME: Will encoding ever be anything but UTF-8? Does this really
+        #   need to be part of our public interface?
+
         self.resultType = resultType or QueryResult
-        if (encoding):
-            self.SERVER_ENCODING = encoding
-        if (verbose is not None):
-            self.SERVER_VERBOSE = verbose
 
         self.server = xmlrpclib.ServerProxy(
                 uri=server_url,
-                encoding=self.SERVER_ENCODING,
-                verbose=self.SERVER_VERBOSE,
-                allow_none=self.SERVER_ALLOW_NONE
+                encoding=encoding,
+                verbose=verbose,
+                allow_none=True
             )
 
     def getDoc(self, name, **kwargs):

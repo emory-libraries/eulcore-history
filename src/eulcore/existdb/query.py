@@ -1,6 +1,8 @@
 from eulcore.xmlmap.core import load_xmlobject_from_string, getXmlObjectXPath
 import re
 
+__all__ = ['QuerySet']
+
 class QuerySet(object):
     """
     eXist version of django QuerySet - lazy database lookup for a set of objects.
