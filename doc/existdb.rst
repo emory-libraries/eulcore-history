@@ -14,8 +14,28 @@ Direct database access
 .. automodule:: eulcore.existdb.db
 
    .. autoclass:: ExistDB(server_url[, resultType[, encoding[, verbose]]])
-      :members:
-      :undoc-members:
+
+      .. automethod:: getDoc(name)
+
+      .. automethod:: createCollection(collection_name[, overwrite])
+
+      .. automethod:: removeCollection(collection_name)
+
+      .. automethod:: hasCollection(collection_name)
+
+      .. automethod:: load(xml, path[, overwrite])
+
+      .. automethod:: query(xquery[, start[, how_many]])
+
+      .. automethod:: executeQuery(xquery)
+
+      .. automethod:: querySummary(result_id)
+
+      .. automethod:: getHits(result_id)
+
+      .. automethod:: retrieve(result_id, position)
+
+      .. automethod:: releaseQueryResult(result_id)
 
    .. autoclass:: QueryResult
       :members:

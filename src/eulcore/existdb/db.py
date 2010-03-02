@@ -4,6 +4,7 @@ This module provides :class:`ExistDB` and related classes for connecting to
 an eXist-db_ database and executing XQuery_ queries against it.
 
 .. _XQuery: http://www.w3.org/TR/xquery/
+.. _eXist-db: http://exist.sourceforge.net/
 
 """
 
@@ -55,41 +56,45 @@ class ExistDB:
             )
 
     def getDoc(self, name, **kwargs):
-        """
-        Retrieve a document from the database.
-        name:   path to doc to retrieve ie. "/edc/ICPSR/00002.xml"
-        kwargs: (optional) hash or retrieval options see above
-        return: String
+        """Retrieve a document from the database.
+
+        :param name: database document path to retrieve
+        :rtype: string contents of the document
+
         """
         return self.server.getDocumentAsString(name, kwargs)
 
-    def createCollection(self, collection_name, over_write=False):
+    def createCollection(self, collection_name, overwrite=False):
+        """Create a new collection in the database.
+
+        :param collection_name: string name of collection
+        :param overwrite: overwrite existing document?
+        :rtype: boolean indicating success
+
         """
-        Creates a new collection in the database.
-        collection_name:    string name of collection
-        return: boolean
-        """
-        if (not over_write and self.hasCollection(collection_name)):
+        if not overwrite and self.hasCollection(collection_name):
             raise ExistDBException(collection_name + " exists")
 
         return self.server.createCollection(collection_name)
 
     @_wrap_xmlrpc_fault
     def removeCollection(self, collection_name):
-        """
-        Removes the named collection from the database.
-        collection_name:    string name of collection
-        return: boolean
+        """Remove the named collection from the database.
+
+        :param collection_name: string name of collection
+        :rtype: boolean indicating success
+
         """
         if (not self.hasCollection(collection_name)):
             raise ExistDBException(collection_name + " does not exist")
         return self.server.removeCollection(collection_name)
 
     def hasCollection(self, collection_name):
-        """
-        Provides information about the collection
-        collection_name:    string name of collection
-        return: dict['group', 'name', 'created', 'collections', 'owner', 'permissions']
+        """Check if a collection exists.
+
+        :param collection_name: string name of collection
+        :rtype: boolean
+
         """
         try:
             self.server.describeCollection(collection_name)
@@ -102,58 +107,116 @@ class ExistDB:
                 raise ExistDBException(e)
 
     @_wrap_xmlrpc_fault
-    def load(self, xml, filename, overwrite=False):
-        if not isinstance(xml, str):
+    def load(self, xml, path, overwrite=False):
+        """Insert or overwrite a document in the database.
+        
+        :param xml: string or file object with the document contents
+        :param path: destination location in the database
+        :param overwrite: True to allow overwriting an existing document
+        :rtype: boolean indicating success
+
+        """
+        if hasattr(xml, 'read'):
             xml = xml.read()
 
-        self.server.parse(xml, filename, int(overwrite))
+        self.server.parse(xml, path, int(overwrite))
 
     @_wrap_xmlrpc_fault
-    def query(self, xqry, start=1, how_many=10, **kwargs):
-        '''
-        Executes an XQuery and returns a xml string
-        root of xml string will be
-        <exist:result xmlns:exist="http://exist.sourceforge.net/NS/exist" hits="2" start="1" count="2">
-        if hits > count more results remain call again with start=count for remaining results
-        '''
-        xml_s = self.server.query(xqry, how_many, start, kwargs)
+    def query(self, xquery, start=1, how_many=10, **kwargs):
+        """Execute an XQuery_ query, returning the results directly.
 
-        #xmlrpc will sometimes return unicode, force to UTF-8
+        :param xquery: a string XQuery query
+        :param start: first index to return (1-based)
+        :param how_many: maximum number of items to return
+        :rtype: the resultType specified at the creation of this ExistDB;
+                defaults to :class:`QueryResult`.
+
+        """
+        xml_s = self.server.query(xquery, how_many, start, kwargs)
+
+        # xmlrpclib tries to guess whether the result is a string or
+        # unicode, returning whichever it deems most appropriate.
+        # Unfortunately, :meth:`~eulcore.xmlmap.load_xmlobject_from_string`
+        # requires a byte string. This means that if xmlrpclib gave us a
+        # unicode, we need to encode it:
         if isinstance(xml_s, unicode):
             xml_s = xml_s.encode("UTF-8")
 
         return xmlmap.load_xmlobject_from_string(xml_s, self.resultType)
     
     @_wrap_xmlrpc_fault
-    def executeQuery(self, xqry):
-        '''Execute an xquery and return a result id which can be used to retrieve the results
-         or summary information about the results'''
-        # NOTE: requires hash of parameters, unknown what options are supported
-        # should result_id be stored and used for subsequent requests that require a result_id?
-        return self.server.executeQuery(xqry, {})
+    def executeQuery(self, xquery):
+        """Execute an XQuery query, returning a server-provided result
+        handle.
+
+        :param xquery: a string XQuery query 
+        :rtype: an integer handle identifying the query result for future calls
+
+        """
+        # NOTE: eXist's xmlrpc interface requires a dictionary parameter.
+        #   This parameter is not documented in the eXist docs at
+        #   http://demo.exist-db.org/exist/devguide_xmlrpc.xml
+        #   so it's not clear what we can pass there.
+        return self.server.executeQuery(xquery, {})
 
     @_wrap_xmlrpc_fault
     def querySummary(self, result_id):
-        '''Summary information about xquery results for a result set by id returned from executeQuery.
-           Returns a list of hits, documents (list of document name, integer id, and number of hits),
-           and the time it took to run the query.'''
-        # should response be converted to some kind of object format?
+        """Retrieve results summary from a past query.
+
+        :param result_id: an integer handle returned by :meth:`executeQuery`
+        :rtype: a dict describing the results
+
+        The returned dict has four fields:
+
+         * *queryTime*: processing time in milliseconds
+
+         * *hits*: number of hits in the result set
+
+         * *documents*: a list of lists. Each identifies a document and
+           takes the form [`doc_id`, `doc_name`, `hits`], where:
+
+             * *doc_id*: an internal integer identifier for the document
+             * *doc_name*: the name of the document as a string
+             * *hits*: the number of hits within that document
+
+         * *doctype*: a list of lists. Each contains a doctype public
+                      identifier and the number of hits found for this
+                      doctype.
+
+        """
+        # FIXME: This just exposes the existdb xmlrpc querySummary function.
+        #   Frankly, this return is just plain ugly. We should come up with
+        #   something more meaningful.
         return self.server.querySummary(result_id)
 
     @_wrap_xmlrpc_fault
     def getHits(self, result_id):
-        '''Return the number of hits in an xquery result by id returned from executeQuery'''
+        """Get the number of hits in a query result.
+
+        :param result_id: an integer handle returned by :meth:`executeQuery`
+        :rtype: integer representing the number of hits
+
+        """
         return self.server.getHits(result_id)
 
     @_wrap_xmlrpc_fault
     def retrieve(self, result_id, position, options={}):
-        '''Retrieve a single result fragment from result id, by position'''
+        """Retrieve a single result fragment.
+
+        :param result_id: an integer handle returned by :meth:`executeQuery`
+        :param position: the result index to return
+        :rtype: the query result item as a string
+
+        """
         return self.server.retrieve(result_id, position, options)
 
     @_wrap_xmlrpc_fault
     def releaseQueryResult(self, result_id):
-        '''Force a result set to be released on the server.
-        No return value, no exception when releasing an invalid result id.'''
+        """Release a result set handle in the server.
+
+        :param result_id: an integer handle returned by :meth:`executeQuery`
+
+        """
         self.server.releaseQueryResult(result_id)
 
 
