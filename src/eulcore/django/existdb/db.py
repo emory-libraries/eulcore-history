@@ -2,18 +2,42 @@ from django.conf import settings
 from eulcore.existdb import db
 from django.core.paginator import Paginator, InvalidPage, EmptyPage, Page
 
+__all__ = ['ExistDB', 'ResultPaginator']
+
 ExistDBException = db.ExistDBException
 
-# this is a wrapper for a django-unaware existdb class
-# initializes ExistDB object based on django settings
-
 class ExistDB(db.ExistDB):
+
+    """Connect to an eXist database configured by ``settings.py``.
+
+    :param resultType: The class to use for returning :meth:`query` results;
+                       defaults to :class:`eulcore.existdb.QueryResult`.
+
+    This class is a simple wrapper for :class:`eulcore.existdb.db.ExistDB`,
+    getting the server_url from the Django settings file instead of in an
+    argument.
+    """
 
     def __init__(self, resultType=None):
         db.ExistDB.__init__(self, resultType=resultType,
                             server_url=settings.EXISTDB_SERVER_URL)
 
+
 class ResultPaginator(Paginator):
+
+    """Paginate results from a :class:`eulcore.existdb.query.QuerySet`.
+
+    This class extends :class:`django.core.paginator.Paginator` to deal
+    effectively with :class:`~eulcore.existdb.db.QueryResult` objects.
+
+    :param qry_result: a :class:`~eulcore.existdb.db.QueryResult` object
+                       providing metadata about the query result
+
+    Other arguments and methods are as for a standard
+    :class:`~django.core.paginator.Paginator`.
+
+    """
+
     def __init__(self, qry_result, result_list, orphans=0, allow_empty_first_page=False):
         self._qry_result = qry_result
         Paginator.__init__(self, result_list, self._qry_result.count, orphans, allow_empty_first_page)

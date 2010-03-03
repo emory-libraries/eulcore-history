@@ -58,9 +58,9 @@ Model-based access
 .. include:: ../src/eulcore/django/existdb/README
 
 .. automodule:: eulcore.django.existdb
-   :members:
-   :undoc-members:
 
 .. automodule:: eulcore.django.existdb.db
-   :members:
-   :undoc-members:
+
+   .. autoclass:: ExistDB
+
+   .. autoclass:: ResultPaginator
