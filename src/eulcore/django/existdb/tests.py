@@ -49,7 +49,7 @@ class ExistDBTest(unittest.TestCase):
 
             settings.EXISTDB_SERVER_URL = bad_uri
             test_db = ExistDB()
-            self.assertRaises(ExistDBException,
+            self.assertRaises(nondjangoexistdb.db.ExistDBException,
                 test_db.hasCollection, self.COLLECTION)
         finally:
             settings.EXISTDB_SERVER_URL = server_url
