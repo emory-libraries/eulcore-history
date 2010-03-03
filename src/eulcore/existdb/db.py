@@ -221,36 +221,49 @@ class ExistDB:
 
 
 class QueryResult(xmlmap.XmlObject):
+    """The results of an eXist XQuery query"""
+
     start = xmlmap.XPathInteger("@start")
+    """The index of the first result returned"""
 
     _raw_count = xmlmap.XPathInteger("@count")
     @property
     def count(self):
+        """The number of results returned"""
         return self._raw_count or 0
     
     _raw_hits = xmlmap.XPathInteger("@hits")
     @property
     def hits(self):
+        """The total number of hits found by the search"""
         return self._raw_hits or 0
 
     @property
     def results(self):
+        """A chunk of search results as DOM nodes, starting at :prop:`start`
+        and containing :prop:`count` members"""
         return self.dom_node.xpath('*')
 
+    # FIXME: Why do we have two properties here with the same value?
+    # start == show_from. We should pick one and deprecate the other.
     @property
     def show_from(self):
-        '''
-        return position of first object in total results.
-        ie:  showing results 51 to 100 of 100:  show_from = 51
-        '''
+        """The index of first object in this result chunk.
+        
+        Equivalent to :prop:`start`."""
         return self.start
 
+    # FIXME: Not sure how we're using this, but it feels wonky. If we're
+    # using it for chunking or paging then we should probably follow the
+    # slice convention of returning the index past the last one. If we're
+    # using it for pretty-printing results ranges then the rVal < 0 branch
+    # sounds like an exception condition that should be handled at a higher
+    # level. Regardless, shouldn't some system invariant handle the rVal >
+    # self.hits branch for us? This whole method just *feels* weird. It
+    # warrants some examination.
     @property
     def show_to(self):
-        '''
-        return position of last object in total results.
-        ie:  showing results 1 to 50 of 100:  show_to = 50
-        '''
+        """The index of last object in this result chunk"""
         rVal = (self.start - 1) + self.count
         if rVal > self.hits:
             #show_to can not exceed total hits
@@ -260,7 +273,11 @@ class QueryResult(xmlmap.XmlObject):
         else:
             return rVal
 
+    # FIXME: This, too, feels like it checks a number of things that should
+    # probably be system invariants. We should coordinate what this does
+    # with how it's actually used.
     def hasMore(self):
+        """Are there more matches after this one?"""
         if not self.hits or not self.start or not self.count:
             return False
         return self.hits > (self.start + self.count)
