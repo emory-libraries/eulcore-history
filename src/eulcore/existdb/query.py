@@ -61,19 +61,23 @@ class QuerySet(object):
 
     @property
     def result_id(self):
-        "Return current result id; if not yet set, run current query"
+        """Return the cached server result id, executing the query first if
+        it has not yet executed."""
         if self._result_id is None:
             self._runQuery()
         return self._result_id
 
     def count(self):
+        """Return the cached query hit count, executing the query first if
+        it has not yet executed."""
         # FIXME: need to test this - how does hits differ from count?
         if self._count is None:
             self._count = self._db.getHits(self.result_id)
         return self._count
 
     def queryTime(self):
-        """Return time (in milliseconds) it took for eXist to run the last query"""
+        """Return the time (in milliseconds) it took for eXist to run the
+        query, running the query first if it has not yet executed."""
         # cache summary? is this useful?
         summary = self._db.querySummary(self.result_id)
         return summary['queryTime']
