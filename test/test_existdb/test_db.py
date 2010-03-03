@@ -176,17 +176,17 @@ class ExistDBTest(unittest.TestCase):
     def test_hasMore(self):
         """Test hasMore, show_to, and show_from based on numbers in xquery result"""
         xqry = 'for $x in collection("/db%s")//root/field return $x' % (self.COLLECTION, )
-        qres = self.db.query(xqry=xqry, how_many=2, start=1)
+        qres = self.db.query(xqry, how_many=2, start=1)
         self.assertTrue(qres.hasMore())
         self.assertEquals(qres.show_from, 1)
         self.assertEquals(qres.show_to, 2)
 
-        qres = self.db.query(xqry=xqry, how_many=2, start=3)
+        qres = self.db.query(xqry, how_many=2, start=3)
         self.assertFalse(qres.hasMore())
         self.assertEquals(qres.show_from, 3)
         self.assertEquals(qres.show_to, 4)
 
-        qres = self.db.query(xqry=xqry, how_many=2, start=4)
+        qres = self.db.query(xqry, how_many=2, start=4)
         self.assertFalse(qres.hasMore())
         self.assertEquals(qres.show_from, 4)
         self.assertEquals(qres.show_to, 4)
