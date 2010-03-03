@@ -39,7 +39,6 @@ Direct database access
 
    .. autoclass:: QueryResult
       :members:
-      :undoc-members:
 
    .. autoexception:: ExistDBException
 

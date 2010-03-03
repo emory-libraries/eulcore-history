@@ -229,7 +229,7 @@ class QueryResult(xmlmap.XmlObject):
     _raw_count = xmlmap.XPathInteger("@count")
     @property
     def count(self):
-        """The number of results returned"""
+        """The number of results returned in this chunk"""
         return self._raw_count or 0
     
     _raw_hits = xmlmap.XPathInteger("@hits")
@@ -240,8 +240,8 @@ class QueryResult(xmlmap.XmlObject):
 
     @property
     def results(self):
-        """A chunk of search results as DOM nodes, starting at :prop:`start`
-        and containing :prop:`count` members"""
+        """The result documents themselves as DOM nodes, starting at
+        :attr:`start` and containing :attr:`count` members"""
         return self.dom_node.xpath('*')
 
     # FIXME: Why do we have two properties here with the same value?
@@ -250,7 +250,7 @@ class QueryResult(xmlmap.XmlObject):
     def show_from(self):
         """The index of first object in this result chunk.
         
-        Equivalent to :prop:`start`."""
+        Equivalent to :attr:`start`."""
         return self.start
 
     # FIXME: Not sure how we're using this, but it feels wonky. If we're
