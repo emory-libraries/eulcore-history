@@ -284,5 +284,5 @@ class QueryResult(xmlmap.XmlObject):
 
 
 class ExistDBException(Exception):
-    pass
+    """A handy wrapper for all errors returned by the eXist server."""
 

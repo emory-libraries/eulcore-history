@@ -4,7 +4,7 @@ from django.conf import settings
 
 _stored_default_collection = None
 
-def use_test_collection(sender, **kwargs):    
+def _use_test_collection(sender, **kwargs):    
     global _stored_default_collection
     _stored_default_collection = getattr(settings, "EXISTDB_ROOT_COLLECTION", None)
 
@@ -19,9 +19,8 @@ def use_test_collection(sender, **kwargs):
     # create test collection (don't complain if collection already exists)
     db.createCollection(settings.EXISTDB_ROOT_COLLECTION, True)
 
-    
 
-def restore_root_collection(sender, **kwargs):
+def _restore_root_collection(sender, **kwargs):
     global _stored_default_collection
     # if use_test_collection didn't run, don't change anything
     if _stored_default_collection is None:
@@ -34,12 +33,12 @@ def restore_root_collection(sender, **kwargs):
         try:            
             # remove test collection
             db.removeCollection(settings.EXISTDB_ROOT_COLLECTION)
-        except  ExistDBException, e:
+        except ExistDBException, e:
             print "Error removing collection " + settings.EXISTDB_ROOT_COLLECTION + e.message
 
         print "Restoring eXist Root Collection: %s" % (_stored_default_collection,)
         settings.EXISTDB_ROOT_COLLECTION = _stored_default_collection
 
 
-starting_tests.connect(use_test_collection)
-finished_tests.connect(restore_root_collection)
+starting_tests.connect(_use_test_collection)
+finished_tests.connect(_restore_root_collection)

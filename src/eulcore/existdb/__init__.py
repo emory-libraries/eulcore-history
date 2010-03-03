@@ -9,6 +9,9 @@ It contains the following modules:
 
 This module depends on `4suite-xml`_.
 
+Django_ users may also be interested in the related package 
+:mod:`eulcore.django.existdb`.
+
 .. _eXist-db: http://exist.sourceforge.net/
 .. _Django: http://www.djangoproject.com/
 .. _4suite-xml: http://4suite.org/

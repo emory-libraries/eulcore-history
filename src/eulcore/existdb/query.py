@@ -1,11 +1,48 @@
+"""Provide a prettier, more Pythonic approach to eXist-db access.
+
+This module provides :class:`QuerySet` modeled after `Django QuerySet`_
+objects. It's not dependent on Django at all, but it aims to function as a
+stand-in replacement in any context that expects one.
+
+In addition to :class:`QuerySet`, this module provides support classes
+:class:`Xquery` and :class:`PartialResultObject`. The former is normally
+used only internally, though clients can override it manually if they
+desire. The latter is returned by :meth:`~QuerySet.__getitem__` when
+clients use the :meth:`~QuerySet.only` method.
+
+.. _Django QuerySet: http://docs.djangoproject.com/en/1.1/ref/models/querysets/
+
+"""
+
+
 from eulcore.xmlmap.core import load_xmlobject_from_string, getXmlObjectXPath
 import re
 
-__all__ = ['QuerySet']
+__all__ = ['QuerySet', 'Xquery', 'PartialResultObject']
 
 class QuerySet(object):
-    """
-    eXist version of django QuerySet - lazy database lookup for a set of objects.
+
+    """Lazy eXist database lookup for a set of objects.
+
+    :param model: the type of object to return from :meth:`__getitem__`. If
+                  set, the result DOM nodes will be wrapped in objects of
+                  this type. Some methods, like :meth:`filter` and
+                  :meth:`only` only make sense if this is set. While this
+                  argument can be any callable object, it is typically a
+                  subclass of :class:`~eulcore.xmlmap.XmlObject`.
+    :param xpath: an XPath_ expression where this `QuerySet` will begin
+                  filtering. Typically this is left out, beginning with an
+                  unfiltered collection: Filtering is then added with
+                  :meth:`filter`.
+    :param using: The :class:`~eulcore.existdb.db.ExistDB` to query against.
+    :param collection: If set, search only within a particular eXist-db
+                       collection. Otherwise search all collections.
+    :param xquery: Override the entire :class:`Xquery` object used for
+                   internal query serialization. Most code will leave this
+                   unset, which uses a default :class:`Xquery`.
+
+    .. _XPath: http://www.w3.org/TR/xpath/
+
     """
     
     def __init__(self, model=None, xpath=None, using=None, collection=None, xquery=None):
