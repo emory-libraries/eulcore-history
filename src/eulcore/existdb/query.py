@@ -4,12 +4,6 @@ This module provides :class:`QuerySet` modeled after `Django QuerySet`_
 objects. It's not dependent on Django at all, but it aims to function as a
 stand-in replacement in any context that expects one.
 
-In addition to :class:`QuerySet`, this module provides support classes
-:class:`Xquery` and :class:`PartialResultObject`. The former is normally
-used only internally, though clients can override it manually if they
-desire. The latter is returned by :meth:`~QuerySet.__getitem__` when
-clients use the :meth:`~QuerySet.only` method.
-
 .. _Django QuerySet: http://docs.djangoproject.com/en/1.1/ref/models/querysets/
 
 """
@@ -85,6 +79,8 @@ class QuerySet(object):
     # FIXME: how do you get the count for the non-limited set?
 
     def _getCopy(self):
+        """Get a clone of the current QuerySet for modification via
+        :meth:`filter`, :meth:`order`, etc."""
         # copy current queryset - for modification via filter/order/etc
         copy = QuerySet(model=self.model, xquery=self.query.getCopy(), using=self._db)        
         copy.partial_return = self.partial_return
@@ -92,14 +88,26 @@ class QuerySet(object):
         return copy
 
     def filter(self, **kwargs):
-        # django-style filters (field__lookuptype)
-        #  exact, contains, startswith
-        # possibilities to add:
+        """Filter the QuerySet to return a subset of the documents.
+
+        Arguments take the form ``lookuptype`` or ``field__lookuptype``,
+        where ``field`` is the name of a field in the QuerySet's :attr:`model`
+        and ``lookuptype`` is one of:
+
+         * ``exact`` -- The field or object matches the argument value.
+         * ``contains`` -- The field or object contains the argument value.
+         * ``startswith`` -- The field or object starts with the argument
+           value.
+
+        Any number of these filter arguments may be passed. This method
+        returns an updated copy of the QuerySet: It does not modify the
+        original.
+
+        """
+        # possible future lookup types:
         #   gt/gte,lt/lte, endswith, range, date, isnull (?), regex (?)
         #   search (full-text search with full-text indexing - like contains but faster)
 
-        # create a copy of the current queryset and add filters to the *copy*
-        # so the current queryset remains unchanged
         qscopy = self._getCopy()
         
         for arg, value in kwargs.iteritems():
@@ -125,7 +133,17 @@ class QuerySet(object):
         return qscopy
 
     def order_by(self, field):
-        # todo: allow multiple fields, ascending/descending
+        """Order results returned according to a specified field
+
+        :param field: the name (a string) of a field in the QuerySet's
+                      :attr:`model`
+
+        This method returns an updated copy of the QuerySet: It does not
+        modify the original.
+
+        """
+
+        # TODO: allow multiple fields, ascending/descending
         xpath = field
         if self.model:
             xpath = getXmlObjectXPath(self.model, field) or field
@@ -135,7 +153,15 @@ class QuerySet(object):
         return qscopy
 
     def only(self, *fields):
-        "Limit which fields should be returned; fields should be xpath properties on associated model"
+        """Limit results to include only specified fields.
+
+        :param fields: names of fields in the QuerySet's :attr:`model`
+
+        This method returns an updated copy of the QuerySet: It does not
+        modify the original. When results are returned from the updated
+        copy, they will contain only the specified fields.
+
+        """
         xp_fields = dict((f, getXmlObjectXPath(self.model, f))
                          for f in fields)
         qscopy = self._getCopy()
@@ -144,7 +170,15 @@ class QuerySet(object):
         return qscopy
 
     def also(self, *fields):
-        "Specify additional fields to be returned; fields should be xpath properties on associated model"        
+        """Return additional data in results.
+
+        :param fields: names of fields in the QuerySet's :attr:`model`
+
+        This method returns an updated copy of the QuerySet: It does not
+        modify the original. When results are returned from the updated
+        copy, they will contain the specified additional fields.
+
+        """
         xp_fields = dict((f, getXmlObjectXPath(self.model, f))
                          for f in fields)
         qscopy = self._getCopy()
@@ -154,18 +188,32 @@ class QuerySet(object):
         return qscopy
 
     def distinct(self):
-        """ Return distinct values for specified query"""
+        """Return distinct results.
+        
+        This method returns an updated copy of the QuerySet: It does not
+        modify the original. When results are returned from the updated
+        copy, they will contain only distinct results.
+
+        """
         qscopy = self._getCopy()
         qscopy.query.distinct()
         return qscopy
 
     def all(self):
+        """Return all results.
+
+        This method returns an identical copy of the QuerySet.
+        
+        """
         return self._getCopy()
 
     # exclude?
 
     def reset(self):
-        """reset any filters and query, reverting to base query created on init"""
+        """Reset filters and cached results on the QuerySet.
+
+        This modifies the current query set, removing all filters, and
+        resetting cached results."""
         self.query.clear_filters()        
         # if a query has been made to eXist - release result & reset result id
         if self._result_id is not None:
@@ -174,7 +222,15 @@ class QuerySet(object):
             self._count = None          # clear any count based on this result set
 
     def get(self, **kwargs):
-        # store filtered queryset to do count and retrieve on
+        """Get a single result identified by filter arguments.
+
+        Takes any number of :meth:`filter` arguments. Unlike :meth:`filter`,
+        though, this method returns exactly one item. If the filter
+        expressions match no items, or if they match more than one, this
+        method throws an exception.
+
+        """
+
         fqs = self.filter(**kwargs)
         if fqs.count() == 1:
             return fqs[0]
@@ -184,9 +240,7 @@ class QuerySet(object):
                 % (fqs.count(), kwargs))
 
     def __getitem__(self, k):
-        """
-        Return a single result or slice of results from the query
-        """        
+        """Return a single result or slice of results from the query."""        
         if not isinstance(k, (slice, int, long)):
            raise TypeError
 
@@ -213,17 +267,17 @@ class QuerySet(object):
             return obj
 
     def __iter__(self):
+        """Iterate through available results."""
         # rudimentary iterator (django queryset one much more complicated...)
         for i in range(self.count()):
             yield self[i]
 
     def _runQuery(self):
-        """
-        execute the currently configured xquery
-        """        
+        """Execute the currently configured query."""        
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
-    def getDocument(self, docname):        
+    def getDocument(self, docname):
+        """Get a single document from the server by filename."""
         data = self._db.getDoc('/'.join([self.query.collection, docname]))
         # getDoc returns unicode instead of string-- need to decode before handing off to parseString
         return load_xmlobject_from_string(data.encode('utf_8'), self.model)

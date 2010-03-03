@@ -47,8 +47,10 @@ Model-based access
 -----------------------------
 
 .. automodule:: eulcore.existdb.query
-   :members:
-   :undoc-members:
+
+   .. autoclass:: QuerySet
+      :members:
+
 
 :mod:`eulcore.django.existdb` -- Django tie-ins
 -----------------------------------------------
