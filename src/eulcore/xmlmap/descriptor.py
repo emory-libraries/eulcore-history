@@ -19,6 +19,9 @@ class XPathItemDescriptor(object):
         self._xpath = Compile(xpath) # compiled xpath for actual use
 
     def __get__(self, obj, objtype):
+        if obj is None:
+            return self
+
         nodes = Evaluate(self._xpath, obj.dom_node, obj.context)
         if nodes:
             node = nodes[0]
@@ -31,6 +34,9 @@ class XPathListDescriptor(object):
         self._xpath = Compile(xpath) # compiled xpath for actual use
 
     def __get__(self, obj, objtype):
+        if obj is None:
+            return self
+
         nodes = Evaluate(self._xpath, obj.dom_node, obj.context)
         return [ self.convert_node(node) for node in nodes ]
 
