@@ -8,9 +8,9 @@ stand-in replacement in any context that expects one.
 
 """
 
-
-from eulcore.xmlmap.core import load_xmlobject_from_string, getXmlObjectXPath
 import re
+from Ft.Xml.XPath import Compile, Evaluate
+from eulcore.xmlmap.core import load_xmlobject_from_string, getXmlObjectXPath
 
 __all__ = ['QuerySet', 'Xquery', 'PartialResultObject']
 
@@ -99,6 +99,9 @@ class QuerySet(object):
          * ``startswith`` -- The field or object starts with the argument
            value.
 
+        Field may be in the format of field__subfield when field is an XPathNode
+        or XPathNodeList and subfield is a configured element on that object.
+
         Any number of these filter arguments may be passed. This method
         returns an updated copy of the QuerySet: It does not modify the
         original.
@@ -112,9 +115,10 @@ class QuerySet(object):
         
         for arg, value in kwargs.iteritems():
             if '__' in arg:
-                parts = arg.split('__')
-                if len(parts) != 2:
-                    raise TypeError(repr(arg) + ' is not a valid filter limiter')
+                parts = arg.rsplit('__', 1)
+
+            # last section of argument is a known filter
+            if '__' in arg and parts[-1] in qscopy.query.available_filters:
                 field, lookuptype = parts
             else:
                 # if arg is just field=foo, check for special terms
@@ -261,9 +265,19 @@ class QuerySet(object):
             return load_xmlobject_from_string(item.data, PartialResultObject)
         else:
             obj =  load_xmlobject_from_string(item.data, self.model)
+            # map additional return fields in the return object (similar to PartialResultObject)
             for f in self._return_also:
-                # map additional return fields in the return object (similar to PartialResultObject)
-                setattr(obj, f, obj.dom_node.xpath('string(%s)' % f))
+                if '__' in f:
+                    basename, remainder = f.split('__', 1)
+                    # if sub-object does not already exist or is not a partial result subobject, create it
+                    # NOTE: will override xpath node mappings
+                    if not hasattr(obj, basename) or not isinstance(getattr(obj, basename), PartialResultSubObject):                        
+                        setattr(obj, basename, PartialResultSubObject())
+                    # get the node for just this field to pass to add_field 
+                    nodes = Evaluate(Compile(f), obj.dom_node)
+                    getattr(obj, basename).add_field(remainder, nodes[0])
+                else:
+                    setattr(obj, f, obj.dom_node.xpath('string(%s)' % f))
             return obj
 
     def __iter__(self):
@@ -273,7 +287,7 @@ class QuerySet(object):
             yield self[i]
 
     def _runQuery(self):
-        """Execute the currently configured query."""        
+        """Execute the currently configured query."""
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
     def getDocument(self, docname):
@@ -293,6 +307,7 @@ class Xquery(object):
 
     xpath = '/node()'       # default generic xpath
     xq_var = '$n'           # xquery variable to use when constructing flowr query
+    available_filters = ['contains', 'startswith', 'exact']
 
     def __init__(self, xpath=None, collection=None):
         if xpath is not None:
@@ -384,6 +399,9 @@ class Xquery(object):
         # possibilities to be added:
         #   gt/gte,lt/lte, endswith, range, date, isnull (?), regex (?)
         #   search (full-text search with full-text indexing - like contains but faster)
+
+        if type not in self.available_filters:
+            raise TypeError(repr(type) + ' is not a supported filter type')
         
         if type == 'contains':
             filter = 'contains(%s, "%s")' % (xpath, _quote_for_string_literal(value))
@@ -489,6 +507,8 @@ class PartialResultObject(object):
     """
     Partial result object - for use when only returning specified fields.
     Makes any xml child nodes and attributes accessible as class attributes.
+    Nodes with __ separated names will be mapped as subobjects, e.g. foo__bar
+    will be accessible as foo.bar
     """
     def __init__(self, dom_node):
         # map all attributes and child nodes as object variables
@@ -496,5 +516,20 @@ class PartialResultObject(object):
             setattr(self, a[1], dom_node.getAttributeNS(None, a[1]))
         for c in dom_node.childNodes:
             if c.localName:
-                setattr(self, c.localName, c.xpath('string()'))
-        
+                self.add_field(c.localName, c)
+
+    def add_field(self, name, dom_node):
+        if '__' in name:
+            basename, remainder = name.split('__', 1)
+            # if sub-object does not already exist, create it
+            if not hasattr(self, basename):
+                setattr(self, basename, PartialResultSubObject())
+
+            getattr(self, basename).add_field(remainder, dom_node)
+        else:
+            setattr(self, name, dom_node.xpath('string()'))
+
+# extend partial result object - inherits add_field, but no dom_node for constructor
+class PartialResultSubObject(PartialResultObject):
+    def __init__(self):
+        pass

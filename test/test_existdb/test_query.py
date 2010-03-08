@@ -9,11 +9,15 @@ from testcore import main
 
 from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_TEST_COLLECTION
 
+class QuerySubModel(xmlmap.XmlObject):
+    subname = xmlmap.XPathString("subname")
+
 class QueryTestModel(xmlmap.XmlObject):
             id = xmlmap.XPathString('@id')
             name = xmlmap.XPathString('name')
             description = xmlmap.XPathString('description')
             wnn = xmlmap.XPathString('wacky_node_name')
+            sub = xmlmap.XPathNode("sub", QuerySubModel)
 
 class ExistQueryTest(unittest.TestCase):
     COLLECTION = EXISTDB_TEST_COLLECTION
@@ -23,6 +27,9 @@ class ExistQueryTest(unittest.TestCase):
             <name>one</name>
             <description>this one has one one</description>
             <wacky_node_name>a</wacky_node_name>
+            <sub>
+               <subname>la</subname>
+            </sub>
         </root>
     '''
     FIXTURE_TWO = '''
@@ -137,6 +144,12 @@ class ExistQueryTest(unittest.TestCase):
             "should get 1 match for filter on name starts with 'o' (got %s)" % fqs.count())
         self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
+    def test_filter_subobject_field(self):
+        fqs = self.qs.filter(sub__subname="la")
+        self.assertEqual(1, fqs.count(),
+            "should get 1 match for filter on sub_subname = 'la' (got %s)" % fqs.count())
+        
+
     def test_get(self):
         result  = self.qs.get(contains="two")
         self.assert_(isinstance(result, QueryTestModel), "get() with contains returns single result")
@@ -217,6 +230,18 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual('abc', name.parent_id,
             "parent id set correctly when retuning at name level with also parent_id specified; should be 'abc', got '"
             + name.parent_id + "'")
+
+    def test_also_subfield(self):
+        class SubqueryTestModel(xmlmap.XmlObject):
+            subname = xmlmap.XPathString('subname')
+            parent = xmlmap.XPathNode('parent::root', QueryTestModel)      
+
+        qs = QuerySet(using=self.db, collection=self.COLLECTION, model=SubqueryTestModel, xpath='//sub')
+        name = qs.also('parent__id').get(subname__exact='la')
+        self.assertEqual('la', name.subname)
+        self.assertEqual('one', name.parent.id)
+
+        
 
     def test_getDocument(self):
       obj = self.qs.getDocument("f1.xml")
@@ -348,7 +373,11 @@ class PartialResultObjectTest(unittest.TestCase):
     xml = '''
     <root id="007">
          <name>James</name>
-         <date>2010</date>
+         <date>2010</date>         
+         <title__date>2001</title__date>
+         <title__subtitle>a space odyssey</title__subtitle>
+         <title__director__lastname>Kubrick</title__director__lastname>
+         <title__director__firstname>Stanley</title__director__firstname>
     </root>
     '''
     def test_init(self):
@@ -356,6 +385,10 @@ class PartialResultObjectTest(unittest.TestCase):
         self.assertEquals('James', partial.name)
         self.assertEquals('2010', partial.date)
         self.assertEquals('007', partial.id)
+        self.assertEquals('2001', partial.title.date)
+        self.assertEquals('a space odyssey', partial.title.subtitle)
+        self.assertEquals('Kubrick', partial.title.director.lastname)
+        self.assertEquals('Stanley', partial.title.director.firstname)
 
 
 
