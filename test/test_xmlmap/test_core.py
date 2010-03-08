@@ -112,15 +112,29 @@ class TestGetXmlObjectXPath(unittest.TestCase):
 
     def test_getXmlObjectXPath(self):
 
+        class TestSubSubObject(xmlmap.XmlObject):
+            fo = xmlmap.XPathString('fi/fum')
+
+        class TestSubObject(xmlmap.XmlObject):
+            field = xmlmap.XPathString('fighters')
+            fi = xmlmap.XPathNode('fee/fo', TestSubSubObject)
+
         class TestObject(xmlmap.XmlObject):
             val = xmlmap.XPathString('bar[1]/baz')
+            sub = xmlmap.XPathNode('foo', TestSubObject)
 
-        class TestSubObject(TestObject):
+        class TestChildObject(TestObject):
+            # inherited xpaths should be accessible
             subval = xmlmap.XPathString('foo/bar')
 
         self.assertEqual("bar[1]/baz", xmlmap.getXmlObjectXPath(TestObject, 'val'))
-        self.assertEqual("foo/bar", xmlmap.getXmlObjectXPath(TestSubObject, 'subval'))
-        self.assertEqual("bar[1]/baz", xmlmap.getXmlObjectXPath(TestSubObject, 'val'))
+        self.assertEqual("foo/bar", xmlmap.getXmlObjectXPath(TestChildObject, 'subval'))
+        self.assertEqual("bar[1]/baz", xmlmap.getXmlObjectXPath(TestChildObject, 'val'))
+        self.assertEqual("foo/fighters", xmlmap.getXmlObjectXPath(TestObject, 'sub__field'))
+        self.assertEqual("foo/fee/fo/fi/fum", xmlmap.getXmlObjectXPath(TestObject, 'sub__fi__fo'))
+        # attempting to get a path for something that isn't a child (fi not under field)
+        # FIXME: more specific exception?
+        self.assertRaises(Exception, xmlmap.getXmlObjectXPath, TestObject, 'sub__field__fi')
 
 
 

@@ -51,15 +51,36 @@ class XmlObject(object):
         return xslproc.runNode(self.dom_node.ownerDocument, topLevelParams=params)
 
 def getXmlObjectXPath(obj, var):
-    "Return the xpath string for an xmlmap field that belongs to the specified XmlObject"    
-    if var in obj.__dict__:
-        return obj.__dict__[var].xpath
-    if hasattr(obj, '__bases__'):
-        for baseclass in obj.__bases__:
-            # FIXME: should this check isinstance of XmlObject ?
-            xpath = getXmlObjectXPath(baseclass, var)
-            if xpath:
-                return xpath
+    """Return the xpath string for an xmlmap field that belongs to the specified XmlObject.
+
+       If var contains '__', will generate the full xpath to a field mapped on a subobject
+       (sub-object must be mapped with XPathNode or XPathNodeList)
+    """
+    # FIXME: type-checking, exceptions?
+    if '__' in var:
+        # if field name contains __, split and treat names as sub-objects
+        # calculate xml path relative to each portion of object or sub-object,
+        # then join xpaths together for the full xpath
+        parts = var.split('__')
+        subobj = obj
+        xpath_parts = []
+        for i in range(len(parts)):
+            xpath_parts.append(getXmlObjectXPath(subobj, parts[i]))
+            # assumes that all but the last name are xpath nodes
+            if i < len(parts) - 1:
+                subobj = subobj.__dict__[parts[i]].node_class        
+        # FIXME: check that subobject is an xpathnode (or nodelist?)
+        xpath = '/'.join(xpath_parts)
+        return xpath
+    else:
+        if var in obj.__dict__:
+            return obj.__dict__[var].xpath
+        if hasattr(obj, '__bases__'):
+            for baseclass in obj.__bases__:
+                # FIXME: should this check isinstance of XmlObject ?
+                xpath = getXmlObjectXPath(baseclass, var)
+                if xpath:
+                    return xpath
 
 
 def load_xmlobject_from_string(string, xmlclass=XmlObject):
