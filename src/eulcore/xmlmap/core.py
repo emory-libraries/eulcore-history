@@ -68,7 +68,14 @@ def getXmlObjectXPath(obj, var):
             xpath_parts.append(getXmlObjectXPath(subobj, parts[i]))
             # assumes that all but the last name are xpath nodes
             if i < len(parts) - 1:
-                subobj = subobj.__dict__[parts[i]].node_class        
+                if parts[i] in subobj.__dict__:
+                    subobj = subobj.__dict__[parts[i]].node_class
+                # also pick up inherited elements
+                # FIXME: inherited xpath not tested
+                elif hasattr(obj, '__bases__'):
+                    for baseclass in obj.__bases__:
+                        if parts[i] in baseclass.__dict__:
+                            subobj = baseclass.__dict__[parts[i]].node_class
         # FIXME: check that subobject is an xpathnode (or nodelist?)
         xpath = '/'.join(xpath_parts)
         return xpath
