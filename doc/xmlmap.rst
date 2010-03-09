@@ -12,6 +12,14 @@ setting them as well.
 
 .. _XPath: http://www.w3.org/TR/xpath/
 
+Contents
+--------
+
+.. toctree::
+   :maxdepth: 1
+
+   Encoded Archive Description (EAD) XmlObject <xmlmap_ead>
+
 General Usage
 -------------
 
