@@ -240,6 +240,8 @@ class QuerySet(object):
             return fqs[0]
         else:
             # FIXME/todo: custom exception type?
+            # NOTE: django throws a DoesNotExist or a MultipleObjectsReturned
+            # see line 338, http://code.djangoproject.com/browser/django/trunk/django/db/models/query.py
             raise Exception("get() did not return 1 match - got %s with params %s"
                 % (fqs.count(), kwargs))
 
