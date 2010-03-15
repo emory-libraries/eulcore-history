@@ -98,6 +98,9 @@ class QuerySet(object):
          * ``contains`` -- The field or object contains the argument value.
          * ``startswith`` -- The field or object starts with the argument
            value.
+         * ``fulltext_terms`` -- the field or object contains any of the the argument
+           terms anywhere in the full text; requires a properly configured lucene index.
+           Recommend using fulltext_score for ordering, in return fields.
 
         Field may be in the format of field__subfield when field is an XPathNode
         or XPathNodeList and subfield is a configured element on that object.
@@ -122,7 +125,7 @@ class QuerySet(object):
                 field, lookuptype = parts
             else:
                 # if arg is just field=foo, check for special terms
-                if arg in ('contains', 'startswith'):  #  contains=foo : contains anywhere in node
+                if arg in ('contains', 'startswith', 'fulltext_terms'):  #  contains=foo : contains anywhere in node
                     field = '.' # relative to base query node
                     lookuptype = arg
                 else:
@@ -290,6 +293,7 @@ class QuerySet(object):
 
     def _runQuery(self):
         """Execute the currently configured query."""
+#        print "DEBUG: exist query:\n", self.query.getQuery()
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
     def getDocument(self, docname):
@@ -309,7 +313,7 @@ class Xquery(object):
 
     xpath = '/node()'       # default generic xpath
     xq_var = '$n'           # xquery variable to use when constructing flowr query
-    available_filters = ['contains', 'startswith', 'exact']
+    available_filters = ['contains', 'startswith', 'exact', 'fulltext_terms']
 
     def __init__(self, xpath=None, collection=None):
         if xpath is not None:
@@ -355,11 +359,19 @@ class Xquery(object):
         if self.order_by or self.return_fields or self.additional_return_fields:
             # NOTE: use constructed xpath, with collection (if any)
             flowr_for = 'for %s in %s' % (self.xq_var, xpath)
+            
             flowr_let = ''
+            if 'fulltext_score' == self.order_by or 'fulltext_score' in self.return_fields \
+                or 'fulltext_score' in self.additional_return_fields:
+                flowr_let = 'let $fulltext_score := ft:score(%s)' % self.xq_var
+            
             # for now, assume sort relative to root element
-            if self.order_by:                
-                order = self.prep_xpath(self.order_by)                    
-                flowr_order = 'order by %s/%s' % (self.xq_var, order.lstrip('/'))
+            if self.order_by:
+                if self.order_by == 'fulltext_score':
+                    order_field = '$fulltext_score descending'    # assume highest to lowest when ordering by relevance
+                else:
+                    order_field = '%s/%s' % (self.xq_var, self.prep_xpath(self.order_by).lstrip('/'))
+                flowr_order = 'order by %s' % order_field
             else:
                 flowr_order = ''
             flowr_where = ''
@@ -396,7 +408,12 @@ class Xquery(object):
     def add_filter(self, xpath, type, value):
         """
         Add a filter to the xpath.  Takes xpath, type of filter, and value.
-        Filter types currently implemented: contains, startswith, exact
+        Filter types currently implemented:
+         * contains
+         * startswith
+         * exact
+         * fulltext_terms - full-text query; requires lucene index configured in exist
+
         """
         # possibilities to be added:
         #   gt/gte,lt/lte, endswith, range, date, isnull (?), regex (?)
@@ -411,6 +428,8 @@ class Xquery(object):
             filter = 'starts-with(%s, "%s")' % (xpath, _quote_for_string_literal(value))
         if type == 'exact':
             filter = '%s = "%s"' % (xpath, _quote_for_string_literal(value))
+        if type == 'fulltext_terms':
+            filter = 'ft:query(%s, "%s")' % (xpath, _quote_for_string_literal(value))
         self.filters.append(filter)
 
 
@@ -436,32 +455,37 @@ class Xquery(object):
                 # construct return element with specified field name and xpath
                 # - return fields are presumed relative to root return variable
                 # - attributes returned as elements for simplicity, use with distinct, etc.
-                if xpath[0] == '@':
-                    xpath = "string(%s)" % xpath        # put contents of attribute in constructed element
-                elif '(' not in xpath:          # do not add node() if xpath contains a function (likely to breaks things)
-                    # note: using node() so element *contents* will be in named element instead of nesting elements                    
-                    xpath = "%s/node()" % xpath
-                xpath = self.prep_xpath(xpath)
+                if name == 'fulltext_score':
+                    rblocks.append('element %s {$fulltext_score}' % name)
+                else:
+                    if xpath[0] == '@':
+                        xpath = "string(%s)" % xpath        # put contents of attribute in constructed element
+                    elif '(' not in xpath:          # do not add node() if xpath contains a function (likely to breaks things)
+                        # note: using node() so element *contents* will be in named element instead of nesting elements
+                        xpath = "%s/node()" % xpath
+                    xpath = self.prep_xpath(xpath)
                     
-                # define element, e.g. element id {$n/title/node()} or {$n/string(@id)}
-                rblocks.append('element %s {%s/%s}' % (name, self.xq_var, xpath))
+                    # define element, e.g. element id {$n/title/node()} or {$n/string(@id)}
+                    rblocks.append('element %s {%s/%s}' % (name, self.xq_var, xpath))
                 
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
         elif len(self.additional_return_fields):
             # return everything under matched node - all attributes, all nodes
             rblocks = ["%s/@*" % self.xq_var, "%s/node()" % self.xq_var]
             for name, xpath in self.additional_return_fields.iteritems():
-                    
-                # similar logic as return fields above (how to consolidate?)
-                if re.search('@[^/]+$', xpath):     # last element in path is an attribute node
-                    # set attributes as fields to avoid attribute conflict;
-                    rblocks.append('element %s {%s/string(%s)}' % (name, self.xq_var, xpath))
+                if name == 'fulltext_score':
+                    rblocks.append('element %s {$fulltext_score}' % name)
                 else:
-                    if '(' in xpath:
-                        node = ""
+                    # similar logic as return fields above (how to consolidate?)
+                    if re.search('@[^/]+$', xpath):     # last element in path is an attribute node
+                        # set attributes as fields to avoid attribute conflict;
+                        rblocks.append('element %s {%s/string(%s)}' % (name, self.xq_var, xpath))
                     else:
-                        node = "/node()"
-                    rblocks.append('element %s {%s/%s%s}' % (name, self.xq_var, xpath, node))
+                        if '(' in xpath:
+                            node = ""
+                        else:
+                            node = "/node()"
+                        rblocks.append('element %s {%s/%s%s}' % (name, self.xq_var, xpath, node))
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
         else:
             r = 'return %s' % self.xq_var

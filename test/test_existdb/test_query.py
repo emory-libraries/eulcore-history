@@ -19,55 +19,59 @@ class QueryTestModel(xmlmap.XmlObject):
             wnn = xmlmap.XPathString('wacky_node_name')
             sub = xmlmap.XPathNode("sub", QuerySubModel)
 
-class ExistQueryTest(unittest.TestCase):
-    COLLECTION = EXISTDB_TEST_COLLECTION
+COLLECTION = EXISTDB_TEST_COLLECTION
 
-    FIXTURE_ONE = '''
-        <root id="one">
-            <name>one</name>
-            <description>this one has one one</description>
-            <wacky_node_name>a</wacky_node_name>
-            <sub>
-               <subname>la</subname>
-            </sub>
-        </root>
-    '''
-    FIXTURE_TWO = '''
-        <root id="abc">
-            <name>two</name>
-            <description>this one only has two</description>
-        </root>
-    '''
-    FIXTURE_THREE = '''
-        <root id="xyz">
-            <name>three</name>
-            <description>third!</description>
-        </root>
-    '''
-    FIXTURE_FOUR = '''
-        <root id="def">
-            <name>four</name>
-            <description>this one contains "quote" and &amp;!</description>
-        </root>
-    '''
-    NUM_FIXTURES = 4
+FIXTURE_ONE = '''
+    <root id="one">
+        <name>one</name>
+        <description>this one has one one</description>
+        <wacky_node_name>a</wacky_node_name>
+        <sub>
+           <subname>la</subname>
+        </sub>
+    </root>
+'''
+FIXTURE_TWO = '''
+    <root id="abc">
+        <name>two</name>
+        <description>this one only has two</description>
+    </root>
+'''
+FIXTURE_THREE = '''
+    <root id="xyz">
+        <name>three</name>
+        <description>third!</description>
+    </root>
+'''
+FIXTURE_FOUR = '''
+    <root id="def">
+        <name>four</name>
+        <description>this one contains "quote" and &amp;!</description>
+    </root>
+'''
+NUM_FIXTURES = 4
+
+def load_fixtures(db):
+    db.createCollection(COLLECTION, True)
+
+    db.load(FIXTURE_ONE, COLLECTION + '/f1.xml', True)
+    db.load(FIXTURE_TWO, COLLECTION + '/f2.xml', True)
+    db.load(FIXTURE_THREE, COLLECTION + '/f3.xml', True)
+    db.load(FIXTURE_FOUR, COLLECTION + '/f4.xml', True)
+
+class ExistQueryTest(unittest.TestCase):    
 
     def setUp(self):
         self.db = ExistDB(server_url=EXISTDB_SERVER_URL)
-        self.db.createCollection(self.COLLECTION, True)
-
-        self.db.load(self.FIXTURE_ONE, self.COLLECTION + '/f1.xml', True)
-        self.db.load(self.FIXTURE_TWO, self.COLLECTION + '/f2.xml', True)
-        self.db.load(self.FIXTURE_THREE, self.COLLECTION + '/f3.xml', True)
-        self.db.load(self.FIXTURE_FOUR, self.COLLECTION + '/f4.xml', True)
-
-        self.qs = QuerySet(using=self.db, collection=self.COLLECTION, model=QueryTestModel)
+        load_fixtures(self.db)
+        self.qs = QuerySet(using=self.db, xpath='/root', collection=COLLECTION, model=QueryTestModel)
 
     def tearDown(self):
-        self.db.removeCollection(self.COLLECTION)
+        self.db.removeCollection(COLLECTION)
 
     def test_count(self):
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "queryset count returns number of fixtures")
+        load_fixtures(self.db)
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "queryset count returns number of fixtures")
 
     def test_getitem(self):                
         qs = self.qs.order_by('id')     # adding sort order to test reliably
@@ -105,56 +109,55 @@ class ExistQueryTest(unittest.TestCase):
         fqs = self.qs.filter(contains="two")
         self.assertEqual(1, fqs.count(), "count returns 1 when filtered - contains 'two'")
         self.assertEqual("two", fqs[0].name, "name matches filter")
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field(self):
         fqs = self.qs.filter(name="one")
         self.assertEqual(1, fqs.count(), "count returns 1 when filtered on name = 'one' (got %s)"
             % self.qs.count())
         self.assertEqual("one", fqs[0].name, "name matches filter")
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_xpath(self):
         fqs = self.qs.filter(id="abc")
         self.assertEqual(1, fqs.count(), "count returns 1 when filtered on @id = 'abc' (got %s)"
             % self.qs.count())
         self.assertEqual("two", fqs[0].name, "name returned is correct for id filter")
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_contains(self):
         fqs = self.qs.filter(name__contains="o")
         self.assertEqual(3, fqs.count(),
             "should get 3 matches for filter on name contains 'o' (got %s)" % fqs.count())
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_contains_special(self):
         fqs = self.qs.filter(description__contains=' "quote" ')
         self.assertEqual(1, fqs.count(),
             "should get 1 match for filter on desc contains ' \"quote\" ' (got %s)" % fqs.count())
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
         fqs = self.qs.filter(description__contains=' &!')
         self.assertEqual(1, fqs.count(),
             "should get 1 match for filter on desc contains ' &!' (got %s)" % fqs.count())
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_startswith(self):
         fqs = self.qs.filter(name__startswith="o")
         self.assertEqual(1, fqs.count(),
             "should get 1 match for filter on name starts with 'o' (got %s)" % fqs.count())
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_subobject_field(self):
         fqs = self.qs.filter(sub__subname="la")
         self.assertEqual(1, fqs.count(),
             "should get 1 match for filter on sub_subname = 'la' (got %s)" % fqs.count())
-        
 
     def test_get(self):
         result  = self.qs.get(contains="two")
         self.assert_(isinstance(result, QueryTestModel), "get() with contains returns single result")
         self.assertEqual(result.name, "two", "result returned by get() has correct data")
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_get_toomany(self):
         self.assertRaises(Exception, self.qs.get, contains="one")
@@ -166,18 +169,18 @@ class ExistQueryTest(unittest.TestCase):
         result  = self.qs.get(name="one")
         self.assert_(isinstance(result, QueryTestModel), "get() with contains returns single result")
         self.assertEqual(result.name, "one", "result returned by get() has correct data")
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
     
     def test_filter_get(self):        
         result = self.qs.filter(contains="one").filter(name="two").get()
         self.assert_(isinstance(result, QueryTestModel))
         self.assertEqual("two", result.name, "filtered get() returns correct data")
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_reset(self):
         self.qs.filter(contains="two")
         self.qs.reset()
-        self.assertEqual(self.NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_order_by(self):
         # element
@@ -225,7 +228,7 @@ class ExistQueryTest(unittest.TestCase):
             name = xmlmap.XPathString('.')
             parent_id = xmlmap.XPathString('parent::root/@id')
 
-        qs = QuerySet(using=self.db, collection=self.COLLECTION, model=SubqueryTestModel, xpath='//name')
+        qs = QuerySet(using=self.db, collection=COLLECTION, model=SubqueryTestModel, xpath='//name')
         name = qs.also('parent_id').get(name__exact='two')
         self.assertEqual('abc', name.parent_id,
             "parent id set correctly when retuning at name level with also parent_id specified; should be 'abc', got '"
@@ -236,12 +239,10 @@ class ExistQueryTest(unittest.TestCase):
             subname = xmlmap.XPathString('subname')
             parent = xmlmap.XPathNode('parent::root', QueryTestModel)      
 
-        qs = QuerySet(using=self.db, collection=self.COLLECTION, model=SubqueryTestModel, xpath='//sub')
+        qs = QuerySet(using=self.db, collection=COLLECTION, model=SubqueryTestModel, xpath='//sub')
         name = qs.also('parent__id').get(subname__exact='la')
         self.assertEqual('la', name.subname)
-        self.assertEqual('one', name.parent.id)
-
-        
+        self.assertEqual('one', name.parent.id)        
 
     def test_getDocument(self):
       obj = self.qs.getDocument("f1.xml")
@@ -250,13 +251,64 @@ class ExistQueryTest(unittest.TestCase):
       self.assertEqual("one", obj.name)
 
     def test_distinct(self):
-        qs = QuerySet(using=self.db, collection=self.COLLECTION, xpath='//name')
+        qs = QuerySet(using=self.db, collection=COLLECTION, xpath='//name')
         vals = qs.distinct()
         self.assert_('one'  in vals)
         self.assert_('two' in vals)
         self.assert_('three' in vals)
         self.assert_('four' in vals)
         self.assert_('abc' not in vals)
+
+
+class ExistQueryTest__FullText(unittest.TestCase):
+    # when full-text indexing is enabled, eXist must index files when they are loaded to the db
+    # this makes tests *significantly* slower
+    # any tests that require full-text queries should be here
+
+    # sample lucene configuration for testing full-text queries
+    FIXTURE_INDEX = '''
+    <collection xmlns="http://exist-db.org/collection-config/1.0">
+        <index>
+            <lucene>
+                <analyzer class="org.apache.lucene.analysis.standard.StandardAnalyzer"/>
+                <text qname="description"/>
+            </lucene>
+        </index>
+    </collection>
+    '''
+
+    def setUp(self):
+        self.db = ExistDB(server_url=EXISTDB_SERVER_URL)
+        # create index for collection - should be applied to newly loaded files
+        self.db.createCollection("/db/system/config/db" + COLLECTION, True)
+        self.db.load(self.FIXTURE_INDEX,
+            '/db/system/config/db' + COLLECTION + '/collection.xconf', True)
+
+        load_fixtures(self.db)
+
+        self.qs = QuerySet(using=self.db, xpath='/root',
+            collection=COLLECTION, model=QueryTestModel)
+
+    def tearDown(self):
+        self.db.removeCollection(COLLECTION)
+        self.db.removeCollection("/db/system/config/db" + COLLECTION)
+
+    def test_filter_fulltext_terms(self):
+        fqs = self.qs.filter(description__fulltext_terms='only two')
+        self.assertEqual(1, fqs.count(),
+            "should get 1 match for fulltext_terms search on = 'only two' (got %s)" % fqs.count())
+
+    def test_order_by__fulltext_score(self):
+        fqs = self.qs.filter(description__fulltext_terms='one').order_by('fulltext_score')
+        self.assertEqual('one', fqs[0].name)    # one appears 3 times, should be first
+
+    def test_only__fulltext_score(self):
+        fqs = self.qs.filter(description__fulltext_terms='one').only('fulltext_score', 'name')
+        self.assert_(isinstance(fqs[0], PartialResultObject))
+        self.assertTrue(hasattr(fqs[0], "fulltext_score"))
+        self.assert_(float(fqs[0].fulltext_score) > 0.5)    # full-text score should be a float
+
+
 
 
 class XqueryTest(unittest.TestCase):
@@ -296,6 +348,11 @@ class XqueryTest(unittest.TestCase):
         xq.add_filter('.', 'startswith', 'S')
         self.assertEquals('/el[contains(., "dog")][starts-with(., "S")]', xq.getQuery())
 
+    def test_filters_fulltext(self):
+        xq = Xquery(xpath='/el')
+        xq.add_filter('.', 'fulltext_terms', 'dog')
+        self.assertEquals('/el[ft:query(., "dog")]', xq.getQuery())
+
     def test_filter_escaping(self):
         xq = Xquery(xpath='/el')
         xq.add_filter('.', 'contains', '"&')
@@ -315,6 +372,13 @@ class XqueryTest(unittest.TestCase):
         xq.return_only({'id':'@id'})
         self.assert_('return <notroot>' in xq._constructReturn())
 
+    def test_return_only__fulltext_score(self):
+        xq = Xquery(xpath='/el')
+        xq.xq_var = '$n'
+        xq.return_only({'fulltext_score':''})
+        self.assert_('let $fulltext_score := ft:score($n)' in xq.getQuery())
+        self.assert_('element fulltext_score {$fulltext_score}' in xq._constructReturn())
+
     def test_return_also(self):
         xq = Xquery(xpath='/el')
         xq.xq_var = '$n'
@@ -322,6 +386,13 @@ class XqueryTest(unittest.TestCase):
         self.assert_('$n/@*,' in xq._constructReturn())
         self.assert_('$n/node(),' in xq._constructReturn())
         self.assert_('element myid {$n/string(@id)},' in xq._constructReturn())
+
+    def test_return_also__fulltext_score(self):
+        xq = Xquery(xpath='/el')
+        xq.xq_var = '$n'
+        xq.return_also({'fulltext_score':''})
+        self.assert_('let $fulltext_score := ft:score($n)' in xq.getQuery())
+        self.assert_('element fulltext_score {$fulltext_score}' in xq._constructReturn())
 
 
     def test_set_limits(self):

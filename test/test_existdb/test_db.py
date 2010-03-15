@@ -8,7 +8,9 @@ from testcore import main
 
 EXISTDB_SERVER_URL = "http://kamina.library.emory.edu:8080/exist/xmlrpc"
 EXISTDB_ROOT_COLLECTION = '/eulcore'
-EXISTDB_TEST_COLLECTION = EXISTDB_ROOT_COLLECTION + '_test'
+# NOTE: currently, for full-text query tests to work, test collection should be named /test/something
+#       a system collection named /db/system/config/db/test should exist and be writable by guest
+EXISTDB_TEST_COLLECTION = '/test' + EXISTDB_ROOT_COLLECTION
 
 class ExistDBTest(unittest.TestCase):
     COLLECTION = EXISTDB_TEST_COLLECTION
