@@ -280,9 +280,7 @@ class ExistQueryTest__FullText(unittest.TestCase):
     def setUp(self):
         self.db = ExistDB(server_url=EXISTDB_SERVER_URL)
         # create index for collection - should be applied to newly loaded files
-        self.db.createCollection("/db/system/config/db" + COLLECTION, True)
-        self.db.load(self.FIXTURE_INDEX,
-            '/db/system/config/db' + COLLECTION + '/collection.xconf', True)
+        self.db.loadCollectionIndex(COLLECTION, self.FIXTURE_INDEX)
 
         load_fixtures(self.db)
 
@@ -291,7 +289,7 @@ class ExistQueryTest__FullText(unittest.TestCase):
 
     def tearDown(self):
         self.db.removeCollection(COLLECTION)
-        self.db.removeCollection("/db/system/config/db" + COLLECTION)
+        self.db.removeCollectionIndex(COLLECTION)
 
     def test_filter_fulltext_terms(self):
         fqs = self.qs.filter(description__fulltext_terms='only two')
