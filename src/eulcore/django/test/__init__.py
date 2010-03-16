@@ -1,0 +1,1 @@
+from eulcore.django.test.testcase import TestCase
