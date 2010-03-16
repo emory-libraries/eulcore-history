@@ -107,6 +107,16 @@ class ExistDB:
                 raise ExistDBException(e)
 
     @_wrap_xmlrpc_fault
+    def getCollectionDescription(self, collection_name):
+        """Retrieve information about a collection.
+
+        :param collection_name: string name of collection
+        :rtype: boolean
+
+        """    
+        return self.server.getCollectionDesc(collection_name)
+
+    @_wrap_xmlrpc_fault
     def load(self, xml, path, overwrite=False):
         """Insert or overwrite a document in the database.
         
@@ -120,6 +130,15 @@ class ExistDB:
             xml = xml.read()
 
         self.server.parse(xml, path, int(overwrite))
+
+    def remove(self, name):
+        """Remove a document from the database.
+
+        :param name: full eXist path to the database document to be removed
+        :rtype: boolean indicating success
+
+        """
+        return self.server.remove(name)
 
     @_wrap_xmlrpc_fault
     def query(self, xquery, start=1, how_many=10, **kwargs):
@@ -219,6 +238,64 @@ class ExistDB:
         """
         self.server.releaseQueryResult(result_id)
 
+    def loadCollectionIndex(self, collection_name, index, overwrite=True):
+        """Load an index configuration for the specified collection.
+        Creates the eXist system config collection if it is not already there,
+        and loads the specified index config file, as per eXist collection and
+        index naming conventions.
+
+        :param collection_name: name of the collection to be indexed
+        :param index: string or file object with the document contents (as used by :meth:`load`)
+        :param overwrite: set to False to disallow overwriting current index (overwrite allowed by default)        
+        :rtype: boolean indicating success
+        
+        """
+        index_collection = self._configCollectionName(collection_name)
+        # FIXME: what error handling should be done at this level?
+        
+        # create config collection if it does not exist
+        if not self.hasCollection(index_collection):
+            self.createCollection(index_collection)
+
+        # load index content as the collection index configuration file
+        return self.load(index, self._collectionIndexPath(collection_name), overwrite)
+
+    def removeCollectionIndex(self, collection_name):
+        """Remove index configuration for the specified collection.
+        If index collection has no documents or subcollections after the index
+        file is removed, the configuration collection will also be removed.
+        
+        :param collection: name of the collection with an index to be removed
+        :rtype: boolean indicating success
+
+        """
+        # collection indexes information must be stored under system/config/db/collection_name
+        index_collection = self._configCollectionName(collection_name)
+        
+        # remove collection.xconf in the configuration collection
+        self.remove(self._collectionIndexPath(collection_name))
+        
+        desc = self.getCollectionDescription(index_collection)
+        # no documents and no sub-collections - safe to remove index collection
+        if desc['collections'] == [] and desc['documents'] == []:
+            self.removeCollection(index_collection)
+            
+        return True
+
+    def _configCollectionName(self, collection_name):
+        """Generate eXist db path to the configuration collection for a specified collection
+        according to eXist collection naming conventions.
+        """
+        # collection indexes information must be stored under system/config/db/collection_name
+        return "/db/system/config/db/" + collection_name.strip('/')
+
+    def _collectionIndexPath(self, collection_name):
+        """Generate full eXist db path to the index configuration file for a specified
+        collection according to eXist collection naming conventions.
+        """
+        # collection indexes information must be stored under system/config/db/collection_name
+        return self._configCollectionName(collection_name) + "/collection.xconf"
+
 
 class QueryResult(xmlmap.XmlObject):
     """The results of an eXist XQuery query"""
@@ -285,4 +362,8 @@ class QueryResult(xmlmap.XmlObject):
 
 class ExistDBException(Exception):
     """A handy wrapper for all errors returned by the eXist server."""
+
+# possible sub- exception types:
+# document not found (getDoc,remove)
+# collection not found 
 

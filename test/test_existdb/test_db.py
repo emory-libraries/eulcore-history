@@ -31,16 +31,39 @@ class ExistDBTest(unittest.TestCase):
         self.db.removeCollection(self.COLLECTION)
 
     def test_getDoc(self):
-        """Test loading a full document from eXist"""
+        """Test retrieving a full document from eXist"""
         xml = self.db.getDoc(self.COLLECTION + "/hello.xml")
         self.assertEquals(xml, "<hello>World</hello>")
 
+    def test_remove(self):
+        "Test removing a full document from eXist"
+        result = self.db.remove(self.COLLECTION + "/hello.xml")
+        self.assertTrue(result)
+        # attempting to retrieve the deleted file should cause an exception
+        self.assertRaises(Exception, self.db.getDoc, self.COLLECTION + "/hello.xml")
+        
     def test_hasCollection(self):
         """Check collections can be found in eXist"""
         #test collection created in setup
         self.assertTrue(self.db.hasCollection(self.COLLECTION), "hasCollection failed to return true for existing collection")
         #test bad collection that does not exist
         self.assertFalse(self.db.hasCollection("/nonexistingCollecton"), "hasCollection failed to return false for non-existing collection")
+
+    def test_getCollectionDescription(self):
+        """Test retrieving information about a collection in eXist"""
+        info = self.db.getCollectionDescription(self.COLLECTION)
+
+        self.assertEqual("/db" + self.COLLECTION, info['name'],
+            "collection name returned (expected '/db/%s', got '%s'" % (self.COLLECTION, info['name']))
+        self.assertEqual("guest", info['owner'],
+            "collection owner returned (expected 'guest', got %s" % info['owner'])
+        # untested - group, created, permissions
+        self.assertEqual(3, len(info['documents']), "collection has 3 documents (3 test documents loaded)")
+        self.assertEqual([], info['collections'], "collection has no subcollections")
+
+        # attempting to describe a collection that isn't in the db
+        self.assertRaises(db.ExistDBException, self.db.getCollectionDescription,
+            "bogus_collection")
 
     def test_createCollection(self):
         """Test creating new collections in eXist"""
@@ -164,7 +187,7 @@ class ExistDBTest(unittest.TestCase):
             self.db.load, xml, self.COLLECTION + 'invalid.xml')
 
     def test_failed_authentication(self):
-        """Check that connecting with invaliid user credentials raises an exception"""
+        """Check that connecting with invalid user credentials raises an exception"""
         parts = urlsplit(EXISTDB_SERVER_URL)
         netloc = 'bad_user:bad_password@' + parts.hostname
         if parts.port:
@@ -192,6 +215,55 @@ class ExistDBTest(unittest.TestCase):
         self.assertFalse(qres.hasMore())
         self.assertEquals(qres.show_from, 4)
         self.assertEquals(qres.show_to, 4)
+
+
+    def test_configCollectionName(self):
+        self.assertEqual("/db/system/config/db/foo", self.db._configCollectionName("foo"))
+        self.assertEqual("/db/system/config/db/foo", self.db._configCollectionName("/foo"))
+        self.assertEqual("/db/system/config/db/foo", self.db._configCollectionName("/foo/"))
+        self.assertEqual("/db/system/config/db/foo/bar", self.db._configCollectionName("/foo/bar"))
+
+    def test_collectionIndexPath(self):
+        self.assertEqual("/db/system/config/db/foo/collection.xconf", self.db._collectionIndexPath("foo"))
+
+    def test_loadCollectionIndex(self):
+        """Test loading a collection index config file to the system config collection."""
+        self.db.loadCollectionIndex(self.COLLECTION, "<collection/>")
+        self.assert_(self.db.hasCollection(self.db._configCollectionName(self.COLLECTION)))
+        xml = self.db.getDoc(self.db._collectionIndexPath(self.COLLECTION))
+        self.assertEquals(xml, "<collection/>")
+
+        # reload with overwrite disabled - should cause an exception
+        self.assertRaises(db.ExistDBException, self.db.loadCollectionIndex,
+            self.COLLECTION, "<collection/>", False)
+
+        # clean up
+        self.db.removeCollection(self.db._configCollectionName( self.COLLECTION))
+
+    def test_removeCollectionIndex(self):
+        """Test removing a collection index config file from the system config collection."""
+        self.db.loadCollectionIndex(self.COLLECTION, "<collection/>")
+        
+        self.assertTrue(self.db.removeCollectionIndex(self.COLLECTION))
+        # collection config file should be gone         # FIXME: better way to test missing file?
+        # NOTE: apparently getDoc behaves differently when neither doc nor collection exist (?)
+        #   does not throw an exception when document's collection does not exist
+        self.assertFalse(self.db.getDoc(self.db._collectionIndexPath(self.COLLECTION)),
+            "collection index configuration should not be in eXist")
+        self.assertFalse(self.db.hasCollection(self.db._configCollectionName(self.COLLECTION)),
+            "config collection should have been removed from eXist")
+
+        self.db.loadCollectionIndex(self.COLLECTION, "<collection/>")
+        self.db.createCollection(self.db._configCollectionName(self.COLLECTION) + "/subcollection")
+        self.assertTrue(self.db.removeCollectionIndex(self.COLLECTION))
+        # NOTE: getDoc on nonexistent file actually raises exception here because collection exists (?)
+        self.assertRaises(Exception, self.db.getDoc, self.db._collectionIndexPath(self.COLLECTION))
+        self.assertTrue(self.db.hasCollection(self.db._configCollectionName(self.COLLECTION)),
+            "config collection should not be removed when it contains documents")
+
+        # clean up
+        self.db.removeCollection(self.db._configCollectionName( self.COLLECTION))
+
 
 
 if __name__ == '__main__':
