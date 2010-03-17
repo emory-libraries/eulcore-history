@@ -111,6 +111,21 @@ class ExistDB:
             else:
                 raise ExistDBException(e)
 
+    def reindexCollection(self, collection_name):
+        """Reindex a collection.
+        Reindex will fail if the eXist user does not have the correct permissions
+        within eXist (must be a member of the DBA group).
+
+        :param collection_name: string name of collection
+        :rtype: boolean success
+
+        """
+        if (not self.hasCollection(collection_name)):
+            raise ExistDBException(collection_name + " does not exist")
+        
+        result = self.query("xmldb:reindex('%s')" % collection_name)
+        return result.values[0] == 'true'
+
     @_wrap_xmlrpc_fault
     def hasDocument(self, document_path):
         """Check if a document is present in eXist.
@@ -349,6 +364,9 @@ class QueryResult(xmlmap.XmlObject):
 
     start = xmlmap.XPathInteger("@start")
     """The index of the first result returned"""
+
+    values = xmlmap.XPathStringList("exist:value")
+    "Generic value (*exist:value*) returned from an exist xquery"
 
     _raw_count = xmlmap.XPathInteger("@count")
     @property

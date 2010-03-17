@@ -307,6 +307,12 @@ class ExistDBTest(unittest.TestCase):
         self.assertFalse(self.db.hasCollectionIndex(self.COLLECTION),
             "hasCollectionIndex failed to return false for collection with config collection but no config file")
 
+    def test_reindexCollection(self):
+        result = self.db.reindexCollection(self.COLLECTION)
+        self.assertFalse(result, "reindex should fail - guest account does not have permission to reindex collection")
+        # FIXME: how to test success case?
+        
+        self.assertRaises(db.ExistDBException, self.db.reindexCollection, "notacollection")
 
 if __name__ == '__main__':
     main()
