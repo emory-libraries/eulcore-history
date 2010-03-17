@@ -66,7 +66,7 @@ class ExistDB:
 
     def getDoc(self, name, **kwargs):
         "Alias for :method:`getDocument`."
-        return self.getDocument(name, kwargs)
+        return self.getDocument(name, **kwargs)
 
 
     def createCollection(self, collection_name, overwrite=False):

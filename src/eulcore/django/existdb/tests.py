@@ -29,9 +29,9 @@ class ExistDBTest(unittest.TestCase):
         self.assert_(isinstance(self.db, nondjangoexistdb.db.ExistDB))
         self.assert_(isinstance(self.db, ExistDB))
         
-    def test_getDoc(self): 
+    def test_getDocument(self):
         """Retrieve document loaded via file fixture"""
-        xml = self.db.getDoc(self.COLLECTION + "/hello.xml")
+        xml = self.db.getDocument(self.COLLECTION + "/hello.xml")
         self.assertEquals(xml, "<hello>World</hello>")
 
     def test_failed_authentication_from_settings(self):

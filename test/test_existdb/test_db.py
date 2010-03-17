@@ -35,6 +35,15 @@ class ExistDBTest(unittest.TestCase):
         xml = self.db.getDocument(self.COLLECTION + "/hello.xml")
         self.assertEquals(xml, "<hello>World</hello>")
 
+        self.assertRaises(Exception, self.db.getDocument, self.COLLECTION + "/notarealdoc.xml")
+
+
+    def test_getDoc(self):
+        """Test retrieving a full document from eXist (legacy function name for getDocument)"""
+        xml = self.db.getDoc(self.COLLECTION + "/hello.xml")
+        self.assertEquals(xml, "<hello>World</hello>")
+
+
     def test_hasDocument(self):
         """Test that document existence can be determined in eXist"""
         #test document loaded in setup
