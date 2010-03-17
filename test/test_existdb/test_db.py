@@ -30,17 +30,43 @@ class ExistDBTest(unittest.TestCase):
     def tearDown(self):
         self.db.removeCollection(self.COLLECTION)
 
-    def test_getDoc(self):
+    def test_getDocument(self):
         """Test retrieving a full document from eXist"""
-        xml = self.db.getDoc(self.COLLECTION + "/hello.xml")
+        xml = self.db.getDocument(self.COLLECTION + "/hello.xml")
         self.assertEquals(xml, "<hello>World</hello>")
 
-    def test_remove(self):
+    def test_hasDocument(self):
+        """Test that document existence can be determined in eXist"""
+        #test document loaded in setup
+        self.assertTrue(self.db.hasDocument(self.COLLECTION + "/hello.xml"),
+            "hasDocument failed to return true for existing collection")
+        #test non-existent file in test collection
+        self.assertFalse(self.db.hasDocument(self.COLLECTION + "/nonexistent.xml"),
+            "hasDocument failed to return false for non-existent file")
+        #test non-existent file in bogus collection
+        self.assertFalse(self.db.hasDocument("/bogus/nonexistent.xml"),
+            "hasDocument failed to return false for non-existent file in non-existent collection")
+
+    def test_describeDocument(self):
+        desc = self.db.describeDocument(self.COLLECTION + '/hello.xml')
+        self.assertEqual(self.COLLECTION + "/hello.xml", desc['name'])
+        self.assertEqual("text/xml", desc['mime-type'])
+        self.assertEqual("XMLResource", desc['type'])
+        self.assert_('owner' in desc)
+        self.assert_('group' in desc)
+        self.assert_('content-length' in desc)
+        self.assert_('created' in desc)
+        self.assert_('modified' in desc)
+        self.assert_('permissions' in desc)
+
+        self.assertEqual({}, self.db.describeDocument("/nonexistent.xml"))
+
+    def test_removeDocument(self):
         "Test removing a full document from eXist"
-        result = self.db.remove(self.COLLECTION + "/hello.xml")
+        result = self.db.removeDocument(self.COLLECTION + "/hello.xml")
         self.assertTrue(result)
         # attempting to retrieve the deleted file should cause an exception
-        self.assertRaises(Exception, self.db.getDoc, self.COLLECTION + "/hello.xml")
+        self.assertRaises(Exception, self.db.getDocument, self.COLLECTION + "/hello.xml")
         
     def test_hasCollection(self):
         """Check collections can be found in eXist"""
@@ -230,7 +256,7 @@ class ExistDBTest(unittest.TestCase):
         """Test loading a collection index config file to the system config collection."""
         self.db.loadCollectionIndex(self.COLLECTION, "<collection/>")
         self.assert_(self.db.hasCollection(self.db._configCollectionName(self.COLLECTION)))
-        xml = self.db.getDoc(self.db._collectionIndexPath(self.COLLECTION))
+        xml = self.db.getDocument(self.db._collectionIndexPath(self.COLLECTION))
         self.assertEquals(xml, "<collection/>")
 
         # reload with overwrite disabled - should cause an exception
@@ -246,9 +272,9 @@ class ExistDBTest(unittest.TestCase):
         
         self.assertTrue(self.db.removeCollectionIndex(self.COLLECTION))
         # collection config file should be gone         # FIXME: better way to test missing file?
-        # NOTE: apparently getDoc behaves differently when neither doc nor collection exist (?)
+        # NOTE: apparently getDocument behaves differently when neither doc nor collection exist (?)
         #   does not throw an exception when document's collection does not exist
-        self.assertFalse(self.db.getDoc(self.db._collectionIndexPath(self.COLLECTION)),
+        self.assertFalse(self.db.getDocument(self.db._collectionIndexPath(self.COLLECTION)),
             "collection index configuration should not be in eXist")
         self.assertFalse(self.db.hasCollection(self.db._configCollectionName(self.COLLECTION)),
             "config collection should have been removed from eXist")
@@ -256,14 +282,30 @@ class ExistDBTest(unittest.TestCase):
         self.db.loadCollectionIndex(self.COLLECTION, "<collection/>")
         self.db.createCollection(self.db._configCollectionName(self.COLLECTION) + "/subcollection")
         self.assertTrue(self.db.removeCollectionIndex(self.COLLECTION))
-        # NOTE: getDoc on nonexistent file actually raises exception here because collection exists (?)
-        self.assertRaises(Exception, self.db.getDoc, self.db._collectionIndexPath(self.COLLECTION))
+        # NOTE: getDocument on nonexistent file actually raises exception here because collection exists (?)
+        self.assertRaises(Exception, self.db.getDocument, self.db._collectionIndexPath(self.COLLECTION))
         self.assertTrue(self.db.hasCollection(self.db._configCollectionName(self.COLLECTION)),
             "config collection should not be removed when it contains documents")
 
         # clean up
         self.db.removeCollection(self.db._configCollectionName( self.COLLECTION))
 
+    def test_hasCollectionIndex(self):
+        # ensure no config collection is present
+        if self.db.hasCollection(self.db._configCollectionName(self.COLLECTION)):
+            self.db.removeCollection(self.db._configCollectionName(self.COLLECTION))
+        self.assertFalse(self.db.hasCollectionIndex(self.COLLECTION),
+            "hasCollectionIndex failed to return false for collection with no config collection")
+
+        # load test config collection
+        self.db.loadCollectionIndex(self.COLLECTION, "<collection/>")
+        self.assertTrue(self.db.hasCollectionIndex(self.COLLECTION),
+            "hasCollectionIndex failed to return True for collection with config file loaded")
+
+        # remove config file but leave config collection
+        self.db.removeDocument(self.db._collectionIndexPath(self.COLLECTION))
+        self.assertFalse(self.db.hasCollectionIndex(self.COLLECTION),
+            "hasCollectionIndex failed to return false for collection with config collection but no config file")
 
 
 if __name__ == '__main__':

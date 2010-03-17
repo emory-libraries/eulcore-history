@@ -55,7 +55,7 @@ class ExistDB:
                 allow_none=True
             )
 
-    def getDoc(self, name, **kwargs):
+    def getDocument(self, name, **kwargs):
         """Retrieve a document from the database.
 
         :param name: database document path to retrieve
@@ -63,6 +63,11 @@ class ExistDB:
 
         """
         return self.server.getDocumentAsString(name, kwargs)
+
+    def getDoc(self, name, **kwargs):
+        "Alias for :method:`getDocument`."
+        return self.getDocument(name, kwargs)
+
 
     def createCollection(self, collection_name, overwrite=False):
         """Create a new collection in the database.
@@ -107,6 +112,32 @@ class ExistDB:
                 raise ExistDBException(e)
 
     @_wrap_xmlrpc_fault
+    def hasDocument(self, document_path):
+        """Check if a document is present in eXist.
+
+        :param document_path: string full path to document in eXist
+        :rtype: boolean
+
+        """
+        if self.describeDocument(document_path) == {}:
+            return False
+        else:
+            return True
+
+    @_wrap_xmlrpc_fault
+    def describeDocument(self, document_path):
+        """Return information about a document in eXist.
+        Includes name, owner, group, created date, permissions, mime-type,
+        type, content-length.
+        Returns an empty dictionary if document is not found.
+
+        :param document_path: string full path to document in eXist
+        :rtype: dictionary
+
+        """
+        return self.server.describeResource(document_path)
+
+    @_wrap_xmlrpc_fault
     def getCollectionDescription(self, collection_name):
         """Retrieve information about a collection.
 
@@ -129,9 +160,10 @@ class ExistDB:
         if hasattr(xml, 'read'):
             xml = xml.read()
 
-        self.server.parse(xml, path, int(overwrite))
+        return self.server.parse(xml, path, int(overwrite))
 
-    def remove(self, name):
+    @_wrap_xmlrpc_fault
+    def removeDocument(self, name):
         """Remove a document from the database.
 
         :param name: full eXist path to the database document to be removed
@@ -273,7 +305,7 @@ class ExistDB:
         index_collection = self._configCollectionName(collection_name)
         
         # remove collection.xconf in the configuration collection
-        self.remove(self._collectionIndexPath(collection_name))
+        self.removeDocument(self._collectionIndexPath(collection_name))
         
         desc = self.getCollectionDescription(index_collection)
         # no documents and no sub-collections - safe to remove index collection
@@ -281,6 +313,21 @@ class ExistDB:
             self.removeCollection(index_collection)
             
         return True
+
+    def hasCollectionIndex(self, collection_name):
+        """Check if the specified collection has an index configuration in eXist.
+
+        Note: according to eXist documentation, index config file does not *have*
+        to be named *collection.xconf* for reasons of backward compatibility.
+        This function assumes that the recommended naming conventions are followed.
+        
+        :param collection: name of the collection with an index to be removed
+        :rtype: boolean indicating collection index is present
+        
+        """
+        return self.hasCollection(self._configCollectionName(collection_name)) \
+            and self.hasDocument(self._collectionIndexPath(collection_name))
+
 
     def _configCollectionName(self, collection_name):
         """Generate eXist db path to the configuration collection for a specified collection

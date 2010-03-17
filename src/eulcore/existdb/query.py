@@ -298,8 +298,8 @@ class QuerySet(object):
 
     def getDocument(self, docname):
         """Get a single document from the server by filename."""
-        data = self._db.getDoc('/'.join([self.query.collection, docname]))
-        # getDoc returns unicode instead of string-- need to decode before handing off to parseString
+        data = self._db.getDocument('/'.join([self.query.collection, docname]))
+        # getDocument returns unicode instead of string-- need to decode before handing off to parseString
         return load_xmlobject_from_string(data.encode('utf_8'), self.model)
 
 
