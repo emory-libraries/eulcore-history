@@ -8,6 +8,8 @@
      preferring instead to add docstrings and/or reST docs right here) for
      members that need documentation.
 
+See :mod:`eulcore.django.existdb` for existdb and django integration.
+
 Direct database access
 ----------------------
 
@@ -52,15 +54,3 @@ Model-based access
       :members:
 
 
-:mod:`eulcore.django.existdb` -- Django tie-ins
------------------------------------------------
-
-.. include:: ../src/eulcore/django/existdb/README
-
-.. automodule:: eulcore.django.existdb
-
-.. automodule:: eulcore.django.existdb.db
-
-   .. autoclass:: ExistDB
-
-   .. autoclass:: ResultPaginator

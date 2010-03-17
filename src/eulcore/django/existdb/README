@@ -23,7 +23,7 @@ Projects that use this module should include the following settings in their
   EXISTDB_ROOT_COLLECTION = "/sample_collection"
 
 If you are using an eXist index configuration file, you can add another setting
-to specify your configuration file:
+to specify your configuration file::
 
   EXISTDB_INDEX_CONFIGFILE = path.join(BASE_DIR, "exist_index.xconf")
 

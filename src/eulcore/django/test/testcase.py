@@ -6,17 +6,19 @@ from django.conf import settings
 from eulcore.django.existdb.db import ExistDB
 
 class TestCase(DjangoTestCase):
-    """Customization of class:`django,test.TestCase`
+    """Customization of :class:`django.test.TestCase`
 
     If TestCase instance has an attribute named exist_fixtures, the specified
     fixtures will be loaded to eXist before the tests run.
     
     The exist_fixtures attribute should be a dictionary with information about 
-    fixtures to load to eXist. Currently supported:
-     * *index* - path to an eXist index configuration file; will be loaded before
-       any other fixture files, and removed in fixture teardown
-     * *directory* - path to a fixture directory; all *.xml files in the directory
-        will be loaded to eXist
+    fixtures to load to eXist. Currently supported options:
+
+    * *index* - path to an eXist index configuration file; will be loaded before
+      any other fixture files, and removed in fixture teardown
+    * *directory* - path to a fixture directory; all .xml files in the directory
+      will be loaded to eXist
+
     """
 
     def assertPattern(self, regex, text, msg_prefix=''):

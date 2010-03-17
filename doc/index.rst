@@ -17,6 +17,7 @@ Contents
 
    xmlmap
    existdb
+   django
 
 Dependencies
 ------------
