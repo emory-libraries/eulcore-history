@@ -122,7 +122,11 @@ class ExistDB:
         """
         if (not self.hasCollection(collection_name)):
             raise ExistDBException(collection_name + " does not exist")
-        
+
+        # xquery reindex function requires that collection name begin with /db/
+        if collection_name[0:3] != '/db':
+            collection_name = '/db/' + collection_name.strip('/')
+
         result = self.query("xmldb:reindex('%s')" % collection_name)
         return result.values[0] == 'true'
 

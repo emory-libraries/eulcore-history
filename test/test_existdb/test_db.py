@@ -10,7 +10,7 @@ EXISTDB_SERVER_PROTOCOL = "http://"
 EXISTDB_SERVER_HOST     = "kamina.library.emory.edu:8080/exist/xmlrpc"
 # NOTE: test account used for tests that require non-guest access; user should be in eXist DBA group
 EXISTDB_SERVER_USER     = "eulcore_tester"
-EXISTDB_SERVER_PWD      = ""
+EXISTDB_SERVER_PWD      = "eVlc0re_t3st"
 # main access - no user/password, guest account
 EXISTDB_SERVER_URL = EXISTDB_SERVER_PROTOCOL + EXISTDB_SERVER_HOST
 # access with the specified user account
@@ -334,6 +334,9 @@ class ExistDBTest(unittest.TestCase):
         # dba account 
         self.assertTrue(self.db_admin.reindexCollection('/db' + self.COLLECTION),
             "reindex with exist dba user should succeed")
+        # full or short version of collection name
+        self.assertTrue(self.db_admin.reindexCollection(self.COLLECTION),
+            "reindex with exist dba user and collection name without leading '/db/' should succeed")
         # non-existent collection
         self.assertRaises(db.ExistDBException, self.db.reindexCollection, "notacollection")
 
