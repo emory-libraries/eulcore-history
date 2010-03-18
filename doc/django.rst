@@ -21,13 +21,14 @@ management commands
 ^^^^^^^^^^^^^^^^^^^
 
 The following management commands will be available when you include 
-:mod:`eulcore.django.existdb` in your django installed apps.
+:mod:`eulcore.django.existdb` in your django installed apps and rely on the
+existdb settings described above.
 
 For more details on these commands, use ``manage.py <command> help``
 
  * **existdb_index** - update, remove, and show information about the index configuration
    for a collection index
-
+ * **existdb_reindex** - reindex a collection index in exist
 
 :mod:`eulcore.django.test` - Django test extensions
 ---------------------------------------------------
