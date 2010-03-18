@@ -1,6 +1,6 @@
 from django.conf import settings
 from eulcore.existdb import db
-from django.core.paginator import Paginator, InvalidPage, EmptyPage, Page
+from django.core.paginator import Paginator, Page
 
 __all__ = ['ExistDB', 'ResultPaginator']
 
