@@ -1,6 +1,32 @@
+{% load tracback_tags %}
+
+{% comment %}
+This is an adaptation of the Emory General Library Drupal theme provided by
+sharpdot for use in the library.  A considerable amount of cleanup went into it
+to make it more friendly for diverse sites.
+
+The current version supports a two column layout with left side bar and main
+content panel.
+
+See the individual blocks for overriding and structure.
+{% endcomment %}
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
 
+{% load eulcore_tags %}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
+{% comment %}
+This is an adaptation of the Emory General Library Drupal theme provided by
+sharpdot for use in the library.  A considerable amount of cleanup went into it
+to make it more friendly for diverse sites.
+
+The current version supports a two column layout with left side bar and main
+content panel.
+
+See the individual blocks for overriding and structure.
+{% endcomment %}
     {% comment %}
         This is an adaptation of the Emory General Library Drupal theme provided by
         sharpdot for use in the library.  A considerable amount of cleanup went into it
@@ -29,7 +55,7 @@
     <link rel="stylesheet" type="text/css" href="/static/genlib_media/style/html-elements.css" />
     <link rel="stylesheet" type="text/css" href="/static/genlib_media/style/libraryglobal.css" />
     <link rel="stylesheet" type="text/css" href="/static/genlib_media/style/layout-fixed.css" />
-   {% endblock %}
+  {% endblock %}
 
   {% block scripts %}
   {% endblock %}
@@ -97,6 +123,14 @@
                     <a name="to-navigation" id="navigation"></a>
                     <div id="primary">
                           <ul>
+                              {% comment %}
+                              The activebase template tag here is a custom tag
+                              created in dwrangler/tracback.  Since template tags have to live in an app and
+                              templates are decoupled from apps I'm not quiet sure how to handle this.
+                              In the future we'll probably create a django app stub to install as part of
+                              eulcore to load things like this.  For now however.  Modify that tag as
+                              or copy the code into your own app as needed.
+                              {% endcomment %}
                             <li><a href="{% url site-index %}" class="first {% activebase request "^/$" %}">Home</a></li>
                             <li><a href="{% url tracback:index %}" class="{% activebase request "^/tracback.*/$" %}">Tracback</a></li>
                             <li><a href="{% url accounts:view-profile %}" class="{% activebase request "^/accounts.*/$" %}">Account</a></li>
@@ -106,7 +140,7 @@
                           </ul>
                         {% comment %}
                         Uncomment below if you want the default theme navbar and
-                        set links as needed. 
+                        set links as needed.
                         <!--
                         <ul>
                             <li><a href="" class="first">Home</a></li>
@@ -123,13 +157,13 @@
                 </div> <!-- /#navbar-inner -->
             </div> <!-- /#navbar -->
 
-           
+
             <div id="sidebar-left">
                 <div id="sidebar-left-inner" class="region region-left">
                   {% block sidebar-left %}{% endblock %}
                 </div> <!-- /#sidebar-left-inner -->
              </div> <!-- /#sidebar-left -->
-           
+
 
             {% block sidebar-right %}
             {% endblock %}
