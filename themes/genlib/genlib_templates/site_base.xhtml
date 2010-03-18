@@ -1,19 +1,17 @@
-{% load tracback_tags %}
-
-{% comment %}
-This is an adaptation of the Emory General Library Drupal theme provided by
-sharpdot for use in the library.  A considerable amount of cleanup went into it
-to make it more friendly for diverse sites.
-
-The current version supports a two column layout with left side bar and main
-content panel.
-
-See the individual blocks for overriding and structure.
-{% endcomment %}
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
 
+    {% comment %}
+        This is an adaptation of the Emory General Library Drupal theme provided by
+        sharpdot for use in the library.  A considerable amount of cleanup went into it
+        to make it more friendly for diverse sites.
+
+        The current version supports a two column layout with left side bar and main
+        content panel.
+
+        See the individual blocks for overriding and structure.
+    {% endcomment %}
+    
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
@@ -24,18 +22,14 @@ See the individual blocks for overriding and structure.
 
   {% block page-head %}
     {% comment %}Put Extra Header information here.  Use block.super to keep the icon.{% endcomment %}
-  	<link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon" />
+  	<link rel="shortcut icon" href="/static/genlib_media/favicon.ico" type="image/x-icon" />
   {% endblock %}
 
   {% block style %}
-    <link rel="stylesheet" type="text/css" href="/static/style/html-elements.css" />
-    <link rel="stylesheet" type="text/css" href="/static/style/libraryglobal.css" />
-    <link rel="stylesheet" type="text/css" href="/static/style/layout-fixed.css" />
-    {% comment %}blue.css relates to the page links from the django pagination module.  {% endcomment %}
-    <link rel="stylesheet" type="text/css" href="/static/style/pagination/blue.css" />
-    {% comment %}Place Local changes, modifications and overrisdes in your local.css file.{% endcomment %}
-    <link rel="stylesheet" type="text/css" href="/static/style/local.css" />
-  {% endblock %}
+    <link rel="stylesheet" type="text/css" href="/static/genlib_media/style/html-elements.css" />
+    <link rel="stylesheet" type="text/css" href="/static/genlib_media/style/libraryglobal.css" />
+    <link rel="stylesheet" type="text/css" href="/static/genlib_media/style/layout-fixed.css" />
+   {% endblock %}
 
   {% block scripts %}
   {% endblock %}
