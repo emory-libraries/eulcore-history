@@ -17,6 +17,16 @@
 
    .. autoclass:: ResultPaginator
 
+management commands
+^^^^^^^^^^^^^^^^^^^
+
+The following management commands will be available when you include 
+:mod:`eulcore.django.existdb` in your django installed apps.
+
+For more details on these commands, use ``manage.py <command> help``
+
+ * **existdb_index** - update, remove, and show information about the index configuration
+   for a collection index
 
 
 :mod:`eulcore.django.test` - Django test extensions
