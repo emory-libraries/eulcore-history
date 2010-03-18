@@ -5,3 +5,13 @@ A significant amount of clean-up and adaptation has happened with it.  If you
 need to pull in items from the original template please try to examine a
 better or more consistant way of doing it from the original template if possible
 keeping in mind extensability.
+
+Setup
+1. Use themes/genlib/genlib_templates as an external in your templates directory.
+2. Use themes/genlib/genlib_media as an external in your media directory.
+3. Setup a local base template in your template directory and extend
+   themes/genlib/genlib_templates/site_base.xhtml in that file and override
+   or extend blocks as needed.  See 
+   themes/genlib/genlib_templates/example_local_sitebase.xhtml as an example.
+4. Place eulcore.django.util in your installed apps so the custom template
+   tags work.

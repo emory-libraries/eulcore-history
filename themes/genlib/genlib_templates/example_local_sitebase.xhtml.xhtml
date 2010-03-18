@@ -1,0 +1,35 @@
+{% extends "genlib_templates/site_base.xhtml" %}
+{% comment %}
+The extends tag must be the first in any template or it will throw an error.
+You're local site_base file should open by extending the theme site_base fiile.
+{% endcomment %}
+
+
+
+{% block style %}
+    {{ block.super }}
+    {% comment %}blue.css relates to the page links from the django pagination module.  {% endcomment %}
+    <link rel="stylesheet" type="text/css" href="/static/style/pagination/blue.css" />
+    {% comment %}Place Local changes, modifications and overrisdes in your local.css file.{% endcomment %}
+    <link rel="stylesheet" type="text/css" href="/static/style/local.css" />
+{% endblock %}
+{% comment %}
+Add additional stylesheets by extending the style block.
+{% endcomment %}
+
+{% load eulcore_tags %}
+{% block navbar %}
+    <ul>
+        <li><a href="{% url site-index %}" class="first {% activebase request "^/$" %}">Home</a></li>
+        <li><a href="{% url tracback:index %}" class="{% activebase request "^/tracback.*/$" %}">Tracback</a></li>
+        <li><a href="{% url accounts:view-profile %}" class="{% activebase request "^/accounts.*/$" %}">Account</a></li>
+        {% if user.is_staff %}
+            <li><a href="{% url admin:index %}">Admin</a></li>
+        {% endif %}
+    </ul>
+{% endblock %}
+{% comment %}
+Be sure to load the eulcure_tags custom template tags library as this provides
+the active link.  Class needed for the white tab in the active navabar.
+EULCORE_TAGS can only be loaded if eulcore.django.util is in your installed apps.
+{% endcomment %}
