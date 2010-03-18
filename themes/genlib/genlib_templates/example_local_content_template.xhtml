@@ -1,0 +1,14 @@
+{% comment %}
+An example of a local content template to work with the theme site_base
+template.  REMOVE THIS as extends needs to be the first tag in the template.
+{% endcomment %}
+
+{% extends "site_base.xhtml" %}
+
+{% block page-subtitle %}{{ block.super }}: EXTEND THE SITE PAGE SUBTITLE{% endblock %}
+
+{% block content-title %}PUT YOUR CONTENT TITLE HERE{% endblock %}
+
+{% block content-body %}
+PUT YOUR CONTENT BODY TEXT HERE.
+{% endblock %}
