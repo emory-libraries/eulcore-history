@@ -6,7 +6,16 @@ from urlparse import urlsplit, urlunsplit
 from eulcore.existdb import db
 from testcore import main
 
-EXISTDB_SERVER_URL = "http://kamina.library.emory.edu:8080/exist/xmlrpc"
+EXISTDB_SERVER_PROTOCOL = "http://"
+EXISTDB_SERVER_HOST     = "kamina.library.emory.edu:8080/exist/xmlrpc"
+# NOTE: test account used for tests that require non-guest access; user should be in eXist DBA group
+EXISTDB_SERVER_USER     = "eulcore_tester"
+EXISTDB_SERVER_PWD      = ""
+# main access - no user/password, guest account
+EXISTDB_SERVER_URL = EXISTDB_SERVER_PROTOCOL + EXISTDB_SERVER_HOST
+# access with the specified user account
+EXISTDB_SERVER_URL_DBA      = EXISTDB_SERVER_PROTOCOL + EXISTDB_SERVER_USER + ":" + \
+    EXISTDB_SERVER_PWD + "@" + EXISTDB_SERVER_HOST
 EXISTDB_ROOT_COLLECTION = '/eulcore'
 # NOTE: currently, for full-text query tests to work, test collection should be named /test/something
 #       a system collection named /db/system/config/db/test should exist and be writable by guest
@@ -16,7 +25,9 @@ class ExistDBTest(unittest.TestCase):
     COLLECTION = EXISTDB_TEST_COLLECTION
 
     def setUp(self):
-        self.db = db.ExistDB(server_url=EXISTDB_SERVER_URL)        
+        self.db = db.ExistDB(server_url=EXISTDB_SERVER_URL)
+        # separate existdb instance with dba credentials
+        self.db_admin = db.ExistDB(server_url=EXISTDB_SERVER_URL_DBA)
         self.db.createCollection(self.COLLECTION, True)
 	
         self.db.load('<hello>World</hello>', self.COLLECTION + '/hello.xml', True)
@@ -317,10 +328,13 @@ class ExistDBTest(unittest.TestCase):
             "hasCollectionIndex failed to return false for collection with config collection but no config file")
 
     def test_reindexCollection(self):
-        result = self.db.reindexCollection(self.COLLECTION)
-        self.assertFalse(result, "reindex should fail - guest account does not have permission to reindex collection")
-        # FIXME: how to test success case?
-        
+        # guest account - permission denied
+        self.assertFalse(self.db.reindexCollection('/db' + self.COLLECTION),
+            "reindex should fail - guest account does not have permission to reindex collection")
+        # dba account 
+        self.assertTrue(self.db_admin.reindexCollection('/db' + self.COLLECTION),
+            "reindex with exist dba user should succeed")
+        # non-existent collection
         self.assertRaises(db.ExistDBException, self.db.reindexCollection, "notacollection")
 
 if __name__ == '__main__':
