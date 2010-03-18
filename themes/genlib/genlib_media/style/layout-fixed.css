@@ -1,0 +1,476 @@
+/* $Id: layout-fixed.css,v 1.5.2.3 2009/02/13 19:20:19 johnalbin Exp $ */
+
+/*
+ * LAYOUT STYLES
+ *
+ * Define CSS classes to create a table-free, 3-column, 2-column, or single
+ * column layout depending on whether blocks are enabled in the left or right
+ * columns.
+ *
+ * This layout is based on the Zen Columns layout method.
+ *   http://drupal.org/node/201428
+ *
+ * Only CSS that affects the layout (positioning) of major elements should be
+ * listed here.  Such as:
+ *   display, position, float, clear, width, height, min-width, min-height
+ *   margin, border, padding, overflow
+*/
+
+
+/** body **/
+body
+{
+    text-align:center;
+}
+
+#page,
+#closure-blocks
+{
+    /*
+     * If you want to make the page a fixed width and centered in the viewport,
+     * this is the standards-compliant way to do that. See also the ie.css file
+     * for the necessary IE5 hack to center a div.
+    */
+    margin:0 auto;
+    width: 1000px;
+    padding:0;
+    text-align:left;
+}
+#closure-blocks { margin-bottom:20px; }
+
+#page-inner
+{
+    padding:0;
+}
+
+
+#to-navigation-top,
+#to-navigation,
+#to-content-top,
+#to-content
+{
+    position: absolute; /* Take the named anchors out of the doc flow    */
+    left: -10000px;     /* and prevent any anchor styles from appearing. */
+}
+
+#skip-to
+{
+    float: right;
+    margin: 0 !important;
+    font-size: 0.8em;
+}
+
+#skip-to a:link, #skip-to-nav a:visited
+{
+    color: #fff; /* Same as background color of page */
+}
+
+#skip-to a:hover
+{
+    color: #000;
+    text-decoration: none;
+}
+
+#skip-to a, #skip-to a:hover, #skip-to a:visited
+{
+    position: absolute;
+    left: 0;
+    top: -500px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+#skip-to a:active, #skip-to a:focus
+{
+    position: static;
+    width: auto;
+    height: auto;
+}
+
+
+/** header **/
+#header
+{
+    width:980px;
+    margin:0 10px;
+    height:108px;
+}
+
+#header-inner
+{
+}
+
+#logo-title
+{
+}
+
+#logo
+{
+    float: left;
+}
+
+#site-name
+{
+}
+
+#site-slogan
+{
+}
+
+#header-blocks
+{
+    margin-top: 10px;
+}
+
+/** main (container for everything else) **/
+#main
+{
+    position: relative;
+    width:980px;
+    margin:0 10px;
+    background-color: #FFFFFF;
+}
+
+#main-inner
+{
+}
+
+/** content **/
+
+#content
+{
+    margin-left: 230px;
+    padding: 0; /* DO NOT CHANGE. Add padding or margin to #content-inner. */
+}
+
+#content-inner
+{
+    margin: 0;
+    padding-top: 36px;
+    padding-left: 0;
+    padding-right: 20px;
+    padding-bottom: 60px;
+}
+
+/** navbar **/
+#navbar {
+    background:url("images/nav-sprite.gif") repeat-x scroll 0 0 transparent;
+    border-left:1px solid #997300;
+    border-right:1px solid #997300;
+    font-size: 90%;
+    float: left;
+    padding: 1px 0; /* DO NOT CHANGE. Add padding or margin to #navbar-inner. */
+    height: 27px;
+    left: 0;
+    top: 0;
+    margin: 0 0 27px;
+    position: absolute;
+    width: 978px;
+}
+
+#navbar ul
+{
+    margin: 0;
+    margin-top: 5px;
+    padding: 0;
+}
+
+#navbar li /* A simple method to get navbar links to appear in one line. */
+{
+    float: left;
+}
+
+#navbar-inner {
+    margin: 0;
+    margin-left: 18px;
+    height: 28px;
+    width:940px;
+}
+
+#navbar #primary {
+    height: 27px;
+    margin: 0;
+    padding: 0;
+    width: 940px;
+}
+
+#navbar #primary a
+{
+    color: #FFFFFF;
+    border-right:1px solid #997300;
+    position: relative;
+    padding: 15px 27px 15px;
+    text-decoration: none;
+    text-transform:uppercase
+}
+
+#navbar #primary .first
+{
+    border-left: 1px solid #997300;
+}
+
+#navbar #primary a:hover,
+#navbar #primary a.active
+{
+    background-color: #FFFFFF;
+    color: #002878;
+    border-top: 2px solid #997300;
+    border-left: 1px solid #997300;
+    border-right: 1px solid #997300;
+}
+
+/** sidebar-left **/
+#sidebar-left
+{
+    float: left;
+    width:200px;
+    margin-left:20px;
+    margin-top: 29px;
+    padding: 0; /* DO NOT CHANGE. Add padding or margin to #sidebar-left-inner. */
+}
+
+#sidebar-left-inner
+{
+    margin: 20px 30px 0 0;
+    padding: 0;
+}
+
+/** sidebar-right **/
+#sidebar-right
+{
+    float: right;
+    width: 200px;
+    margin-left: 730px; /* Width of content + sidebar-left. */
+    margin-right: -940px; /* Negative value of #sidebar-right's width + left margin. */
+    margin-top: 29px;
+    padding: 0; /* DO NOT CHANGE. Add padding or margin to #sidebar-right-inner. */
+    /*DEBUG - background-color:#00FFFF;*/
+}
+
+#sidebar-right-inner
+{
+    margin: 20px 0 0 30px;
+    padding: 0;
+}
+
+/** footer **/
+#footer
+{
+    width:1000px;
+    margin:0;
+    padding:0 0 10px;
+}
+
+#footer-inner
+{
+    width:940px;
+    margin:0 10px;
+    padding:30px 20px 30px;
+    background: #002878 url(images/footer-bkg_woodruff.jpg) no-repeat scroll right bottom;
+}
+#footer-inner:after { clear:both; content:'.'; display:block; visibility:hidden; height:0; }
+
+/** closure **/
+#closure-blocks /* See also the #page declaration above that this div shares. */
+{
+}
+
+/** Prevent overflowing content **/
+#header,
+#content,
+#navbar,
+#sidebar-left,
+#sidebar-right,
+#footer,
+#closure-blocks
+{
+    overflow: visible;
+    word-wrap: break-word; /* A very nice CSS3 property */
+}
+
+#navbar
+{
+    overflow: hidden; /* May need to be removed if using a dynamic drop-down menu */
+}
+
+/* OTHER CLASSES */
+div.atclear {
+    clear:both;
+}
+
+/* Sharing and Social Networking Links Section */
+#share-bar {
+    background-color:#CC9900;
+    border-bottom:1px solid #000000;
+    border-top:1px solid #000000;
+    height:40px;
+    left:-20px;
+    margin:0;
+    padding:0;
+    position:relative;
+    top:-30px;
+    width:980px;
+}
+
+#share-bar #blog {
+    border-right:1px solid #997300;
+    display:inline;
+    float:left;
+    font:0.75em/1.2em Verdana,Arial,Helvetica,sans-serif;
+    height:40px;
+    text-transform:uppercase;
+    width:94px;
+}
+
+#share-bar #blog a {
+    background:url("images/icon_share-blog.gif") no-repeat scroll 17px 8px transparent;
+    color:#333333;
+    display:block;
+    padding:8px 0 0 44px;
+    text-decoration:none;
+}
+
+#share-bar #share {
+    border-right:1px solid #997300;
+    display:inline;
+    float:left;
+    height:40px;
+    width:329px;
+}
+
+#share-bar #share h3 {
+    color:#333333;
+    display:inline;
+    float:left;
+    height:31px;
+    margin:9px 0 0 17px;
+    padding:0;
+    width:64px;
+}
+
+#share-bar #share .links {
+    display:inline;
+    float:left;
+    height:40px;
+    width:247px;
+}
+
+#share-bar #share li {
+    display:inline;
+    float:left;
+    font:9px Verdana,Arial,Helvetica,sans-serif;
+    margin:0;
+    padding:0;
+}
+
+#share-bar #share ul {
+margin:0;
+padding:0;
+}
+
+#share-bar #share li.facebook a {
+    background:url("images/icon_share-facebook.gif") no-repeat scroll 0 4px transparent;
+    height:15px;
+    padding:5px 0 0 20px;
+    width:56px;
+}
+
+#share-bar #share li.digg a {
+    background:url("images/icon_share-digg.gif") no-repeat scroll 0 4px transparent;
+    height:15px;
+    padding:5px 0 0 20px;
+    width:42px;
+}
+
+#share-bar #share li.more a {
+    background:url("images/icon-arrow-share-large-sprite.gif") no-repeat scroll 0 7px transparent;
+    height:15px;
+    padding:5px 0 0 10px;
+    width:97px;
+}
+
+#share-bar #share a {
+    color:#333333;
+    display:block;
+    height:20px;
+    padding:0;
+    text-decoration:none;
+}
+
+#share-bar #share li.delicious a {
+    background:url("images/icon_share-delicious.gif") no-repeat scroll 0 1px transparent;
+    height:19px;
+    padding:1px 0 0 20px;
+    width:56px;
+}
+
+#share-bar #share li.reddit a {
+    background:url("images/icon_share-reddit.gif") no-repeat scroll 0 1px transparent;
+    height:19px;
+    padding:1px 0 0 20px;
+    width:42px;
+}
+
+#share-bar #share li.email-to-friend a {
+    background:url("images/icon_share-email.gif") no-repeat scroll 0 4px transparent;
+    height:19px;
+    padding:1px 0 0 16px;
+    width:93px;
+}
+
+#share-bar #community ul {
+    margin:0;
+    padding:0;
+}
+
+#share-bar #community {
+    display:inline;
+    float:left;
+    height:40px;
+    width:555px;
+}
+
+#share-bar #community a {
+    color:#010101;
+    display:block;
+    height:37px;
+    text-decoration:none;
+    width:184px;
+}
+
+#share-bar #community a .name {
+    background:url("images/icon-arrow-share-large-sprite.gif") no-repeat scroll right 6px transparent;
+    display:inline-block;
+    font:bold 1.5em/1.2em "Trebuchet MS",Verdana,Arial,Helvetica,sans-serif;
+    padding:0 12px 0 0;
+}
+
+#share-bar #community li {
+    color:#010101;
+    display:inline;
+    float:left;
+    font:0.833333em Verdana,Arial,Helvetica,sans-serif;
+    margin:0;
+    padding:0;
+}
+
+#share-bar #community li.facebook a {
+    background:url("images/icon_share-facebook-large.gif") no-repeat scroll 22px 3px transparent;
+    border-right:1px solid #997300;
+    padding:3px 0 0 69px;
+    width:115px;
+}
+
+#share-bar #community li.youtube a {
+    background:url("images/icon_share-youtube-large.gif") no-repeat scroll 12px 8px transparent;
+    border-right:1px solid #997300;
+    padding:3px 0 0 76px;
+    width:108px;
+}
+
+#share-bar #community li.itunes a {
+    background:url("images/icon_share-itunes-large.gif") no-repeat scroll 12px 4px transparent;
+    padding:3px 0 0 55px;
+    width:129px;
+}

@@ -1,0 +1,7 @@
+This is an adaptation of the woodrufflibrary theme provided by SharpDot for use
+in our Drupal Sites.
+
+A significant amount of clean-up and adaptation has happened with it.  If you
+need to pull in items from the original template please try to examine a
+better or more consistant way of doing it from the original template if possible
+keeping in mind extensability.

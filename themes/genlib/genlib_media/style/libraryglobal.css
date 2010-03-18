@@ -1,0 +1,613 @@
+/*
+* Modified version of the libraryglobal theme provided for emory libraryies drupal
+* implementation from SharpDot contractors.
+*
+* I'll go what I can to reorganize this but was handed to us pretty messy.
+*
+* SOME COMMON COLOR VALUES
+* Emory Dark Blue: #002878;
+* Emory Gold:
+
+* Dusty Blue: #B8BCD6 (used for links against Emory Dark Blue)
+*/
+
+* { margin: 0; padding: 0; }
+
+/** body **/
+body
+{
+    margin: 0;
+    padding: 0;
+    text-align:center;
+}
+
+#page
+{
+    background:url(images/wrapper.gif) repeat-y;
+}
+
+#page-inner
+{
+}
+
+/** header **/
+#header
+{
+    background-color: #002878;
+    color: #FFFFFF;
+    position:relative;
+    border-top:1px solid #CCCCCC;
+    z-index:2;
+}
+
+#header-inner
+{
+    position:relative;
+}
+
+#logo-title /* Wrapper for logo, website name, and slogan */
+{
+    float:left;
+    display:inline;
+    width:540px;
+    margin:0;
+    padding:0;
+}
+
+#logo /* Wrapper for logo */
+{
+    margin:26px 0 0 25px;
+    margin-right: 10px;
+    padding: 0;
+    display:inline;
+}
+
+#logo-image /* The actual logo image */
+{
+    border-right: 1px solid white;
+    padding-right:10px;
+}
+
+#site-name /* The name of the website */
+{
+    margin: 30px 0 0 25px;
+    font-size: 2em;
+    line-height: 1.3em;
+}
+
+#site-name a:link,
+#site-name a:visited
+{
+    color: #fff;
+    text-decoration: none;
+}
+
+#site-name a:hover
+{
+    text-decoration: underline;
+}
+
+#site-slogan /* The slogan (or tagline) of a website */
+{
+}
+
+#header-blocks /* Wrapper for any blocks placed in the header region */
+{ float:right; display:inline; width:400px; margin:0; padding:0; clear:none; }
+
+#header-blocks a:link,
+#header-blocks a:visited
+{
+    color: #B8BCD6;
+}
+
+#block-block-2 /* Utility Nav Container */
+{ float:right; display:inline; width:400px; height:30px; margin:0; padding:0; clear:none; position:relative; z-index:9999; }
+
+#block-views-tabbed_search_header-block_1 /* Tabbed Search Wrapper */
+{ float:right; display:inline; width:400px; margin:0; padding:0; clear:none; position:relative; z-index:1; }  
+
+/** main (container for everything else) **/
+#main
+{
+}
+
+#main-inner
+{
+}
+
+/** content **/
+#content
+{
+
+}
+
+#content-inner
+{
+}
+
+body.front #content-inner
+{
+    padding-top:20px;
+}
+
+#mission /* The mission statement of the site (displayed on homepage) */
+{
+}
+
+#content-top /* Wrapper for any blocks placed in the "content top" region */
+{
+}
+#content-top:after { clear:both; content:'.'; display:block; visibility:hidden; height:0; }
+
+#content-header /* Wrapper for breadcrumb, title, messages, tabs, and help */
+{
+}
+
+.breadcrumb /* The path to the current page in the form of a list of links */
+{
+    padding-bottom: 0; /* Undo system.css */
+    display:none;
+}
+
+h1.title, /* The title of the page */
+h2.title, /* Block title or the title of a piece of content when it is given in a list of content */
+h3.title /* Comment title */
+{
+    /*margin: 0;*/
+}
+
+/* MESSAGING AND ERRORS */
+div.messages, ul.messages /* Important messages (status, warning, and error) for the user */
+{
+}
+
+div.status /* Normal priority messages */
+{
+}
+
+div.warning, tr.warning, li.warning /* Medium priority messages */
+{
+    /* border: 1px solid #f0c020; */ /* Drupal core uses: 1px solid #f0c020 */
+}
+
+div.error, tr.error, li.error /* High priority messages. See also the .error declaration below. */
+{
+    color: red;
+}
+
+#content ul.errorlist li
+{
+    color: red;
+    font-weight: bold;
+    background: transparent url('/static/images/icons/famfamicons/bullet_error.png') no-repeat scroll 10px 0px;
+    margin:0;
+    padding:0 0 16px 30px;
+}
+
+div.tabs /* See also the tabs.css file. */
+{
+}
+
+.help /* Help text on a page */
+{
+    margin: 1em 0;
+}
+
+.more-help-link /* Link to more help */
+{
+    font-size: 0.85em;
+    text-align: right;
+}
+
+#content-body /* Wrapper for the actual page content */
+{
+}
+
+#content ul { margin:0; padding:8px 0 0; }
+#content ul li { background:url(images/icon_arrow-blue-right.gif) no-repeat 17px 3px; margin:0; padding:0 0 16px 30px; }
+
+#content ol { margin:0; padding:8px 0 0; }
+#content ol li { margin:0 0 0 30px; padding:0 0 16px 0; /*padding:0 0 16px 30px;*/ }
+
+#content a.mailto {}
+
+#content img { border:1px solid #4c4c4c; margin-bottom:8px; }
+
+.pager /* A list of page numbers when more than 1 page of content is available */
+{
+    clear: both;
+    margin: 1em 0;
+    text-align: center;
+}
+
+.pager a, .pager strong.pager-current
+{
+    padding: 0.5em;
+}
+
+.feed-icons /* The links to the RSS or Atom feeds for the current list of content */
+{
+    margin: 1em 0;
+}
+
+#content-bottom /* Wrapper for any blocks placed in the "content bottom" region */
+{
+}
+
+.item-list ul { margin:0; padding:0; }
+.item-list ul li /* Drupal override */
+{
+list-style: inherit;
+    background:url(images/icon_arrow-blue-right.gif) no-repeat 17px 3px; margin:0; padding:0 0 16px 30px;
+    list-style-type:none;
+}
+.item-list a:link,
+	.item-list a:visited,
+  	.menu a:link,
+	.menu a:visited
+{
+	text-decoration:none;
+}
+
+.item-list a:hover,
+		.menu a:hover
+{
+	text-decoration:underline;
+}
+
+
+.block ul
+{
+margin: 0 0;
+padding: 0 0 0 20px;
+    /*margin:0; padding:8px 0 0;*/
+}
+.block ul li,
+.item-list ul li
+{
+    margin:0;
+    padding-bottom:4px;
+}
+.block ul ul, .block ul ol,
+.block ol ol, .block ol ul,
+.item-list ul ul, .item-list ul ol,
+.item-list ol ol, .item-list ol ul
+{
+    margin: 0;
+}
+
+ul.menu li, /* Drupal override */
+li.expanded,
+li.collapsed,
+li.leaf
+{
+    margin: 0;
+    padding: 0;
+    /*background:url(images/icon_arrow-blue-right.gif) no-repeat 17px 3px; margin:0; padding:0 0 16px 30px;*/
+}
+
+/** navbar **/
+#navbar
+{
+    background:url(images/nav-sprite.gif) repeat-x 0 0;
+    border-left:1px solid #997300;
+    border-right:1px solid #997300;
+    height:27px;
+    padding:1px 0;
+    position:absolute;
+    top:0;
+    left:0;
+}
+#navbar:after { clear:both; content:'.'; display:block; visibility:hidden; height:0; }
+
+#navbar-inner
+{
+    width:940px;
+    height:27px;
+    margin:0 20px;
+    padding:0;
+}
+
+#search-box /* Wrapper for the search form */
+{
+}
+
+#content #search-form
+{
+    position:relative;
+    background-color:#f2f3f5;
+    border:1px solid #d9d9d9;
+    padding:10px;
+    margin:0 0 1.65em;
+}
+
+
+/** sidebar-left **/
+#sidebar-left
+{
+}
+
+#sidebar-left-inner
+{
+}
+
+
+#sidebar-left .block-title
+{
+    border-bottom:2px solid #3E6280;
+}
+
+/** sidebar-right **/
+#sidebar-right
+{
+}
+
+#sidebar-right-inner
+{
+}
+
+
+#sidebar-left h2, #sidebar-left h3, #sidebar-left h4, #sidebar-left h5, #sidebar-left h6,
+#sidebar-right h2, #sidebar-right h3, #sidebar-right h4, #sidebar-right h5, #sidebar-right h6
+{
+    padding-top:0px;
+}
+
+/** footer **/
+#footer
+{
+    background:url(images/wrapper-bottom.gif) no-repeat 0 bottom;
+    color:#fff;
+}
+
+#footer a:link, #footer a:hover, #footer a:visited
+{
+    color: #B8BCD6;
+    text-decoration: none;
+}
+
+#footer-inner
+{
+    background-color:#002878;
+}
+
+#footer-inner .block { margin:0; }
+
+#footer-message /* Wrapper for the footer message from Drupal's "Site information"
+                 and for any blocks placed in the footer region */
+{
+}
+
+/* -- CUSTOM -> 'Footer Content' Block -- */
+
+#footer-address { width:340px; margin:0 20px 0 0; float:left; display:inline; font-style:normal; font-size:0.916667em; /*line-height:1.25em;*/ }
+
+#footer-address .school { font-size:1.18182em;/*13px*/ }
+#footer-address .phone { float:left; display:inline; background:url(images/icon-phone.gif) no-repeat 0 13px; margin:0; padding:10px 0 0 20px; text-transform:uppercase; }
+#footer-address .fax { float:left; display:inline; background:url(images/icon-fax.gif) no-repeat 0 12px; margin:0 0 0 20px; padding:10px 0 0 20px; text-transform:uppercase; }
+#footer-address .number { color:#bfbfbf; text-decoration:none; }
+
+#footer-links { width:560px; margin:0; float:right; display:inline; text-align:right; font-size:0.916667em; line-height:1.83333em; }
+
+ul#site-links { margin:0; padding:0; }
+ul#site-links li { list-style-type:none; display:inline; color:#8190ba; text-transform:uppercase; }
+ul#site-links li span { margin:0 1px 0 5px; }
+ul#site-links li a { color:#fff; text-decoration:none; }
+ul#site-links li a:hover { text-decoration:underline; }
+
+ul#site-links li.first {}
+ul#site-links li.last {}
+ul#site-links li.icon-rss {}
+ul#site-links li.icon-rss a { background:url(images/icon-rss.gif) no-repeat right 0; padding:0 18px 2px 0; }
+
+ul#emory-links { margin:0; padding:0; }
+ul#emory-links li { list-style-type:none; display:inline; color:#8190ba; text-transform:uppercase; }
+ul#emory-links li span { margin:0 1px 0 5px; }
+ul#emory-links li a { color:#b3b3b3; text-decoration:none; }
+ul#emory-links li a:hover { text-decoration:underline; }
+
+ul#emory-links li.first {}
+ul#emory-links li.last {}
+
+p#copyright { margin:0; padding:0; color:#8190ba; }
+
+
+
+/** closure **/
+#closure-blocks /* Wrapper for any blocks placed in the closure region */
+{
+    font:0.75em/1.333em Verdana, Arial, Helvetica, sans-serif; /*text-align:right;*/ padding:5px 0 0;
+}
+/* Site Credit */
+#closure-blocks .block { margin:0; padding:0; font-size:0.833333em; }
+#closure-blocks .block-inner { margin:0; padding:0; }
+#closure-blocks .content { padding:0 31px; }
+#closure-blocks .block .content p {}
+#closure-blocks .block .content a { color:#2E5299!important; }
+
+/* List Single Line */
+.single-line-list li,
+.single-line-list li,
+.single-line-list li { padding-bottom:0.5em!important; }
+
+
+/** Blocks **/
+.block /* Block wrapper */
+{
+    margin-bottom: 1em;
+}
+.block:after { clear:both; content:'.'; display:block; visibility:hidden; height:0; }
+
+#content .block,
+#sidebar-left .block,
+#sidebar-right .block
+{
+    position:relative;
+    background-color:#f2f3f5;
+    border:1px solid #d9d9d9;
+    padding:10px;
+    margin:0 0 1.65em;
+}
+/* Block Over-rides*/
+#block-menu_block-1.block { margin:0 0 1.65em; padding:0; border:none; background:none; }
+
+
+/* Block Contents */
+.block .more-link
+{
+    position:relative;
+    background-color:#d9d9d9;
+    width:100%;
+    height:20px;
+    margin:10px -10px -10px;
+    padding:0px 10px 0;
+    color:#696152;
+    font-size:9px;
+    text-transform:uppercase;
+}
+.block .more-link a { background:url(images/icon_arrow-grey-right-sprite.gif) no-repeat right 3px; display:block; padding:0 12px 0 0;
+                      color:#696152; text-decoration:none; }
+.block .more-link a:hover { background-position:right -47px; color:#2e5299; }
+
+.block h2, .block h3, .block h4, .block h5, .block h6 { padding:0; font-size:1.5em; line-height:1em; font-weight:normal; }
+
+.block h2, .block h3, .block h4, .block h5, .block h6 {
+    font-size:1.5em;
+    font-weight:normal;
+    line-height:1em;
+    padding:0;
+}
+
+.block a { text-decoration:underline; }
+
+/** Miscellaneous styles **/
+.error /* Errors that are separate from div.messages status messages (see above.) */
+{
+    /* color: #e55; */ /* Drupal core uses a #e55 background */
+}
+
+.warning /* Warnings that are separate from div.messages status messages (see above.) */
+{
+    /* color: #e09010; */ /* Drupal core uses a #e09010 background */
+}
+
+.more-link /* Aggregator, blog, and forum more link */
+{
+    text-align: right;
+}
+
+#user-login-form /* default login form */
+{
+    text-align: left;
+}
+#user-login-form .item-list { padding-top:20px; display:block; }
+
+.even /* Some tables have rows marked even or odd. */
+{
+    /* background-color: #eee; */ /* Drupal core uses a #eee background */
+    background-color:#fff;
+}
+
+.odd
+{
+    /* background-color: #eee; */ /* Drupal core uses a #eee background */
+    background-color:#fff;
+}
+
+li a.active /* The active item in a Drupal menu */
+{
+    color: #000;
+}
+
+.button-link a /* submit button style anchor link */
+{
+    background:#02266d url(images/btn-sprite.gif) repeat-x right -1px;
+    height:14px;
+    margin:0;
+    padding:2px 16px 2px 10px;
+    border:1px solid #002878;
+    cursor:pointer;
+    font:0.833333em "Trebuchet MS", Arial, Helvetica, sans-serif;
+    text-transform:uppercase;
+    color:#e6edf2;
+    text-decoration:none;
+    display:block;
+}
+.button-link a:hover
+{
+    background-color:#b98b02;
+    background-position:right -21px;
+    border-color:#997300;
+    color:#fff;
+}
+
+.form-textarea { width:100%; }
+
+/** OpenID **/
+/* The default styling for the OpenID login link seems to assume Garland's
+* styling of list items.
+*/
+#user-login-form ul /* OpenID creates a new ul above the login form's links. */
+{
+    margin-bottom: 0; /* Position OpenID's ul next to the rest of the links. */
+}
+
+#user-login-form li.openid-link, /* The "Log in using OpenID" links. */
+#user-login li.openid-link
+{
+    margin-top: 1em;
+    margin-left: -20px; /* Un-do some of the padding on the ul list. */
+    padding-left: 20px;
+    background-position: left center;
+}
+
+#user-login-form li.user-link, /* The "Cancel OpenID login" links. */
+#user-login li.user-link
+{
+    margin-top: 1em;
+    list-style-type: disc;
+    list-style-position: outside;
+}
+
+#user-login li.openid-link, /* The OpenID links on the /user form. */
+#user-login li.user-link
+{
+    margin-left: -2em; /* Un-do all of the padding on the ul list. */
+}
+
+/* global university navigation
+/*-------------------------------------------------------------------------------*/
+#global-nav { background-color:#012778; margin:0; padding:0; height:20px; margin-bottom:2px; }
+#global-nav ul { padding:0; list-style-type:none; height:20px; margin:0 auto; width:976px; padding-left:0px; position:relative; }
+#global-nav li { margin:0; padding:0; list-style-type:none; float:left; }
+#global-nav li.first { }
+#global-nav li a { height:16px; padding:4px 12px 0 12px; display:block; color:#cccccc; text-decoration:none; font-size:10px; font-family:Verdana, Arial, sans-serif; color:#b2b2b2; text-transform:uppercase; }
+#global-nav li.active a, #global-nav li a:hover { background-color:#2e58ac; color:#ffffff; }
+
+#global-nav li.last { position:absolute; top:0px; right:4px; z-index:200; width:60px;
+                      background:#002878 url(images/global-nav-logo.jpg) no-repeat right; }
+#global-nav li.last a { text-indent:-9999px; }
+#global-nav li.last a:hover { background-color:transparent!important; }
+/* TODO: remove these once all have been moved to use the menu */ 
+#global-nav li.emory-logo { position:absolute; top:0px; right:4px; z-index:200; }
+#global-nav li.emory-logo a:hover { background-color:#002878!important; }
+
+/* Icons */
+a.icon-pdf, a.pdf { background:url(images/icon-pdf.png) no-repeat 0 0; padding:0 0 0 20px; /* 2px 0 3px 20px text-decoration:none!important;*/ display:inline-block; }
+a.icon-excel, a.xls { background:url(images/icon-excel.png) no-repeat 0 0; padding:0 0 0 20px; /*text-decoration:none!important;*/ display:inline-block; }
+a.icon-word, a.doc, a.docx { background:url(images/icon-word.png) no-repeat 0 0; padding:0 0 0 20px; /*text-decoration:none!important;*/ display:inline-block; }
+a.icon-power-point, a.ppt, a.pptx { background:url(images/icon-power-point.png) no-repeat 0 0; padding:0 0 0 20px; /*text-decoration:none!important;*/ display:inline-block; }
+#content a.icon-external { background:url(images/icon-external.gif) no-repeat right; padding:0 16px 0 0; /*text-decoration:none!important;*/ display:inline-block; }
+
+/* OTHER CLASSES */
+/** images **/
+  .picture-caption { margin-bottom:0; }
+  .picture-caption img { border:1px solid #4c4c4c; margin-bottom:8px; }
+  .picture-caption p { font:italic 0.916667em/0.6875em Verdana, Arial, Helvetica, sans-serif; text-align:center; }
+
+.title-line  {
+    border-bottom:2px solid #3E6280;
+    clear:both;
+    margin:0 0 20px;
+    padding-bottom:4px;
+}
