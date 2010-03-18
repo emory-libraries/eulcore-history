@@ -55,17 +55,17 @@ Available subcommands:
                 else:
                     print "This appears to be a new index configuration\n"
 
-                    message =  "eXist index configuration \n collection:\t%s\n index file:\t%s" % (collection, index)
-                    
-                    success = self.db.loadCollectionIndex(collection, open(index))
-                    if success:
-                        print "Succesfully updated %s" % message
-                        print """
+                message =  "eXist index configuration \n collection:\t%s\n index file:\t%s" % (collection, index)
+
+                success = self.db.loadCollectionIndex(collection, open(index))
+                if success:
+                    print "Succesfully updated %s" % message
+                    print """
 If your collection already contains data and the index configuration
 is new or has changed, you should reindex the collection.
-                """
-                    else:
-                        raise CommandError("Failed to update %s" % message)
+            """
+                else:
+                    raise CommandError("Failed to update %s" % message)
 
             elif cmd == 'show':
                 # show the contents of the the collection index config file in exist
