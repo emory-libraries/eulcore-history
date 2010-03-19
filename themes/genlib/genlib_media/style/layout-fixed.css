@@ -118,6 +118,8 @@ body
 {
 }
 
+/** Styles for Header Blocks and Tabbed Panels. **/
+/** TabbedPanel* styles modified for use with SpryTabbedPanels */
 #header-blocks
 {
     margin-top: 10px;
@@ -200,7 +202,7 @@ body
     color: #FFFFFF;
     border-right:1px solid #997300;
     position: relative;
-    padding: 15px 27px 15px;
+    padding:6px 27px 15px;
     text-decoration: none;
     text-transform:uppercase
 }
@@ -215,9 +217,9 @@ body
 {
     background-color: #FFFFFF;
     color: #002878;
-    border-top: 2px solid #997300;
-    border-left: 1px solid #997300;
-    border-right: 1px solid #997300;
+    border-top: 2px solid #FFFFFF;
+    border-left: 1px solid #FFFFFF;
+    border-right: 1px solid #FFFFFF;
 }
 
 /** sidebar-left **/

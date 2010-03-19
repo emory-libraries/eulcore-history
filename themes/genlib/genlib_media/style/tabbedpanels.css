@@ -1,0 +1,72 @@
+#scroller-header a {
+	text-decoration:none;
+        background:url("images/search-tabs_idle.gif") repeat-x scroll 0 0 #93B5D0;
+        color:#262626;
+        font:0.833333em "Trebuchet MS",Arial,Helvetica,sans-serif;
+        height:14px;
+        padding:2px 6px 0;
+}
+
+#scroller-header a:hover {
+	text-decoration:none;
+	color:#4b412f
+}
+
+#scroller-header a.selected {
+	text-decoration:underline !important;
+	color:#4b412f !important;
+        background:url("images/search-tabs_active.gif") repeat-x scroll 0 0 #CDD9E4;
+}
+
+#scroller-header {
+	width: 336px;
+	padding: 20px 0 0 0;
+	font-weight:700;
+}
+
+#scroller-body {
+        background:url("images/tab-search_bkg.gif") repeat-x scroll 0 bottom #ACC1D2;
+        height: 36px;
+        margin:0 0 3px;
+        padding:10px 20px 0;
+        width:336px;
+}
+
+#mask {
+	width: 300px;
+	overflow: hidden;
+	margin: 0 auto;
+}
+
+#mask .form-text {
+    width: 180px;
+}
+
+#panel {
+
+}
+
+#panel div {
+float:left;
+
+}
+
+#more {
+    float:right;
+    margin-right:20px;
+    margin-top:17px;
+    padding:1px 9px 0px 1px;
+    background:url("images/tabbed-search_more-bkg.gif") no-repeat scroll right 0 #93B5D0;
+    border:1px solid #466075;
+    color:#262626;
+    display:block;
+    font:0.833333em/1em Arial,Helvetica,sans-serif;
+    height:12px;
+
+    width:28px;
+}
+
+#more a {
+    text-decoration:none;
+    text-transform:capitalize;
+}
