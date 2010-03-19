@@ -10,24 +10,13 @@ The current version supports a two column layout with left side bar and main
 content panel.
 
 See the individual blocks for overriding and structure.
-{% endcomment %}
-    {% comment %}
-        This is an adaptation of the Emory General Library Drupal theme provided by
-        sharpdot for use in the library.  A considerable amount of cleanup went into it
-        to make it more friendly for diverse sites.
-
-        The current version supports a two column layout with left side bar and main
-        content panel.
-
-        See the individual blocks for overriding and structure.
-    {% endcomment %}
-    
+{% endcomment %}    
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
 
   <title>
-    {% block page-title %}Emory Libraries dWrangler{% block page-subtitle %} - Home{% endblock %}{% endblock %}
+    {% block page-title %}Emory Libraries {% block page-subtitle %} - Home{% endblock %}{% endblock %}
   </title>
 
   {% block page-head %}
@@ -75,26 +64,22 @@ See the individual blocks for overriding and structure.
     	<div id="header-inner" class="clear-block">
             <div id="logo-title">
                 <div id="logo">
-                    <a href="{% url site-index %}" title="Site Root" rel="home"><img src="/static/genlib_media/images/emorylibbluelogo.png" alt="Home" id="logo-image" /></a>
+                    <a href="{% url site-index %}" title="Home" rel="home"><img src="/static/genlib_media/images/emorylibbluelogo.png" alt="Home" id="logo-image" /></a>
                 </div>
 
                 <div id="site-name">
-                    <a href="{% url site-index %}" title="Site Root" rel="home">
-                    dWrangler
+                    <a href="{% url site-index %}" title="Home" rel="home">
+                    {% block site-name %}{% endblock %}
                     </a>
                 </div>
 
-                <div id="site-slogan">Digital Systems Workbench</div>
+                <div id="site-slogan">{% block site-slogan %}{% endblock %}</div>
         	</div> <!-- /#logo-title -->
 
-
-                {% block headerblocks %}
                 <div id="header-blocks">
-                    {% include "accounts/snippets/header_login.xhtml" %}
+                    {% block headerblocks %}{% endblock %}
                 </div>
-                {% endblock %}
-
-
+                
 
 		</div> <!-- /#header-inner -->
 	</div> <!-- /#header -->
@@ -115,9 +100,9 @@ See the individual blocks for overriding and structure.
                               eulcore to load things like this.  For now however.  Modify that tag as
                               or copy the code into your own app as needed.
                               {% endcomment %}
-                            <li><a href="{% url site-index %}" class="first {% activebase request "^/$" %}">Home</a></li>
-                            <li><a href="{% url tracback:index %}" class="{% activebase request "^/tracback.*/$" %}">Tracback</a></li>
-                            <li><a href="{% url accounts:view-profile %}" class="{% activebase request "^/accounts.*/$" %}">Account</a></li>
+                            {% block navbar %}
+                                <li><a href="{% url site-index %}" class="first {% activebase request '^/$' %}">Home</a></li>
+                            {% endblock %}
                             {% if user.is_staff %}
                                 <li><a href="{% url admin:index %}">Admin</a></li>
                             {% endif %}
@@ -160,7 +145,7 @@ See the individual blocks for overriding and structure.
 
                     <div id="content-header">
                         {% comment %}
-                        As with page-title and subtitle this these nested blocks
+                        As with page-title and subtitle, these nested blocks
                         allow templates to insert a title easily with content-title
                         or override the whole thing via content-header.
                         {% endcomment %}
@@ -190,7 +175,7 @@ See the individual blocks for overriding and structure.
 <div><div class="block-inner">
   <div class="content">
       {% comment %}
-      shar-bar is for sharing and social networking links.  This is pretty much
+      share-bar is for sharing and social networking links.  This is pretty much
       exactly the code from the origninal template so it's going to be pretty
       sloppy. Fair warning.  I wouldn't change any of it if I were you.
       I have tried to format it so it's more reasonable to read though.
