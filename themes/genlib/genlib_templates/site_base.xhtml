@@ -91,6 +91,7 @@ See the individual blocks for overriding and structure.
                 <div id="navbar-inner">
                     <a name="to-navigation" id="navigation"></a>
                     <div id="primary">
+                        {% block navbar %}
                           <ul>
                               {% comment %}
                               The activebase template tag here is a custom tag
@@ -100,13 +101,14 @@ See the individual blocks for overriding and structure.
                               eulcore to load things like this.  For now however.  Modify that tag as
                               or copy the code into your own app as needed.
                               {% endcomment %}
-                            {% block navbar %}
                                 <li><a href="{% url site-index %}" class="first {% activebase request '^/$' %}">Home</a></li>
-                            {% endblock %}
+                                {# extend just navbar-items to use Home and Admin navbar links as-is #}
+                                {% block navbar-items %}{% endblock %}
                             {% if user.is_staff %}
                                 <li><a href="{% url admin:index %}">Admin</a></li>
                             {% endif %}
                           </ul>
+                          {% endblock %}
                         {% comment %}
                         Uncomment below if you want the default theme navbar and
                         set links as needed.
