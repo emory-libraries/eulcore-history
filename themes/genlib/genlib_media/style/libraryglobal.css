@@ -91,13 +91,89 @@ body
 {
 }
 
-#header-blocks /* Wrapper for any blocks placed in the header region */
-{ float:right; display:inline; width:400px; margin:0; padding:0; clear:none; }
+/* HEADER BLOCKS STUFF */
+#header-blocks  {
+    clear:none;
+    display:inline;
+    float:right;
+    margin:0;
+    padding:0;
+    width:400px;
+}
 
-#header-blocks a:link,
-#header-blocks a:visited
-{
-    color: #B8BCD6;
+div.view-tabbed-search-header li.active .views-field-body .field-content, div.view-tabbed-search-body li.active .views-field-field-extended-body-value .field-content, div.view-tabbed-search-header li.views-row-first .views-field-body .field-content, div.view-tabbed-search-body li.views-row-first .views-field-field-extended-body-value .field-content {
+    border-left:1px solid #455D73;
+    border-right:1px solid #455D73;
+    display:block;
+    height:32px;
+    margin:0 0 3px;
+    padding:10px 20px 0;
+    width:336px;
+}
+
+div.view-tabbed-search-header li .views-field-field-tooltip-value a, div.view-tabbed-search-body li .views-field-field-tooltip-value a {
+    background:url("images/search-tabs_idle.gif") repeat-x scroll 0 0 #93B5D0;
+    border-color:#466075 #466075 -moz-use-text-color;
+    border-style:solid solid none;
+    border-width:1px 1px medium;
+    color:#262626;
+    display:block;
+    font:0.833333em "Trebuchet MS",Arial,Helvetica,sans-serif;
+    height:14px;
+    margin:3px 1px 0 0;
+    padding:2px 6px 0;
+}
+
+div.view-tabbed-search-header li, div.view-tabbed-search-body li {
+    background:none repeat scroll 0 0 transparent;
+    display:inline;
+    float:left;
+    margin:0;
+    padding:0;
+}
+
+div.view-tabbed-search-header div.view-header, div.view-tabbed-search-body div.view-header {
+    display:inline;
+    float:right;
+    height:13px;
+    margin:0 2px 0 0;
+    padding:0;
+    width:37px;
+}
+
+div.view-tabbed-search-header li.active .views-field-field-tooltip-value a, div.view-tabbed-search-body li.active .views-field-field-tooltip-value a, div.view-tabbed-search-header li.views-row-first .views-field-field-tooltip-value a, div.view-tabbed-search-body li.views-row-first .views-field-field-tooltip-value a {
+    background:url("images/search-tabs_active.gif") repeat-x scroll 0 0 #CDD9E4;
+    height:17px;
+    margin:0 1px 0 0;
+    padding-top:3px;
+}
+
+div.view-tabbed-search-header li .views-field-field-tooltip-value a, div.view-tabbed-search-body li .views-field-field-tooltip-value a {
+    background:url("images/search-tabs_idle.gif") repeat-x scroll 0 0 #93B5D0;
+    border-color:#466075 #466075 -moz-use-text-color;
+    border-style:solid solid none;
+    border-width:1px 1px medium;
+    color:#262626;
+    display:block;
+    font:0.833333em "Trebuchet MS",Arial,Helvetica,sans-serif;
+    height:14px;
+    margin:3px 1px 0 0;
+    padding:2px 6px 0;
+}
+
+block-views-tabbed_search_header-block_1  {
+    clear:none;
+    display:inline;
+    float:right;
+    margin:0;
+    padding:0;
+    position:relative;
+    width:400px;
+    z-index:1;
+}
+
+.item-list a:link, .item-list a:visited, .menu a:link, .menu a:visited {
+    text-decoration:none;
 }
 
 #block-block-2 /* Utility Nav Container */
@@ -105,6 +181,8 @@ body
 
 #block-views-tabbed_search_header-block_1 /* Tabbed Search Wrapper */
 { float:right; display:inline; width:400px; margin:0; padding:0; clear:none; position:relative; z-index:1; }  
+
+/* END HEADER-BLOCKS */
 
 /** main (container for everything else) **/
 #main
