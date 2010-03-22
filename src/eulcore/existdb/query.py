@@ -283,6 +283,8 @@ class QuerySet(object):
                     getattr(obj, basename).add_field(remainder, nodes[0])
                 else:
                     setattr(obj, f, obj.dom_node.xpath('string(%s)' % f))
+            # make queryTime method available when retrieving a single item
+            setattr(obj, 'queryTime', self.queryTime)
             return obj
 
     def __iter__(self):
