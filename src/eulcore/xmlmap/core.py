@@ -29,6 +29,15 @@ class XmlObjectType(type):
         use_attrs = {}
         fields = {}
 
+        # inherit base fields first; that way current class field defs will
+        # override parents. note that since the parents already added fields
+        # from *their* parents (because they were built from XmlObjectType),
+        # we don't have to recurse.
+        for base in bases:
+            base_fields = getattr(base, '_fields', None)
+            if base_fields:
+                fields.update(base_fields)
+
         for attr_name, attr_val in defined_attrs.items():
             # XXX: not a fan of isintance here. maybe use something like
             # django's contribute_to_class?
@@ -84,49 +93,33 @@ class XmlObject(object):
         xslproc.appendStylesheetNode(xslt)
         return xslproc.runNode(self.dom_node.ownerDocument, topLevelParams=params)
 
-def getXmlObjectXPath(obj, var):
+def getXmlObjectXPath(cls, var):
     """Return the xpath string for an xmlmap field that belongs to the specified XmlObject.
 
        If var contains '__', will generate the full xpath to a field mapped on a subobject
        (sub-object must be mapped with XPathNode or XPathNodeList)
     """
     # FIXME: type-checking, exceptions?
-    if '__' in var:
-        # if field name contains __, split and treat names as sub-objects
-        # calculate xml path relative to each portion of object or sub-object,
-        # then join xpaths together for the full xpath
-        parts = var.split('__')
-        subobj = obj
-        xpath_parts = []
-        for i in range(len(parts)):
-            xpath_parts.append(getXmlObjectXPath(subobj, parts[i]))
-            # assumes that all but the last name are xpath nodes
-            if i < len(parts) - 1:
-                if parts[i] in subobj.__dict__:                    
-                    subobj = subobj.__dict__[parts[i]].node_class
-                # also pick up inherited elements
-                # FIXME: inherited xpath not tested; (this only goes one level deep?)
-                elif hasattr(obj, '__bases__'):
-                    for baseclass in subobj.__bases__:                        
-                        if parts[i] in baseclass.__dict__:                            
-                            subobj = baseclass.__dict__[parts[i]].node_class
-        # FIXME: check that subobject is an xpathnode (or nodelist?)        
-        xpath = '/'.join(xpath_parts)
-        return xpath
-    else:
-        if var in obj.__dict__:
-            descriptor = obj.__dict__[var]
-            if hasattr(descriptor, 'xpath'):
-                return descriptor.xpath
-            else:
-                return descriptor.field.xpath
-        if hasattr(obj, '__bases__'):
-            for baseclass in obj.__bases__:
-                # FIXME: should this check isinstance of XmlObject ?
-                xpath = getXmlObjectXPath(baseclass, var)
-                if xpath:
-                    return xpath
 
+    xpath_parts = []
+    var_parts = var.split('__')
+    var_parts.reverse() # so we can pop() them off
+
+    while var_parts:
+        var_part = var_parts.pop()
+        field = cls._fields.get(var_part, None)
+        if field is None: # old descriptor backward compat
+            field = getattr(cls, var_part, None)
+        if field is None:
+            # fall back on raw xpath
+            # XXX is this right? we at least need it for backward compat
+            xpath_parts.append(var_part)
+            xpath_parts += var_parts
+            break
+        xpath_parts.append(field.xpath)
+        cls = getattr(field, 'node_class', None)
+
+    return '/'.join(xpath_parts)
 
 def load_xmlobject_from_string(string, xmlclass=XmlObject):
     """Initialize an XmlObject from a string.
