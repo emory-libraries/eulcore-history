@@ -3,12 +3,19 @@ from eulcore import xmlmap
 # xmlmap objects for various sections of an ead
 # organized from smallest/lowest level to highest level
 
+class Note(xmlmap.XmlObject):
+    """EAD note."""
+    content = xmlmap.XPathStringList("p") 
+    "list of paragraphs - `p`"
+
 class Section(xmlmap.XmlObject):
-    """Generic EAD section.  Currently only has mappings for head and paragraph."""
+    """Generic EAD section.  Currently only has mappings for head, paragraph, and note."""
     head   = xmlmap.XPathString("head")
     "heading - `head`"
     content = xmlmap.XPathStringList("p")       # ??
     "list of paragraphs - `p`"
+    note = xmlmap.XPathNode("note", Note)
+    ":class:`Note`"
 
 class Heading(xmlmap.XmlObject):
     """Generic xml object for headings used under `controlaccess`"""
@@ -178,6 +185,46 @@ class SubordinateComponents(Section):
         else:
             return False
 
+class Reference(xmlmap.XmlObject):
+    """Internal linking element that may contain text.
+
+    Expected dom_node element passed to constructor: `ref`.
+    """
+    type = xmlmap.XPathString("@linktype")
+    "link type"
+    target = xmlmap.XPathString("@target")
+    "link target"
+    value = xmlmap.XPathString(".")
+    "text content of the reference"
+
+    def __str__(self):
+        return self.value
+
+class PointerGroup(xmlmap.XmlObject):
+    """Group of pointer or reference elements in an index entry
+    
+    Expected dom_node element passed to constructor: `ptrgrp`.
+    """
+    ref = xmlmap.XPathNodeList("ref", Reference)
+    "list of :class:`Reference` - references"
+
+class IndexEntry(xmlmap.XmlObject):
+    "Index entry in an archival description index."
+    name = xmlmap.XPathString("corpname|famname|function|genreform|geogname|name|namegrp|occupation|persname|title|subject")
+    "access element, e.g. name or subject"
+    ptrgroup = xmlmap.XPathNode("ptrgrp", PointerGroup)
+    ":class:`PointerGroup` - group of references for this index entry"
+
+
+class Index(Section):
+    """Index (index element); list of key terms and reference information.
+
+       Expected dom_node element passed to constructor: `ead/archdesc/index`.
+    """
+    entry = xmlmap.XPathNodeList("indexentry", IndexEntry)
+    "list of :class:`IndexEntry` - `index`; entry in the index"
+
+
 class ArchivalDescription(xmlmap.XmlObject):
     """Archival description, contains the bulk of the information in an EAD document.
 
@@ -223,6 +270,7 @@ class ArchivalDescription(xmlmap.XmlObject):
     "other finding aid :class:`Section` - `otherfindaid`"
     controlaccess = xmlmap.XPathNode("controlaccess", ControlledAccessHeadings)
     ":class:`ControlledAccessHeadings` - `controlaccess`; subject terms, names, etc."
+    index = xmlmap.XPathNode("index", Index)
 
 class EncodedArchivalDescription(xmlmap.XmlObject):
     """xmlmap object for an Encoded Archival Description (EAD) Finding Aid
