@@ -23,3 +23,4 @@ the following names:
 
 from eulcore.xmlmap.core import *
 from eulcore.xmlmap.descriptor import *
+from eulcore.xmlmap.fields import *

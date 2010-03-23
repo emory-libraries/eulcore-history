@@ -1,15 +1,47 @@
+from datetime import datetime
+
 from Ft.Lib import Uri
 from Ft.Xml.Domlette import NonvalidatingReader
 from Ft.Xml.XPath import Compile, Evaluate
 from Ft.Xml.XPath.Context import Context
 from Ft.Xml.Xslt import Processor
-from datetime import datetime
+
+from eulcore.xmlmap.fields import Field
 
 __all__ = [ 'XmlObject', 'parseUri', 'parseString',
     'load_xmlobject_from_string', 'load_xmlobject_from_file' ]
 
 parseUri = NonvalidatingReader.parseUri
 parseString = NonvalidatingReader.parseString
+
+class _Descriptor(object):
+    def __init__(self, field):
+        self.field = field
+
+    def __get__(self, obj, objtype):
+        if obj is None:
+            return self
+        return self.field.get_for_node(obj.dom_node, obj.context)
+
+
+class XmlObjectType(type):
+    def __new__(cls, name, bases, defined_attrs):
+        use_attrs = {}
+        fields = {}
+
+        for attr_name, attr_val in defined_attrs.items():
+            # XXX: not a fan of isintance here. maybe use something like
+            # django's contribute_to_class?
+            if isinstance(attr_val, Field):
+                fields[attr_name] = attr_val
+                use_attrs[attr_name] = _Descriptor(attr_val)
+            else:
+                use_attrs[attr_name] = attr_val
+        use_attrs['_fields'] = fields
+
+        super_new = super(XmlObjectType, cls).__new__
+        return super_new(cls, name, bases, use_attrs)
+
 
 class XmlObject(object):
 
@@ -28,6 +60,8 @@ class XmlObject(object):
     containing the namespaces of the wrapped DOM node and no variables.
 
     """
+
+    __metaclass__ = XmlObjectType
 
     def __init__(self, dom_node, context=None):
         self.dom_node = dom_node
@@ -81,7 +115,11 @@ def getXmlObjectXPath(obj, var):
         return xpath
     else:
         if var in obj.__dict__:
-            return obj.__dict__[var].xpath
+            descriptor = obj.__dict__[var]
+            if hasattr(descriptor, 'xpath'):
+                return descriptor.xpath
+            else:
+                return descriptor.field.xpath
         if hasattr(obj, '__bases__'):
             for baseclass in obj.__bases__:
                 # FIXME: should this check isinstance of XmlObject ?
@@ -117,3 +155,4 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject):
 # Import these for backward compatibility. Should consider deprecating these
 # and asking new code to pull them from descriptor
 from eulcore.xmlmap.descriptor import *
+from eulcore.xmlmap.fields import *
