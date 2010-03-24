@@ -14,7 +14,7 @@ __all__ = [ 'XmlObject', 'parseUri', 'parseString',
 parseUri = NonvalidatingReader.parseUri
 parseString = NonvalidatingReader.parseString
 
-class _Descriptor(object):
+class _FieldDescriptor(object):
     def __init__(self, field):
         self.field = field
 
@@ -45,7 +45,7 @@ class XmlObjectType(type):
             if isinstance(attr_val, Field):
                 field = attr_val
                 fields[attr_name] = field
-                use_attrs[attr_name] = _Descriptor(field)
+                use_attrs[attr_name] = _FieldDescriptor(field)
 
                 # collect self-referential NodeFields so that we can resolve
                 # them once we've created the new class
