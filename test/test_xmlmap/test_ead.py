@@ -86,6 +86,25 @@ class TestEad(unittest.TestCase):
         self.assert_(isinstance(ad.other, Section))
         self.assertEqual("Finding Aid Note", ad.other.head)
         self.assert_("Index to selected correspondents" in ad.other.content[0])
+
+    def test_index_indexentry(self):
+        ad = self.ead.archdesc
+        # index and indexentry
+        self.assert_(isinstance(ad.index, Index))
+        self.assertEqual("Index of Selected Correspondents", ad.index.head)
+        self.assert_("relates to the correspondence in Series 1" in ad.index.note.content[0])
+        self.assertEqual(2, len(ad.index.entry))
+        self.assert_(isinstance(ad.index.entry[0], IndexEntry))
+        self.assertEqual("Batten, Guinn", ad.index.entry[0].name)
+        self.assert_(isinstance(ad.index.entry[0].ptrgroup, PointerGroup))
+        self.assertEqual(3, len(ad.index.entry[0].ptrgroup.ref))
+        self.assert_(isinstance(ad.index.entry[0].ptrgroup.ref[0], Reference))
+        self.assertEqual("simple", ad.index.entry[0].ptrgroup.ref[0].type)
+        self.assert_("1995 July" in ad.index.entry[0].ptrgroup.ref[0].value)
+        self.assertEqual("Belton, Neil", ad.index.entry[1].name)
+        self.assert_("1993 November 3" in ad.index.entry[1].ptrgroup.ref[-1].value)
+
+
         
 
     def test_ControlledAccessHeadings(self):

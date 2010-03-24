@@ -3,12 +3,19 @@ from eulcore import xmlmap
 # xmlmap objects for various sections of an ead
 # organized from smallest/lowest level to highest level
 
+class Note(xmlmap.XmlObject):
+    """EAD note."""
+    content = xmlmap.StringListField("p") 
+    "list of paragraphs - `p`"
+
 class Section(xmlmap.XmlObject):
-    """Generic EAD section.  Currently only has mappings for head and paragraph."""
+    """Generic EAD section.  Currently only has mappings for head, paragraph, and note."""
     head   = xmlmap.StringField("head")
     "heading - `head`"
     content = xmlmap.StringListField("p")       # ??
     "list of paragraphs - `p`"
+    note = xmlmap.NodeField("note", Note)
+    ":class:`Note`"
 
 
 class Heading(xmlmap.XmlObject):
@@ -175,6 +182,47 @@ class SubordinateComponents(Section):
         else:
             return False
 
+class Reference(xmlmap.XmlObject):
+    """Internal linking element that may contain text.
+
+    Expected dom_node element passed to constructor: `ref`.
+    """
+    type = xmlmap.StringField("@linktype")
+    "link type"
+    target = xmlmap.StringField("@target")
+    "link target"
+    value = xmlmap.StringField(".")
+    "text content of the reference"
+
+    def __str__(self):
+        return self.value
+
+
+class PointerGroup(xmlmap.XmlObject):
+    """Group of pointer or reference elements in an index entry
+    
+    Expected dom_node element passed to constructor: `ptrgrp`.
+    """
+    ref = xmlmap.NodeListField("ref", Reference)
+    "list of :class:`Reference` - references"
+
+
+class IndexEntry(xmlmap.XmlObject):
+    "Index entry in an archival description index."
+    name = xmlmap.StringField("corpname|famname|function|genreform|geogname|name|namegrp|occupation|persname|title|subject")
+    "access element, e.g. name or subject"
+    ptrgroup = xmlmap.NodeField("ptrgrp", PointerGroup)
+    ":class:`PointerGroup` - group of references for this index entry"
+
+
+class Index(Section):
+    """Index (index element); list of key terms and reference information.
+
+       Expected dom_node element passed to constructor: `ead/archdesc/index`.
+    """
+    entry = xmlmap.NodeListField("indexentry", IndexEntry)
+    "list of :class:`IndexEntry` - `index`; entry in the index"
+
 
 class ArchivalDescription(xmlmap.XmlObject):
     """Archival description, contains the bulk of the information in an EAD document.
@@ -221,6 +269,7 @@ class ArchivalDescription(xmlmap.XmlObject):
     "other finding aid :class:`Section` - `otherfindaid`"
     controlaccess = xmlmap.NodeField("controlaccess", ControlledAccessHeadings)
     ":class:`ControlledAccessHeadings` - `controlaccess`; subject terms, names, etc."
+    index = xmlmap.NodeField("index", Index)
 
 
 class EncodedArchivalDescription(xmlmap.XmlObject):

@@ -309,5 +309,29 @@
                 </c02>
             </c01>
         </dsc>
+        <!-- index copied from ciaran carson finding aid -->
+        <index>
+            <head>Index of Selected Correspondents</head>
+                <note>
+                <p>This index, which relates to the correspondence in Series 1, covers
+                letters from 1973-1999.</p>
+                </note>
+            <indexentry>
+                <persname>Batten, Guinn</persname>
+                <ptrgrp>
+                    <ref linktype="simple">1995 July 29, ALS, 1p.</ref>
+                    <ref linktype="simple">undated APCS [August 7]</ref>
+                    <ref linktype="simple">1996 September 23, TLS, 1p.</ref>
+                </ptrgrp>
+            </indexentry>
+            <indexentry>
+                <persname>Belton, Neil</persname>
+                <ptrgrp>
+                    <ref linktype="simple">1993 August 17, TLS, 1p.</ref>
+                    <ref linktype="simple">1993 August 27, TLS, 1p.</ref>
+                    <ref linktype="simple">1993 November 3, TLS, 1p.</ref>
+                </ptrgrp>
+            </indexentry>
+        </index>
     </archdesc>
 </ead>
