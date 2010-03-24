@@ -172,5 +172,4 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject):
 
 # Import these for backward compatibility. Should consider deprecating these
 # and asking new code to pull them from descriptor
-from eulcore.xmlmap.descriptor import *
 from eulcore.xmlmap.fields import *
