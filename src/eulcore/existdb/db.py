@@ -65,7 +65,7 @@ class ExistDB:
         return self.server.getDocumentAsString(name, kwargs)
 
     def getDoc(self, name, **kwargs):
-        "Alias for :method:`getDocument`."
+        "Alias for :meth:`getDocument`."
         return self.getDocument(name, **kwargs)
 
 

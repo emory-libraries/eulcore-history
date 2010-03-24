@@ -8,11 +8,11 @@ from eulcore.django.existdb.db import ExistDB
 class TestCase(DjangoTestCase):
     """Customization of :class:`django.test.TestCase`
 
-    If TestCase instance has an attribute named exist_fixtures, the specified
-    fixtures will be loaded to eXist before the tests run.
+    If TestCase instance has an attribute named ``exist_fixtures``, the
+    specified fixtures will be loaded to eXist before the tests run.
     
-    The exist_fixtures attribute should be a dictionary with information about 
-    fixtures to load to eXist. Currently supported options:
+    The ``exist_fixtures`` attribute should be a dictionary with information
+    about fixtures to load to eXist. Currently supported options:
 
     * *index* - path to an eXist index configuration file; will be loaded before
       any other fixture files, and removed in fixture teardown

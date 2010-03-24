@@ -17,12 +17,12 @@
 
    .. autoclass:: ResultPaginator
 
-management commands
+Management commands
 ^^^^^^^^^^^^^^^^^^^
 
 The following management commands will be available when you include 
-:mod:`eulcore.django.existdb` in your django installed apps and rely on the
-existdb settings described above.
+:mod:`eulcore.django.existdb` in your django ``INSTALLED_APPS`` and rely on
+the existdb settings described above.
 
 For more details on these commands, use ``manage.py <command> help``
 

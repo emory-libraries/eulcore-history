@@ -82,7 +82,7 @@ class XmlObject(object):
     """A Python object wrapped around an XML DOM node.
 
     Typical programs will define subclasses of :class:`XmlObject` with
-    various descriptor members. Generally they will use
+    various field members. Generally they will use
     :func:`load_xmlobject_from_string` and :func:`load_xmlobject_from_file`
     to create instances of these subclasses, though they can be constructed
     directly if more control is necessary.
@@ -90,7 +90,7 @@ class XmlObject(object):
     In particular, programs can pass an optional
     :class:`Ft.Xml.XPath.Context` argument to the constructor to specify an
     XPath evaluation context with alternate namespace or variable
-    definitions. By default, descriptors are evaluated in an XPath context
+    definitions. By default, fields are evaluated in an XPath context
     containing the namespaces of the wrapped DOM node and no variables.
 
     """
