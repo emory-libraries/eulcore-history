@@ -366,19 +366,19 @@ class ExistDB:
 class QueryResult(xmlmap.XmlObject):
     """The results of an eXist XQuery query"""
 
-    start = xmlmap.XPathInteger("@start")
+    start = xmlmap.IntegerField("@start")
     """The index of the first result returned"""
 
-    values = xmlmap.XPathStringList("exist:value")
+    values = xmlmap.StringListField("exist:value")
     "Generic value (*exist:value*) returned from an exist xquery"
 
-    _raw_count = xmlmap.XPathInteger("@count")
+    _raw_count = xmlmap.IntegerField("@count")
     @property
     def count(self):
         """The number of results returned in this chunk"""
         return self._raw_count or 0
     
-    _raw_hits = xmlmap.XPathInteger("@hits")
+    _raw_hits = xmlmap.IntegerField("@hits")
     @property
     def hits(self):
         """The total number of hits found by the search"""

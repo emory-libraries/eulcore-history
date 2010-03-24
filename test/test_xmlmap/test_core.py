@@ -39,8 +39,8 @@ class TestXsl(unittest.TestCase):
 
     def test_xslTransform(self):
         class TestObject(xmlmap.XmlObject):
-            bar_baz = xmlmap.XPathString('bar[1]/baz')
-            nobar_baz = xmlmap.XPathString('baz[1]')
+            bar_baz = xmlmap.StringField('bar[1]/baz')
+            nobar_baz = xmlmap.StringField('baz[1]')
 
         # xsl in string
         obj = TestObject(self.fixture.documentElement)

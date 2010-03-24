@@ -3,49 +3,46 @@ from eulcore import xmlmap
 # TODO: generic/base tei xml object with common attributes?
 
 class TeiDiv(xmlmap.XmlObject):
-    id	 	= xmlmap.XPathString('@id')
-    type	= xmlmap.XPathString('@type')
-    author 	= xmlmap.XPathString('docAuthor')
-    title 	= xmlmap.XPathString('@n')          # is this mapping relevant/valid/useful?
-    text    = xmlmap.XPathString('.')       # short-hand mapping for full text of a div (e.g., for short divs)
+    id       = xmlmap.StringField('@id')
+    type     = xmlmap.StringField('@type')
+    author   = xmlmap.StringField('docAuthor')
+    title    = xmlmap.StringField('@n')  # is this mapping relevant/valid/useful?
+    text     = xmlmap.StringField('.')   # short-hand mapping for full text of a div (e.g., for short divs)
     # reference to top-level elements, e.g. for retrieving a single div
-    doctitle    = xmlmap.XPathString('ancestor::TEI.2/teiHeader/fileDesc/titleStmt/title')
-    doc_id      = xmlmap.XPathString('ancestor::TEI.2/@id')
-
-# recursive mapping - can't be set until TeiDiv is declared
-# NOTE: recursive node handling may need to be revisited
-TeiDiv.div = xmlmap.XPathNodeList('div', TeiDiv)
+    doctitle = xmlmap.StringField('ancestor::TEI.2/teiHeader/fileDesc/titleStmt/title')
+    doc_id   = xmlmap.StringField('ancestor::TEI.2/@id')
+    div      = xmlmap.NodeListField('div', 'self')
 
 class TeiSection(xmlmap.XmlObject):
     # top-level sections -- front/body/back
-    div = xmlmap.XPathNodeList('div', TeiDiv)
+    div = xmlmap.NodeListField('div', TeiDiv)
 
 # note: not currently mapped to any of the existing tei objects...  where to add?
 class TeiFigure(xmlmap.XmlObject):
-    entity      = xmlmap.XPathString("@entity")
+    entity      = xmlmap.StringField("@entity")
     # TODO: ana should be a more generic attribute, common to many elements...
-    ana         = xmlmap.XPathString("@ana")	# FIXME: how to split on spaces? should be a list...
-    head        = xmlmap.XPathString("head")
-    description = xmlmap.XPathString("figDesc")
+    ana         = xmlmap.StringField("@ana")    # FIXME: how to split on spaces? should be a list...
+    head        = xmlmap.StringField("head")
+    description = xmlmap.StringField("figDesc")
 
 # currently not mapped... should it be mapped by default? at what level?
 class TeiInterp(xmlmap.XmlObject):
-    id          = xmlmap.XPathString("@id")
-    value       = xmlmap.XPathString("@value")
+    id          = xmlmap.StringField("@id")
+    value       = xmlmap.StringField("@value")
 
 class TeiInterpGroup(xmlmap.XmlObject):
-    type        = xmlmap.XPathString("@type")
-    interp      = xmlmap.XPathNodeList("interp", TeiInterp)
+    type        = xmlmap.StringField("@type")
+    interp      = xmlmap.NodeListField("interp", TeiInterp)
 
 class Tei(xmlmap.XmlObject):
     """xmlmap object for a TEI (Text Encoding Initiative) XML document """
-    id   	= xmlmap.XPathString('@id')
-    title 	= xmlmap.XPathString('teiHeader/fileDesc/titleStmt/title')
-    author 	= xmlmap.XPathString('teiHeader/fileDesc/titleStmt/author')
-    editor 	= xmlmap.XPathString('teiHeader/fileDesc/titleStmt/editor')
+    id     = xmlmap.StringField('@id')
+    title  = xmlmap.StringField('teiHeader/fileDesc/titleStmt/title')
+    author = xmlmap.StringField('teiHeader/fileDesc/titleStmt/author')
+    editor = xmlmap.StringField('teiHeader/fileDesc/titleStmt/editor')
 
-    front   = xmlmap.XPathNode('text/front', TeiSection)
-    body    = xmlmap.XPathNode('text/body', TeiSection)
-    back    = xmlmap.XPathNode('text/back', TeiSection)
+    front  = xmlmap.NodeField('text/front', TeiSection)
+    body   = xmlmap.NodeField('text/body', TeiSection)
+    back   = xmlmap.NodeField('text/back', TeiSection)
     
 

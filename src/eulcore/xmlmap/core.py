@@ -28,6 +28,7 @@ class XmlObjectType(type):
     def __new__(cls, name, bases, defined_attrs):
         use_attrs = {}
         fields = {}
+        recursive_fields = []
 
         # inherit base fields first; that way current class field defs will
         # override parents. note that since the parents already added fields
@@ -42,14 +43,38 @@ class XmlObjectType(type):
             # XXX: not a fan of isintance here. maybe use something like
             # django's contribute_to_class?
             if isinstance(attr_val, Field):
-                fields[attr_name] = attr_val
-                use_attrs[attr_name] = _Descriptor(attr_val)
+                field = attr_val
+                fields[attr_name] = field
+                use_attrs[attr_name] = _Descriptor(field)
+
+                # collect self-referential NodeFields so that we can resolve
+                # them once we've created the new class
+                node_class = getattr(field, 'node_class', None)
+                if isinstance(node_class, basestring):
+                    if node_class in ('self', name):
+                        recursive_fields.append(field)
+                    else:
+                        msg = ('Class %s has field %s with node_class %s, ' +
+                               'but the only supported class names are ' +
+                               '"self" and %s.') % (name, attr_val,
+                                                    repr(node_class),
+                                                    repr(name))
+                        raise ValueError(msg)
+
             else:
                 use_attrs[attr_name] = attr_val
         use_attrs['_fields'] = fields
 
         super_new = super(XmlObjectType, cls).__new__
-        return super_new(cls, name, bases, use_attrs)
+        new_class = super_new(cls, name, bases, use_attrs)
+
+        # patch self-referential NodeFields (collected above) with the
+        # newly-created class
+        for field in recursive_fields:
+            assert field.node_class in ('self', name)
+            field.node_class = new_class
+
+        return new_class
 
 
 class XmlObject(object):
@@ -97,7 +122,7 @@ def getXmlObjectXPath(cls, var):
     """Return the xpath string for an xmlmap field that belongs to the specified XmlObject.
 
        If var contains '__', will generate the full xpath to a field mapped on a subobject
-       (sub-object must be mapped with XPathNode or XPathNodeList)
+       (sub-object must be mapped with NodeField or NodeListField)
     """
     # FIXME: type-checking, exceptions?
 

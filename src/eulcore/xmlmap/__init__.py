@@ -11,11 +11,11 @@ the following names:
    XPath methods that xmlmap depends on
  * load_xmlobject_from_string and load_xmlobject_from_file -- parse a string
    or file directly into an XmlObject
- * XPathNode and XPathNodeList -- descriptor classes for mapping relative
+ * NodeField and NodeListField -- field classes for mapping relative
    DOM nodes to other XmlObjects
- * XPathString and XPathStringList -- descriptor classes for mapping DOM
+ * StringField and StringListField -- field classes for mapping DOM
    nodes to Python strings
- * XPathInteger and XPathIntegerList -- descriptor classes for mapping DOM
+ * IntegerField and IntegerListField -- field classes for mapping DOM
    nodes to Python integers
 
 """

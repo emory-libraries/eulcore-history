@@ -112,14 +112,24 @@ class NodeField(Field):
         super(NodeField, self).__init__(xpath,
                 manager = SingleNodeManager(),
                 mapper = NodeMapper(node_class))
-        self.node_class = node_class
+
+    def _get_node_class(self):
+        return self.mapper.node_class
+    def _set_node_class(self, val):
+        self.mapper.node_class = val
+    node_class = property(_get_node_class, _set_node_class)
 
 class NodeListField(Field):
     def __init__(self, xpath, node_class):
         super(NodeListField, self).__init__(xpath,
                 manager = NodeListManager(),
                 mapper = NodeMapper(node_class))
-        self.node_class = node_class
+
+    def _get_node_class(self):
+        return self.mapper.node_class
+    def _set_node_class(self, val):
+        self.mapper.node_class = val
+    node_class = property(_get_node_class, _set_node_class)
 
 class ItemField(Field):
     def __init__(self, xpath):

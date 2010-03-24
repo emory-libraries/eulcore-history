@@ -97,7 +97,7 @@ class TestFields(unittest.TestCase):
         self.assertEqual(obj.missing, None)
 
 
-    # FIXME: XPathDate and XPathDateList are hacked together. Until we
+    # FIXME: DateField and DateListField are hacked together. Until we
     #   work up some proper parsing and good testing for them, they should
     #   be considered untested and undocumented features.
 

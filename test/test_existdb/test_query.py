@@ -10,14 +10,14 @@ from testcore import main
 from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_TEST_COLLECTION
 
 class QuerySubModel(xmlmap.XmlObject):
-    subname = xmlmap.XPathString("subname")
+    subname = xmlmap.StringField("subname")
 
 class QueryTestModel(xmlmap.XmlObject):
-            id = xmlmap.XPathString('@id')
-            name = xmlmap.XPathString('name')
-            description = xmlmap.XPathString('description')
-            wnn = xmlmap.XPathString('wacky_node_name')
-            sub = xmlmap.XPathNode("sub", QuerySubModel)
+            id = xmlmap.StringField('@id')
+            name = xmlmap.StringField('name')
+            description = xmlmap.StringField('description')
+            wnn = xmlmap.StringField('wacky_node_name')
+            sub = xmlmap.NodeField("sub", QuerySubModel)
 
 COLLECTION = EXISTDB_TEST_COLLECTION
 
@@ -225,8 +225,8 @@ class ExistQueryTest(unittest.TestCase):
 
     def test_also(self):        
         class SubqueryTestModel(xmlmap.XmlObject):
-            name = xmlmap.XPathString('.')
-            parent_id = xmlmap.XPathString('parent::root/@id')
+            name = xmlmap.StringField('.')
+            parent_id = xmlmap.StringField('parent::root/@id')
 
         qs = QuerySet(using=self.db, collection=COLLECTION, model=SubqueryTestModel, xpath='//name')
         name = qs.also('parent_id').get(name__exact='two')
@@ -236,8 +236,8 @@ class ExistQueryTest(unittest.TestCase):
 
     def test_also_subfield(self):
         class SubqueryTestModel(xmlmap.XmlObject):
-            subname = xmlmap.XPathString('subname')
-            parent = xmlmap.XPathNode('parent::root', QueryTestModel)      
+            subname = xmlmap.StringField('subname')
+            parent = xmlmap.NodeField('parent::root', QueryTestModel)      
 
         qs = QuerySet(using=self.db, collection=COLLECTION, model=SubqueryTestModel, xpath='//sub')
         name = qs.also('parent__id').get(subname__exact='la')
