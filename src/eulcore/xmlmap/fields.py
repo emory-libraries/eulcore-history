@@ -154,7 +154,12 @@ class NodeField(Field):
 
     """Map an XPath expression to a single :class:`XmlObject` subclass
     instance. If the XPath expression evaluates to an empty NodeList, a
-    NodeField evaluates to `None`."""
+    NodeField evaluates to `None`.
+    
+    Normally a ``NodeField``'s ``node_class`` is a class. As a special
+    exception, it may be the string ``"self"``, in which case it recursively
+    refers to objects of its containing :class:`XmlObject` class.
+    """
 
     def __init__(self, xpath, node_class):
         super(NodeField, self).__init__(xpath,
@@ -171,7 +176,12 @@ class NodeListField(Field):
 
     """Map an XPath expression to a list of :class:`XmlObject` subclass
     instances. If the XPath expression evalues to an empty NodeList, a
-    NodeListField evaluates to an empty list."""
+    NodeListField evaluates to an empty list.
+    
+    Normally a ``NodeListField``'s ``node_class`` is a class. As a special
+    exception, it may be the string ``"self"``, in which case it recursively
+    refers to objects of its containing :class:`XmlObject` class.
+    """
 
     def __init__(self, xpath, node_class):
         super(NodeListField, self).__init__(xpath,

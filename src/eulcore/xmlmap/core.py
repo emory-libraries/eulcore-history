@@ -25,6 +25,25 @@ class _FieldDescriptor(object):
 
 
 class XmlObjectType(type):
+
+    """
+    A metaclass for :class:`XmlObject`.
+
+    Analogous in principle to Django's ``ModelBase``, this metaclass
+    functions rather differently. While it'll likely get a lot closer over
+    time, we just haven't been growing ours long enough to demand all of the
+    abstractions built into Django's models. For now, we do three things:
+
+      1. take any :class:`~eulcore.xmlmap.fields.Field` members and convert
+         them to descriptors,
+      2. store all of these fields and all of the base classes' fields in a
+         ``_fields`` dictionary on the class, and
+      3. if any local (non-parent) fields look like self-referential
+         :class:`eulcore.xmlmap.NodeField` objects then patch them up
+         to refer to the newly-created :class:`XmlObject`.
+
+    """
+
     def __new__(cls, name, bases, defined_attrs):
         use_attrs = {}
         fields = {}
@@ -79,7 +98,8 @@ class XmlObjectType(type):
 
 class XmlObject(object):
 
-    """A Python object wrapped around an XML DOM node.
+    """
+    A Python object wrapped around an XML DOM node.
 
     Typical programs will define subclasses of :class:`XmlObject` with
     various field members. Generally they will use
@@ -92,7 +112,6 @@ class XmlObject(object):
     XPath evaluation context with alternate namespace or variable
     definitions. By default, fields are evaluated in an XPath context
     containing the namespaces of the wrapped DOM node and no variables.
-
     """
 
     __metaclass__ = XmlObjectType
@@ -133,8 +152,6 @@ def getXmlObjectXPath(cls, var):
     while var_parts:
         var_part = var_parts.pop()
         field = cls._fields.get(var_part, None)
-        if field is None: # old descriptor backward compat
-            field = getattr(cls, var_part, None)
         if field is None:
             # fall back on raw xpath
             # XXX is this right? we at least need it for backward compat

@@ -88,6 +88,12 @@ Most programs will use :mod:`~eulcore.xmlmap` by defining a subclass of
 
    .. automethod:: xslTransform([filename,[ xsl[, params]]])
 
+   .. attribute:: _fields
+
+      A dictionary mapping field names to :ref:`field <xmlmap-field>`
+      members. This dictionary includes all of the fields defined on the
+      class as well as those inherited from its parents.
+
 
 .. _xmlmap-field:
 
@@ -114,9 +120,9 @@ as ``foo.bar``.
 
 .. autoclass:: IntegerListField(xpath)
 
-.. autoclass:: NodeField(xpath, xml_class)
+.. autoclass:: NodeField(xpath, node_class)
 
-.. autoclass:: NodeListField(xpath, xml_class)
+.. autoclass:: NodeListField(xpath, node_class)
 
 .. autoclass:: ItemField(xpath)
 

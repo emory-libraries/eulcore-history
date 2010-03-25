@@ -10,7 +10,22 @@ class _ManagerDescriptor(object):
             raise AttributeError, "Manager isn't accessible via %s instances" % (type.__name__,)
         return self.manager
 
+
 class XmlModelType(XmlObjectType):
+
+    """
+    A metaclass for :class:`XmlModel`.
+
+    This metaclass is derived from
+    :class:`~eulcore.xmlmap.core.XmlObjectType` and further extends the
+    additions that metaclass makes to its instance classes. In addition to
+    collecting and translating fields, we:
+      1. take any :class:`~eulcore.django.existdb.manager.Manager members
+         and convert them to descriptors, and
+      2. store all of these managers in a ``_managers`` dictionary on the
+         class.
+    """
+
     def __new__(cls, name, bases, defined_attrs):
         use_attrs = {}
         managers = {}
@@ -46,4 +61,17 @@ class XmlModelType(XmlObjectType):
 
 
 class XmlModel(XmlObject):
+
+    """
+    An :class:`~eulcore.xmlmap.XmlObject` in an
+    :class:`eulcore.django.existdb.db.ExistDB`.
+
+    ``XmlModel`` is derived from :class:`~eulcore.xmlmap.XmlObject` and thus
+    has access to all the :ref:`field <xmlmap-field>` logic provided by that
+    class. Additionally, since ``XmlModel`` objects are stored in an
+    :class:`~eulcore.django.existdb.db.ExistDB`, they can define
+    :class:`~eulcore.django.existdb.manager.Manager` members for easy access
+    to stored models.
+    """
+
     __metaclass__ = XmlModelType
