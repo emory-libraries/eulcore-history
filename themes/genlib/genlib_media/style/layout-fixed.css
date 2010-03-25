@@ -243,11 +243,6 @@ body
 {
     float: right;
     width: 200px;
-    margin-left: 730px; /* Width of content + sidebar-left. */
-    margin-right: -940px; /* Negative value of #sidebar-right's width + left margin. */
-    margin-top: 29px;
-    padding: 0; /* DO NOT CHANGE. Add padding or margin to #sidebar-right-inner. */
-    /*DEBUG - background-color:#00FFFF;*/
 }
 
 #sidebar-right-inner
@@ -262,6 +257,7 @@ body
     width:1000px;
     margin:0;
     padding:0 0 10px;
+    clear: both;
 }
 
 #footer-inner
@@ -313,6 +309,7 @@ div.atclear {
     position:relative;
     top:-30px;
     width:980px;
+    clear: both;
 }
 
 #share-bar #blog {
