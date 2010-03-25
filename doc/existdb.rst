@@ -17,7 +17,7 @@ Direct database access
 
    .. autoclass:: ExistDB(server_url[, resultType[, encoding[, verbose]]])
 
-      .. automethod:: getDoc(name)
+      .. automethod:: getDocument(name)
 
       .. automethod:: createCollection(collection_name[, overwrite])
 
@@ -45,8 +45,8 @@ Direct database access
    .. autoexception:: ExistDBException
 
 
-Model-based access
------------------------------
+Object-based searching
+----------------------
 
 .. automodule:: eulcore.existdb.query
 

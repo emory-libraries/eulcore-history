@@ -44,9 +44,9 @@ integers. We can create an object to map these fields like this::
    from eulcore import xmlmap
 
    class Foo(xmlmap.XmlObject):
-       first_baz = xmlmap.XPathInteger('bar[1]/baz')
-       second_baz = xmlmap.XPathString('bar[2]/baz')
-       all_baz = xmlmap.XPathIntegerList('bar/baz')
+       first_baz = xmlmap.IntegerField('bar[1]/baz')
+       second_baz = xmlmap.StringField('bar[2]/baz')
+       all_baz = xmlmap.IntegerListField('bar/baz')
    
 :attr:`first_baz`, :attr:`second_baz`, and :attr:`all_baz` here are
 attributes of the :class:`Foo` object. We can access them in later code like
@@ -66,17 +66,17 @@ Concepts
 :mod:`~eulcore.xmlmap` simplifies access to XML DOM data in Python. Programs
 can define new :class:`~eulcore.xmlmap.XmlObject` subclasses representing a
 type of XML node with predictable structure. Members of these classes can be
-regular methods and values like in regular Python classes, but they can also
-be special :ref:`descriptor <xmlmap-descriptor>` objects that associate
-XPath expressions with Python data elements. When code accesses these
-descriptor attributes on the object, the code evaluates the associated XPath
-expression and converts the data to a Python value.
+regular methods and values like in regular Python classes, but they can also be
+special :ref:`field <xmlmap-field>` objects that associate XPath expressions
+with Python data elements. When code accesses these fields on the object, the
+code evaluates the associated XPath expression and converts the data to a
+Python value.
 
 :class:`XmlObject`
 ------------------
 
 Most programs will use :mod:`~eulcore.xmlmap` by defining a subclass of
-:class:`XmlObject` containing :ref:`descriptor <xmlmap-descriptor>` members.
+:class:`XmlObject` containing :ref:`field <xmlmap-field>` members.
 
 .. autoclass:: XmlObject(dom_node[, context])
 
@@ -88,35 +88,43 @@ Most programs will use :mod:`~eulcore.xmlmap` by defining a subclass of
 
    .. automethod:: xslTransform([filename,[ xsl[, params]]])
 
+   .. attribute:: _fields
 
-.. _xmlmap-descriptor:
+      A dictionary mapping field names to :ref:`field <xmlmap-field>`
+      members. This dictionary includes all of the fields defined on the
+      class as well as those inherited from its parents.
 
-Descriptor types
-----------------
 
-There are several predefined descriptor types. All of them evaluate XPath
+.. _xmlmap-field:
+
+Field types
+-----------
+
+There are several predefined field types. All of them evaluate XPath
 expressions and map the resultant DOM nodes to Python types. They differ
 primarily in how they map those DOM nodes to Python objects as well as in
 whether they expect their XPath expression to match a single DOM node or a
 whole collection of them.
 
-Descriptor objects are typically created as part of an :class:`XmlObject`
+Field objects are typically created as part of an :class:`XmlObject`
 definition and accessed with standard Python object attribute syntax. If a
 :class:`Foo` class defines a :attr:`bar` attribute as an
-:mod:`~eulcore.xmlmap` descriptor object, then an object will reference it
-simply as ``foo.bar``.
+:mod:`~eulcore.xmlmap` field object, then an object will reference it simply
+as ``foo.bar``.
 
-.. autoclass:: XPathString(xpath)
+.. autoclass:: StringField(xpath)
 
-.. autoclass:: XPathStringList(xpath)
+.. autoclass:: StringListField(xpath)
 
-.. autoclass:: XPathInteger(xpath)
+.. autoclass:: IntegerField(xpath)
 
-.. autoclass:: XPathIntegerList(xpath)
+.. autoclass:: IntegerListField(xpath)
 
-.. autoclass:: XPathNode(xpath, xml_class)
+.. autoclass:: NodeField(xpath, node_class)
 
-.. autoclass:: XPathNodeList(xpath, xml_class)
+.. autoclass:: NodeListField(xpath, node_class)
+
+.. autoclass:: ItemField(xpath)
 
 Other facilities
 ----------------

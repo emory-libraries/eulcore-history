@@ -102,8 +102,8 @@ class QuerySet(object):
            terms anywhere in the full text; requires a properly configured lucene index.
            Recommend using fulltext_score for ordering, in return fields.
 
-        Field may be in the format of field__subfield when field is an XPathNode
-        or XPathNodeList and subfield is a configured element on that object.
+        Field may be in the format of field__subfield when field is an NodeField
+        or NodeListField and subfield is a configured element on that object.
 
         Any number of these filter arguments may be passed. This method
         returns an updated copy of the QuerySet: It does not modify the

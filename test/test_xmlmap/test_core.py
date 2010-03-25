@@ -39,8 +39,8 @@ class TestXsl(unittest.TestCase):
 
     def test_xslTransform(self):
         class TestObject(xmlmap.XmlObject):
-            bar_baz = xmlmap.XPathString('bar[1]/baz')
-            nobar_baz = xmlmap.XPathString('baz[1]')
+            bar_baz = xmlmap.StringField('bar[1]/baz')
+            nobar_baz = xmlmap.StringField('baz[1]')
 
         # xsl in string
         obj = TestObject(self.fixture.documentElement)
@@ -113,19 +113,19 @@ class TestGetXmlObjectXPath(unittest.TestCase):
     def test_getXmlObjectXPath(self):
 
         class TestSubSubObject(xmlmap.XmlObject):
-            fo = xmlmap.XPathString('fi/fum')
+            fo = xmlmap.StringField('fi/fum')
 
         class TestSubObject(xmlmap.XmlObject):
-            field = xmlmap.XPathString('fighters')
-            fi = xmlmap.XPathNode('fee/fo', TestSubSubObject)
+            field = xmlmap.StringField('fighters')
+            fi = xmlmap.NodeField('fee/fo', TestSubSubObject)
 
         class TestObject(xmlmap.XmlObject):
-            val = xmlmap.XPathString('bar[1]/baz')
-            sub = xmlmap.XPathNode('foo', TestSubObject)
+            val = xmlmap.StringField('bar[1]/baz')
+            sub = xmlmap.NodeField('foo', TestSubObject)
 
         class TestChildObject(TestObject):
             # inherited xpaths should be accessible
-            subval = xmlmap.XPathString('foo/bar')
+            subval = xmlmap.StringField('foo/bar')
 
         self.assertEqual("bar[1]/baz", xmlmap.getXmlObjectXPath(TestObject, 'val'))
         self.assertEqual("foo/bar", xmlmap.getXmlObjectXPath(TestChildObject, 'subval'))

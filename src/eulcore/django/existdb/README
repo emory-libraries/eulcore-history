@@ -25,7 +25,7 @@ Projects that use this module should include the following settings in their
 If you are using an eXist index configuration file, you can add another setting
 to specify your configuration file::
 
-  EXISTDB_INDEX_CONFIGFILE = path.join(BASE_DIR, "exist_index.xconf")
+  EXISTDB_INDEX_CONFIGFILE = os.path.join(BASE_DIR, "exist_index.xconf")
 
 This will allow you to use the existdb_index management command to manage your
 index configuration file in eXist.

@@ -4,8 +4,11 @@ from urlparse import urlsplit, urlunsplit
 
 from django.conf import settings
 
+from eulcore import xmlmap
+from eulcore.django.existdb.db import ExistDB
+from eulcore.django.existdb.manager import Manager
+from eulcore.django.existdb.models import XmlModel
 import eulcore.existdb as nondjangoexistdb
-from eulcore.django.existdb.db import *
 
 # minimal testing here to confirm djangoified ExistDB works;
 # more extensive tests are in test_existdb
@@ -54,3 +57,34 @@ class ExistDBTest(unittest.TestCase):
         finally:
             settings.EXISTDB_SERVER_URL = server_url
 
+
+class PartingBase(xmlmap.XmlObject):
+    '''A plain XmlObject comparable to how one might be defined in
+    production code.'''
+    exclamation = xmlmap.StringField('exclamation')
+    target = xmlmap.StringField('target')
+
+class Parting(XmlModel, PartingBase):
+    '''An XmlModel can derive from an XmlObject to incorporate its
+    fields.'''
+    objects = Manager('/parting')
+
+class ModelTest(unittest.TestCase):
+    COLLECTION = settings.EXISTDB_TEST_COLLECTION
+
+    def setUp(self):
+        self.db = ExistDB()        
+        self.db.createCollection(self.COLLECTION, True)
+
+        module_path = os.path.split(__file__)[0]
+        fixture = os.path.join(module_path, 'exist_fixtures', 'goodbye-english.xml')
+        self.db.load(open(fixture), self.COLLECTION + '/goodbye-english.xml', True)
+        fixture = os.path.join(module_path, 'exist_fixtures', 'goodbye-french.xml')
+        self.db.load(open(fixture), self.COLLECTION + '/goodbye-french.xml', True)
+
+    def tearDown(self):
+        self.db.removeCollection(self.COLLECTION)
+
+    def test_manager(self):
+        partings = Parting.objects.all()
+        self.assertEquals(2, partings.count())

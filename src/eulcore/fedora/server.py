@@ -15,9 +15,9 @@ from Ft.Xml.XPath.Context import Context
 
 from eulcore import xmlmap
 
-# FIXME: XPathDate still needs significant improvements before we can make
+# FIXME: DateField still needs significant improvements before we can make
 # it part of the real xmlmap interface.
-from eulcore.xmlmap.descriptor import XPathDate
+from eulcore.xmlmap.fields import DateField
 
 # a repository object, basically a handy facade for easy api access
 
@@ -89,13 +89,13 @@ class Repository(object):
 # xml objects to wrap around xml returns from fedora
 
 class ObjectDatastream(xmlmap.XmlObject):
-    dsid = xmlmap.XPathString('@dsid')
-    label = xmlmap.XPathString('@label')
-    mimeType = xmlmap.XPathString('@mimeType')
+    dsid = xmlmap.StringField('@dsid')
+    label = xmlmap.StringField('@label')
+    mimeType = xmlmap.StringField('@mimeType')
 
 class ObjectDatastreams(xmlmap.XmlObject):
-    pid = xmlmap.XPathString('@pid')
-    datastreams = xmlmap.XPathNodeList('datastream', ObjectDatastream)
+    pid = xmlmap.StringField('@pid')
+    datastreams = xmlmap.NodeListField('datastream', ObjectDatastream)
 
 class SearchResult(xmlmap.XmlObject):
     def __init__(self, dom_node, context=None):
@@ -103,7 +103,7 @@ class SearchResult(xmlmap.XmlObject):
             context = Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
         xmlmap.XmlObject.__init__(self, dom_node, context)
 
-    pid = xmlmap.XPathString('res:pid')
+    pid = xmlmap.StringField('res:pid')
 
 class SearchResults(xmlmap.XmlObject):
     def __init__(self, dom_node, context=None):
@@ -111,10 +111,10 @@ class SearchResults(xmlmap.XmlObject):
             context = Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
         xmlmap.XmlObject.__init__(self, dom_node, context)
 
-    session_token = xmlmap.XPathString('res:listSession/res:token')
-    cursor = xmlmap.XPathInteger('res:listSession/res:cursor')
-    expiration_date = XPathDate('res:listSession/res:expirationDate')
-    results = xmlmap.XPathNodeList('res:resultList/res:objectFields', SearchResult)
+    session_token = xmlmap.StringField('res:listSession/res:token')
+    cursor = xmlmap.IntegerField('res:listSession/res:cursor')
+    expiration_date = DateField('res:listSession/res:expirationDate')
+    results = xmlmap.NodeListField('res:resultList/res:objectFields', SearchResult)
 
 # readers used internally to affect how we interpret network data from fedora
 

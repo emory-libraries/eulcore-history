@@ -3,18 +3,20 @@
 import unittest
 from os import path
 
-from eulcore.xmlmap  import load_xmlobject_from_file, XPathNodeList
+from eulcore.xmlmap import load_xmlobject_from_file, NodeListField
 from eulcore.xmlmap.teimap import Tei, TeiSection, TeiDiv, TeiFigure, TeiInterpGroup, TeiInterp
 from testcore import main
+
+class ExtendedTei(Tei):
+    # additional mappings for testing
+    figure = NodeListField('//figure', TeiFigure)
+    interpGroup = NodeListField('//interpGrp', TeiInterpGroup)
 
 class TestTei(unittest.TestCase):
     FIXTURE_FILE = path.join(path.dirname(path.abspath(__file__)) ,
                              'fixtures', 'tei_clarke.xml')
     def setUp(self):
-        # additional mappings for testing
-        Tei.figure = XPathNodeList('//figure', TeiFigure)
-        Tei.interpGroup = XPathNodeList('//interpGrp', TeiInterpGroup)
-        self.tei = load_xmlobject_from_file(self.FIXTURE_FILE, Tei)
+        self.tei = load_xmlobject_from_file(self.FIXTURE_FILE, ExtendedTei)
 
     def testInit(self):
         self.assert_(isinstance(self.tei, Tei))

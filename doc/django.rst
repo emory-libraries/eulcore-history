@@ -17,12 +17,58 @@
 
    .. autoclass:: ResultPaginator
 
-management commands
+.. automodule:: eulcore.django.existdb.manager
+   :members:
+
+.. automodule:: eulcore.django.existdb.models
+
+   .. autoclass:: XmlModel
+
+      Two use cases are particularly common. First, a developer may wish to
+      use an ``XmlModel`` just like an :class:`~eulcore.xmlmap.XmlObject`,
+      but with the added semantics of being eXist-backed::
+      
+        class StoredWidget(XmlModel):
+            name = StringField("name")
+            quantity = IntegerField("quantity")
+            top_customers = StringListField("(order[@status='active']/customer)[position()<5]/name")
+            objects = Manager("//widget")
+
+      Second, if an :class:`~eulcore.xml.XmlObject` is defined elsewhere, an
+      application developer might simply expose
+      :class:`~eulcore.django.existdb.db.ExistDB` backed objects::
+
+        class StoredThingie(XmlModel, Thingie):
+            objects = Manager("/thingie")
+
+      Of course, some applications ask for mixing these two cases, extending
+      an existing :class:`~eulcore.xml.XmlObject` while adding
+      application-specific fields::
+
+        class CustomThingie(XmlModel, Thingie):
+            best_foobar = StringField("qux/fnord[@application='myapp']/name")
+            custom_detail = IntegerField("detail/@level")
+            objects = Manager("/thingie")
+
+      In addition to the fields inherited from
+      :class:`~eulcore.xmlmap.XmlObject`, ``XmlModel`` objects have one
+      extra field:
+
+      .. attribute:: _managers
+
+         A dictionary mapping manager names to
+         :class:`~eulcore.django.existdb.manager.Manager` objects. This
+         dictionary includes all of the managers defined on the model
+         itself, though it does not currently include managers inherited
+         from the model's parents.
+
+
+Management commands
 ^^^^^^^^^^^^^^^^^^^
 
 The following management commands will be available when you include 
-:mod:`eulcore.django.existdb` in your django installed apps and rely on the
-existdb settings described above.
+:mod:`eulcore.django.existdb` in your django ``INSTALLED_APPS`` and rely on
+the existdb settings described above.
 
 For more details on these commands, use ``manage.py <command> help``
 
