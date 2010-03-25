@@ -47,6 +47,8 @@ See the individual blocks for overriding and structure.
     <script type="text/javascript" src="/static/genlib_media/js/plugins/jquery.scrollTo.js"></script>
     <script type="text/javascript">
     $(document).ready(function() {	
+        // The following code is for jquery tabbed panels in the header.
+        // Taken from http://www.queness.com/post/274/jquery-sliding-tab-menu-for-sidebar-tutorial
 
 	//Get the height of the first item
 	$('#mask').css({'height':$('#panel-1').height()});	
@@ -184,11 +186,7 @@ See the individual blocks for overriding and structure.
                 </div> <!-- /#sidebar-left-inner -->
              </div> <!-- /#sidebar-left -->
 
-
-            {% block sidebar-right %}
-            {% endblock %}
-
-            <div id="content">
+             <div id="content">
                 <div id="content-inner">
                     <a name="#content"></a>
 
@@ -206,6 +204,9 @@ See the individual blocks for overriding and structure.
                     </div> <!-- /#content-header -->
 
                     <div id="content-area">
+                                    {% block sidebar-right %}
+                                    {% endblock %}
+
                         {% block content-body %}
                         {% endblock %}
                     </div>
