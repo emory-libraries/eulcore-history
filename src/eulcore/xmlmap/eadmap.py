@@ -25,7 +25,7 @@ class Heading(xmlmap.XmlObject):
     value  = xmlmap.StringField(".")
     "controlled term text value (content of the heading element)"
 
-    def __str__(self):
+    def __unicode__(self):
         return self.value
 
 
@@ -73,7 +73,7 @@ class Container(xmlmap.XmlObject):
     value = xmlmap.StringField(".")
     "text value - (contents of the container element)"
 
-    def __str__(self):
+    def __unicode__(self):
         return self.value
 
 
@@ -194,7 +194,7 @@ class Reference(xmlmap.XmlObject):
     value = xmlmap.StringField(".")
     "text content of the reference"
 
-    def __str__(self):
+    def __unicode__(self):
         return self.value
 
 
