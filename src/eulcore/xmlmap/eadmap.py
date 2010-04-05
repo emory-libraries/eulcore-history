@@ -271,6 +271,33 @@ class ArchivalDescription(xmlmap.XmlObject):
     ":class:`ControlledAccessHeadings` - `controlaccess`; subject terms, names, etc."
     index = xmlmap.NodeField("index", Index)
 
+class Address(xmlmap.XmlObject):
+    """Address information.
+
+      Expected dom_node element passed to constructor: `address`.
+    """
+    lines = xmlmap.StringListField("addressline")
+
+class PublicationStatement(xmlmap.XmlObject):
+    """Publication information for an EAD document.
+
+      Expected dom_node element passed to constructor: `ead/eadheader/filedesc/publicationstmt`.
+      """
+    date = xmlmap.StringField("date")
+    "publication date - `date`"
+    publisher = xmlmap.StringField("publisher")
+    "publisher - `publisher`"
+    address = xmlmap.NodeField("address", Address)
+    "address of publication/publisher - `address`"
+
+class FileDescription(xmlmap.XmlObject):
+    """Bibliographic information about this EAD document.
+
+      Expected dom_node element passed to constructor: `ead/eadheader/filedesc`.
+      """
+    publication = xmlmap.NodeField("publicationstmt", PublicationStatement)
+    "publication information - `publicationstmt`"
+
 
 class EncodedArchivalDescription(xmlmap.XmlObject):
     """xmlmap object for an Encoded Archival Description (EAD) Finding Aid
@@ -298,4 +325,6 @@ class EncodedArchivalDescription(xmlmap.XmlObject):
     # dsc is under archdesc, but is a major section - mapping at top-level for convenience
     dsc = xmlmap.NodeField("archdesc/dsc", SubordinateComponents)
     ":class:`SubordinateComponents` `archdesc/dsc`; accessible at top-level for convenience"
+    file_desc = xmlmap.NodeField("eadheader/filedesc", FileDescription)
+    ":class:`FileDescription` - `filedesc`"
 

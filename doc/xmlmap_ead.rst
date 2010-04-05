@@ -52,6 +52,28 @@ Controlled Access Headings
   .. autoclass:: eulcore.xmlmap.eadmap.Heading(dom_node[, context])
       :members:
 
+Index and Index Entry
+---------------------
+See also LOC Documentation for `index element <http://www.loc.gov/ead/tglib/elements/index-element.html>`_,
+`indexentry element <http://www.loc.gov/ead/tglib/elements/indexentry.html>`_
+
+  .. autoclass:: eulcore.xmlmap.eadmap.Index(dom_node[, context])
+      :members:
+
+  .. autoclass:: eulcore.xmlmap.eadmap.IndexEntry(dom_node[, context])
+      :members:
+
+File Description
+-----------------
+See also LOC Documentation for `filedesc element <http://www.loc.gov/ead/tglib/elements/filedesc.html>`_,
+`publicationstmt element <http://www.loc.gov/ead/tglib/elements/publicationstmt.html>`_
+
+  .. autoclass:: eulcore.xmlmap.eadmap.FileDescription(dom_node[, context])
+      :members:
+
+  .. autoclass:: eulcore.xmlmap.eadmap.PublicationStatement(dom_node[, context])
+      :members:
+
 
 Miscellaneous
 -------------
@@ -67,5 +89,16 @@ See also LOC documentation for `did element <http://www.loc.gov/ead/tglib/elemen
       
   .. autoclass:: eulcore.xmlmap.eadmap.Section(dom_node[, context])
       :members:
+
+  .. autoclass:: eulcore.xmlmap.eadmap.Address(dom_node[, context])
+      :members:
+
+  .. autoclass:: eulcore.xmlmap.eadmap.PointerGroup(dom_node[, context])
+      :members:
+
+  .. autoclass:: eulcore.xmlmap.eadmap.Reference(dom_node[, context])
+      :members:
+
+
 
   

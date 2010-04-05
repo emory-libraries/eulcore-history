@@ -177,6 +177,18 @@ class TestEad(unittest.TestCase):
         dsc = load_xmlobject_from_string(simple_dsc, SubordinateComponents)
         self.assertFalse(dsc.hasSeries())
 
+    def test_FileDescription(self):
+        filedesc = self.ead.file_desc
+        self.assert_(isinstance(filedesc, FileDescription))
+        self.assert_(isinstance(filedesc.publication, PublicationStatement))
+        self.assert_(isinstance(filedesc.publication.address, Address))
+        self.assertEqual("Emory University", filedesc.publication.publisher)
+        self.assertEqual("May 5, 2005", filedesc.publication.date)
+        self.assertEqual("Robert W. Woodruff Library", filedesc.publication.address.lines[0])
+        self.assertEqual("404-727-6887", filedesc.publication.address.lines[3])
+        self.assertEqual("marbl@emory.edu", filedesc.publication.address.lines[-1])
+
+
         
 if __name__ == '__main__':
     main()
