@@ -12,7 +12,7 @@ class Section(xmlmap.XmlObject):
     """Generic EAD section.  Currently only has mappings for head, paragraph, and note."""
     head   = xmlmap.StringField("head")
     "heading - `head`"
-    content = xmlmap.StringListField("p")       # ??
+    content = xmlmap.NodeListField("p", xmlmap.XmlObject)       # ??
     "list of paragraphs - `p`"
     note = xmlmap.NodeField("note", Note)
     ":class:`Note`"
@@ -81,13 +81,13 @@ class DescriptiveIdentification(xmlmap.XmlObject):
     """Descriptive Information (`did` element) for materials in a component"""
     unitid = xmlmap.StringField("unitid")
     "unit id - `unitid`"
-    unittitle = xmlmap.StringField("unittitle")
+    unittitle = xmlmap.NodeField("unittitle", xmlmap.XmlObject)
     "unit title - `unittitle`"
     unitdate = xmlmap.StringField("unitdate")
     "unit date - `unitdate`"
     physdesc = xmlmap.StringField("physdesc")
     "physical description - `physdesc`"
-    abstract = xmlmap.StringField('abstract')
+    abstract = xmlmap.NodeField('abstract', xmlmap.XmlObject)
     "abstract - `abstract`"
     langmaterial = xmlmap.StringField("langmaterial")
     "language of materials - `langmaterial`"
@@ -313,11 +313,11 @@ class EncodedArchivalDescription(xmlmap.XmlObject):
     "record title - `eadheader/filedesc/titlestmt/titleproper`"
     author = xmlmap.StringField('eadheader/filedesc/titlestmt/author')
     "record author - `eadheader/filedesc/titlestmt/author`"
-    unittitle = xmlmap.StringField('archdesc[@level="collection"]/did/unittitle')
+    unittitle = xmlmap.NodeField('archdesc[@level="collection"]/did/unittitle', xmlmap.XmlObject)
     """unit title for the archive - `archdesc[@level="collection"]/did/unittitle`"""
     physical_desc = xmlmap.StringField('archdesc[@level="collection"]/did/physdesc')
     """collection level physical description - `archdesc[@level="collection"]/did/physdesc`"""
-    abstract = xmlmap.StringField('archdesc[@level="collection"]/did/abstract')
+    abstract = xmlmap.NodeField('archdesc[@level="collection"]/did/abstract', xmlmap.XmlObject)
     """collection level abstract - `archdesc[@level="collection"]/did/abstract`"""
     
     archdesc  = xmlmap.NodeField("archdesc", ArchivalDescription)
