@@ -137,6 +137,10 @@ class XmlObject(object):
         xslproc.appendStylesheetNode(xslt)
         return xslproc.runNode(self.dom_node.ownerDocument, topLevelParams=params)
 
+    def __unicode__(self):
+        return self.dom_node.xpath("normalize-space(.)")
+
+
 def getXmlObjectXPath(cls, var):
     """Return the xpath string for an xmlmap field that belongs to the specified XmlObject.
 
