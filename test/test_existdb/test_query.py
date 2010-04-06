@@ -206,12 +206,12 @@ class ExistQueryTest(unittest.TestCase):
         self.assertTrue(hasattr(fqs[0], "name"))
         self.assertTrue(hasattr(fqs[0], "id"))
         self.assertFalse(hasattr(fqs[0], "description"))
-        self.assertEqual('one', unicode(fqs[0].id))
-        self.assertEqual('one', unicode(fqs[0].name))
+        self.assertEqual('one', fqs[0].id)
+        self.assertEqual('one', fqs[0].name)
 
         fqs = self.qs.filter(id='one').only('wnn')
         self.assertTrue(hasattr(fqs[0], "wnn"))
-        self.assertEqual('a', unicode(fqs[0].wnn))
+        self.assertEqual('a', fqs[0].wnn)
 
     def test_iter(self):
         for q in self.qs:
@@ -242,7 +242,7 @@ class ExistQueryTest(unittest.TestCase):
         qs = QuerySet(using=self.db, collection=COLLECTION, model=SubqueryTestModel, xpath='//sub')
         name = qs.also('parent__id').get(subname__exact='la')
         self.assertEqual('la', name.subname)
-        self.assertEqual('one', unicode(name.parent.id))
+        self.assertEqual('one', name.parent.id)        
 
     def test_getDocument(self):
       obj = self.qs.getDocument("f1.xml")
@@ -304,7 +304,7 @@ class ExistQueryTest__FullText(unittest.TestCase):
         fqs = self.qs.filter(description__fulltext_terms='one').only('fulltext_score', 'name')
         self.assert_(isinstance(fqs[0], PartialResultObject))
         self.assertTrue(hasattr(fqs[0], "fulltext_score"))
-        self.assert_(float(unicode(fqs[0].fulltext_score)) > 0.5)    # full-text score should be a float
+        self.assert_(float(fqs[0].fulltext_score) > 0.5)    # full-text score should be a float
 
 
 
@@ -451,13 +451,13 @@ class PartialResultObjectTest(unittest.TestCase):
     '''
     def test_init(self):
         partial = xmlmap.load_xmlobject_from_string(self.xml, PartialResultObject)
-        self.assertEquals('James', unicode(partial.name))
-        self.assertEquals('2010', unicode(partial.date))
-        self.assertEquals('007', unicode(partial.id))
-        self.assertEquals('2001', unicode(partial.title.date))
-        self.assertEquals('a space odyssey', unicode(partial.title.subtitle))
-        self.assertEquals('Kubrick', unicode(partial.title.director.lastname))
-        self.assertEquals('Stanley', unicode(partial.title.director.firstname))
+        self.assertEquals('James', partial.name)
+        self.assertEquals('2010', partial.date)
+        self.assertEquals('007', partial.id)
+        self.assertEquals('2001', partial.title.date)
+        self.assertEquals('a space odyssey', partial.title.subtitle)
+        self.assertEquals('Kubrick', partial.title.director.lastname)
+        self.assertEquals('Stanley', partial.title.director.firstname)
 
 
 
