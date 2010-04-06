@@ -10,7 +10,8 @@ stand-in replacement in any context that expects one.
 
 import re
 from Ft.Xml.XPath import Compile, Evaluate
-from eulcore.xmlmap.core import load_xmlobject_from_string, getXmlObjectXPath
+from eulcore.xmlmap import XmlObject, load_xmlobject_from_string
+from eulcore.xmlmap.core import getXmlObjectXPath
 
 __all__ = ['QuerySet', 'Xquery', 'PartialResultObject']
 
@@ -555,7 +556,7 @@ class PartialResultObject(object):
 
             getattr(self, basename).add_field(remainder, dom_node)
         else:
-            setattr(self, name, dom_node.xpath('string()'))
+            setattr(self, name, XmlObject(dom_node))
 
 # extend partial result object - inherits add_field, but no dom_node for constructor
 class PartialResultSubObject(PartialResultObject):
