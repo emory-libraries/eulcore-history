@@ -141,32 +141,6 @@ class XmlObject(object):
         return self.dom_node.xpath("normalize-space(.)")
 
 
-def getXmlObjectXPath(cls, var):
-    """Return the xpath string for an xmlmap field that belongs to the specified XmlObject.
-
-       If var contains '__', will generate the full xpath to a field mapped on a subobject
-       (sub-object must be mapped with NodeField or NodeListField)
-    """
-    # FIXME: type-checking, exceptions?
-
-    xpath_parts = []
-    var_parts = var.split('__')
-    var_parts.reverse() # so we can pop() them off
-
-    while var_parts:
-        var_part = var_parts.pop()
-        field = cls._fields.get(var_part, None)
-        if field is None:
-            # fall back on raw xpath
-            # XXX is this right? we at least need it for backward compat
-            xpath_parts.append(var_part)
-            xpath_parts += var_parts
-            break
-        xpath_parts.append(field.xpath)
-        cls = getattr(field, 'node_class', None)
-
-    return '/'.join(xpath_parts)
-
 def load_xmlobject_from_string(string, xmlclass=XmlObject):
     """Initialize an XmlObject from a string.
 

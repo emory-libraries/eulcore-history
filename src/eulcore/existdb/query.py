@@ -10,7 +10,8 @@ stand-in replacement in any context that expects one.
 
 import re
 from Ft.Xml.XPath import Compile, Evaluate
-from eulcore.xmlmap.core import load_xmlobject_from_string, getXmlObjectXPath
+from eulcore.xmlmap import load_xmlobject_from_string
+from eulcore.xmlmap.fields import StringMapper
 
 __all__ = ['QuerySet', 'Xquery', 'PartialResultObject']
 
@@ -49,9 +50,9 @@ class QuerySet(object):
             self.query = Xquery(xpath=xpath, collection=collection)
 
         self._result_id = None
-        self.partial_return = False
+        self.partial_fields = {}
+        self.additional_fields = {}
         self._count = None
-        self._return_also = []
 
     @property
     def result_id(self):
@@ -83,8 +84,8 @@ class QuerySet(object):
         :meth:`filter`, :meth:`order`, etc."""
         # copy current queryset - for modification via filter/order/etc
         copy = QuerySet(model=self.model, xquery=self.query.getCopy(), using=self._db)        
-        copy.partial_return = self.partial_return
-        copy._return_also = self._return_also
+        copy.partial_fields = self.partial_fields.copy()
+        copy.additional_fields = self.additional_fields.copy()
         return copy
 
     def filter(self, **kwargs):
@@ -117,24 +118,17 @@ class QuerySet(object):
         qscopy = self._getCopy()
         
         for arg, value in kwargs.iteritems():
-            if '__' in arg:
-                parts = arg.rsplit('__', 1)
-
-            # last section of argument is a known filter
-            if '__' in arg and parts[-1] in qscopy.query.available_filters:
-                field, lookuptype = parts
+            fields, rest = _split_fielddef(arg, self.model)
+            if rest and rest not in qscopy.query.available_filters:
+                # there's leftover stuff and it's not a filter we recognize.
+                # assume the entire arg is actually one big xpath.
+                xpath = arg
+                lookuptype = 'exact'
             else:
-                # if arg is just field=foo, check for special terms
-                if arg in ('contains', 'startswith', 'fulltext_terms'):  #  contains=foo : contains anywhere in node
-                    field = '.' # relative to base query node
-                    lookuptype = arg
-                else:
-                    # otherwise, set lookup type to exact
-                    field = arg
-                    lookuptype = 'exact'
+                # valid filter, or no filter at all
+                xpath = _join_field_xpath(fields) or '.'
+                lookuptype = rest or 'exact'
 
-            # lookup xpath for field; using field as fall-back
-            xpath = getXmlObjectXPath(self.model, field) or field
             qscopy.query.add_filter(xpath, lookuptype, value)
         # return copy query string so additional filters can be added or get() called
         return qscopy
@@ -151,10 +145,7 @@ class QuerySet(object):
         """
 
         # TODO: allow multiple fields, ascending/descending
-        xpath = field
-        if self.model:
-            xpath = getXmlObjectXPath(self.model, field) or field
-
+        xpath = _simple_fielddef_to_xpath(field, self.model) or field
         qscopy = self._getCopy()
         qscopy.query.sort(xpath)
         return qscopy
@@ -169,11 +160,21 @@ class QuerySet(object):
         copy, they will contain only the specified fields.
 
         """
-        xp_fields = dict((f, getXmlObjectXPath(self.model, f))
-                         for f in fields)
+        field_objs = {}
+        field_xpath = {}
+
+        for f in fields:
+            fieldlist, rest = _split_fielddef(f, self.model)
+            if fieldlist and not rest:
+                field_objs[f] = fieldlist
+                field_xpath[f] = _join_field_xpath(fieldlist)
+            else:
+                field_objs[f] = f
+                field_xpath[f] = f
+
         qscopy = self._getCopy()
-        qscopy.query.return_only(xp_fields)
-        qscopy.partial_return = True
+        qscopy.partial_fields.update(field_objs)
+        qscopy.query.return_only(field_xpath)
         return qscopy
 
     def also(self, *fields):
@@ -186,12 +187,21 @@ class QuerySet(object):
         copy, they will contain the specified additional fields.
 
         """
-        xp_fields = dict((f, getXmlObjectXPath(self.model, f))
-                         for f in fields)
+        field_objs = {}
+        field_xpath = {}
+
+        for f in fields:
+            fieldlist, rest = _split_fielddef(f, self.model)
+            if fieldlist and not rest:
+                field_objs[f] = fieldlist
+                field_xpath[f] = _join_field_xpath(fieldlist)
+            else:
+                field_objs[f] = f
+                field_xpath[f] = f
+
         qscopy = self._getCopy()
-        qscopy.query.return_also(xp_fields)
-        # save field names so they can be mapped in return object
-        qscopy._return_also = fields
+        qscopy.additional_fields.update(field_objs)
+        qscopy.query.return_also(field_xpath)
         return qscopy
 
     def distinct(self):
@@ -266,23 +276,15 @@ class QuerySet(object):
         item = self._db.retrieve(self.result_id, k)
         if self.model is None or self.query._distinct:
             return item.data
-        if self.partial_return:
-            return load_xmlobject_from_string(item.data, PartialResultObject)
+        if self.partial_fields:
+            obj = load_xmlobject_from_string(item.data)
+            partial = PartialResultObject()
+            self._apply_fields(self.partial_fields, partial, obj.dom_node)
+            return partial
         else:
-            obj =  load_xmlobject_from_string(item.data, self.model)
-            # map additional return fields in the return object (similar to PartialResultObject)
-            for f in self._return_also:
-                if '__' in f:
-                    basename, remainder = f.split('__', 1)
-                    # if sub-object does not already exist or is not a partial result subobject, create it
-                    # NOTE: will override xpath node mappings
-                    if not hasattr(obj, basename) or not isinstance(getattr(obj, basename), PartialResultSubObject):                        
-                        setattr(obj, basename, PartialResultSubObject())
-                    # get the node for just this field to pass to add_field 
-                    nodes = Evaluate(Compile(f), obj.dom_node)
-                    getattr(obj, basename).add_field(remainder, nodes[0])
-                else:
-                    setattr(obj, f, obj.dom_node.xpath('string(%s)' % f))
+            obj = load_xmlobject_from_string(item.data, self.model)
+            self._apply_fields(self.additional_fields, obj, obj.dom_node)
+
             # make queryTime method available when retrieving a single item
             setattr(obj, 'queryTime', self.queryTime)
             return obj
@@ -304,9 +306,18 @@ class QuerySet(object):
         # getDocument returns unicode instead of string-- need to decode before handing off to parseString
         return load_xmlobject_from_string(data.encode('utf_8'), self.model)
 
+    def _apply_fields(self, fieldmap, target, dom_node):
+        for name, fields in fieldmap.iteritems():
+            node = dom_node.xpath(name)[0]
+            if fields is None or isinstance(fields, basestring):
+                mapper = None
+            else:
+                mapper = fields[-1].mapper
+            _add_field_to_partial(target, name, node, mapper)
 
-def _quote_for_string_literal(s):
-    return s.replace('"', '""').replace('&', '&amp;')
+
+def _quote_as_string_literal(s):
+    return '"' + s.replace('"', '""').replace('&', '&amp;') + '"'
 
 class Xquery(object):
     """
@@ -425,13 +436,13 @@ class Xquery(object):
             raise TypeError(repr(type) + ' is not a supported filter type')
         
         if type == 'contains':
-            filter = 'contains(%s, "%s")' % (xpath, _quote_for_string_literal(value))
+            filter = 'contains(%s, %s)' % (xpath, _quote_as_string_literal(value))
         if type == 'startswith':
-            filter = 'starts-with(%s, "%s")' % (xpath, _quote_for_string_literal(value))
+            filter = 'starts-with(%s, %s)' % (xpath, _quote_as_string_literal(value))
         if type == 'exact':
-            filter = '%s = "%s"' % (xpath, _quote_for_string_literal(value))
+            filter = '%s = %s' % (xpath, _quote_as_string_literal(value))
         if type == 'fulltext_terms':
-            filter = 'ft:query(%s, "%s")' % (xpath, _quote_for_string_literal(value))
+            filter = 'ft:query(%s, %s)' % (xpath, _quote_as_string_literal(value))
         self.filters.append(filter)
 
 
@@ -451,7 +462,7 @@ class Xquery(object):
         if return_el == 'node()':       # FIXME: other () expressions?
             return_el = 'node'
 
-        if len(self.return_fields):
+        if self.return_fields:
             rblocks = []
             for name, xpath in self.return_fields.iteritems():
                 # construct return element with specified field name and xpath
@@ -471,7 +482,7 @@ class Xquery(object):
                     rblocks.append('element %s {%s/%s}' % (name, self.xq_var, xpath))
                 
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
-        elif len(self.additional_return_fields):
+        elif self.additional_return_fields:
             # return everything under matched node - all attributes, all nodes
             rblocks = ["%s/@*" % self.xq_var, "%s/node()" % self.xq_var]
             for name, xpath in self.additional_return_fields.iteritems():
@@ -531,33 +542,80 @@ class Xquery(object):
             xpath  = xpath.replace("|./", "|%s/" % self.xq_var)
         return xpath
 
+
 class PartialResultObject(object):
     """
-    Partial result object - for use when only returning specified fields.
-    Makes any xml child nodes and attributes accessible as class attributes.
-    Nodes with __ separated names will be mapped as subobjects, e.g. foo__bar
-    will be accessible as foo.bar
+    Partial result object returned by a :class:`QuerySet` when
+    :meth:`~QuerySet.only` or :meth:`~QuerySet.also` are used to alter the
+    fields returned. These objects allow the fields to be accessed using the
+    same ``foo.bar`` syntax used for regular fields.
     """
-    def __init__(self, dom_node):
-        # map all attributes and child nodes as object variables
-        for a in dom_node.attributes:
-            setattr(self, a[1], dom_node.getAttributeNS(None, a[1]))
-        for c in dom_node.childNodes:
-            if c.localName:
-                self.add_field(c.localName, c)
+    # There's actually nothing to do here. The fields are all added by the
+    # QuerySet machinery via _add_field_to_partial.
 
-    def add_field(self, name, dom_node):
-        if '__' in name:
-            basename, remainder = name.split('__', 1)
-            # if sub-object does not already exist, create it
-            if not hasattr(self, basename):
-                setattr(self, basename, PartialResultSubObject())
 
-            getattr(self, basename).add_field(remainder, dom_node)
-        else:
-            setattr(self, name, dom_node.xpath('string()'))
+def _add_field_to_partial(self, name, dom_node, mapper=None):
+    """
+    Add an ersatz field to a PartialResultObject, or to any object
+    really.
+      :param name: the ``__``-joined field name from the ``only`` call
+      :param dom_node: the XML DOM node to copy the data from
+      :param mapper: the :mod:`eulcore.xmlmap` field mapper to use for
+                     interpreting the XML data. defaults to simple string
+                     mapping.
+    """
+    if '__' in name:
+        basename, remainder = name.split('__', 1)
+        # if sub-object does not already exist, create it
+        if not hasattr(self, basename) or not isinstance(getattr(self, basename), PartialResultObject):
+            setattr(self, basename, PartialResultObject())
 
-# extend partial result object - inherits add_field, but no dom_node for constructor
-class PartialResultSubObject(PartialResultObject):
-    def __init__(self):
-        pass
+        child_partial = getattr(self, basename)
+        _add_field_to_partial(child_partial, remainder, dom_node, mapper)
+    else:
+        if mapper is None:
+            mapper = StringMapper()
+        value = mapper.to_python(dom_node)
+        setattr(self, name, value)
+
+
+# some helpers for handling '__'-separated field names:
+
+def _simple_fielddef_to_xpath(fielddef, cls):
+    """Convert a foo__bar__baz field definition to the XPath to that node"""
+    fields, rest = _split_fielddef(fielddef, cls)
+    if fields and not rest:
+        return _join_field_xpath(fields)
+
+def _split_fielddef(fielddef, cls):
+    """Split a field definition into a list of field objects and any
+    leftover bits."""
+    field_parts = []
+
+    while fielddef and cls:
+        field_name, rest = _extract_fieldpart(fielddef)
+        field = cls._fields.get(field_name, None)
+        if field is None:
+            # the field_name was invalid. leave it in fielddef as remainder
+            break
+
+        fielddef = rest
+        field_parts.append(field)
+        cls = getattr(field, 'node_class', None)
+
+        # if no node_class then keep the field, but everything else is
+        # remainder.
+
+    return field_parts, fielddef
+
+def _extract_fieldpart(s):
+    """Split a field definition into exactly two __-separated parts. If
+    there are no __ in the field definition, leave the second part empty."""
+    idx = s.find('__')
+    if idx < 0:
+        return s, ''
+    else:
+        return s[:idx], s[idx+2:]
+
+def _join_field_xpath(fields):
+    return '/'.join(f.xpath for f in fields)

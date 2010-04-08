@@ -16,7 +16,7 @@ class QueryTestModel(xmlmap.XmlObject):
             id = xmlmap.StringField('@id')
             name = xmlmap.StringField('name')
             description = xmlmap.StringField('description')
-            wnn = xmlmap.StringField('wacky_node_name')
+            wnn = xmlmap.IntegerField('wacky_node_name')
             sub = xmlmap.NodeField("sub", QuerySubModel)
 
 COLLECTION = EXISTDB_TEST_COLLECTION
@@ -25,7 +25,7 @@ FIXTURE_ONE = '''
     <root id="one">
         <name>one</name>
         <description>this one has one one</description>
-        <wacky_node_name>a</wacky_node_name>
+        <wacky_node_name>42</wacky_node_name>
         <sub>
            <subname>la</subname>
         </sub>
@@ -201,17 +201,20 @@ class ExistQueryTest(unittest.TestCase):
         self.qs.only('name')
         self.assert_('element name {' not in self.qs.query.getQuery(), "main queryset unchanged by only()")
         
-        fqs = self.qs.filter(id='one').only('name','id')
+        fqs = self.qs.filter(id='one').only('name','id', 'sub')
         self.assert_(isinstance(fqs[0], PartialResultObject))
         self.assertTrue(hasattr(fqs[0], "name"))
         self.assertTrue(hasattr(fqs[0], "id"))
+        self.assertTrue(hasattr(fqs[0], "sub"))
+        self.assertTrue(hasattr(fqs[0].sub, 'subname'))
         self.assertFalse(hasattr(fqs[0], "description"))
         self.assertEqual('one', fqs[0].id)
         self.assertEqual('one', fqs[0].name)
+        self.assertEqual('la', fqs[0].sub.subname)
 
         fqs = self.qs.filter(id='one').only('wnn')
         self.assertTrue(hasattr(fqs[0], "wnn"))
-        self.assertEqual('a', fqs[0].wnn)
+        self.assertEqual(42, fqs[0].wnn)
 
     def test_iter(self):
         for q in self.qs:
@@ -240,9 +243,10 @@ class ExistQueryTest(unittest.TestCase):
             parent = xmlmap.NodeField('parent::root', QueryTestModel)      
 
         qs = QuerySet(using=self.db, collection=COLLECTION, model=SubqueryTestModel, xpath='//sub')
-        name = qs.also('parent__id').get(subname__exact='la')
+        name = qs.also('parent__id', 'parent__wnn').get(subname__exact='la')
         self.assertEqual('la', name.subname)
         self.assertEqual('one', name.parent.id)        
+        self.assertEqual(42, name.parent.wnn)
 
     def test_getDocument(self):
       obj = self.qs.getDocument("f1.xml")
@@ -435,30 +439,6 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery()
         xq.xq_var = '$n'
         self.assertEqual("./name|$n/title", xq.prep_xpath("./name|./title"))
-
-
-
-class PartialResultObjectTest(unittest.TestCase):
-    xml = '''
-    <root id="007">
-         <name>James</name>
-         <date>2010</date>         
-         <title__date>2001</title__date>
-         <title__subtitle>a space odyssey</title__subtitle>
-         <title__director__lastname>Kubrick</title__director__lastname>
-         <title__director__firstname>Stanley</title__director__firstname>
-    </root>
-    '''
-    def test_init(self):
-        partial = xmlmap.load_xmlobject_from_string(self.xml, PartialResultObject)
-        self.assertEquals('James', partial.name)
-        self.assertEquals('2010', partial.date)
-        self.assertEquals('007', partial.id)
-        self.assertEquals('2001', partial.title.date)
-        self.assertEquals('a space odyssey', partial.title.subtitle)
-        self.assertEquals('Kubrick', partial.title.director.lastname)
-        self.assertEquals('Stanley', partial.title.director.firstname)
-
 
 
 if __name__ == '__main__':

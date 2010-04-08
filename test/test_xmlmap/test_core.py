@@ -108,35 +108,5 @@ class TestXmlObjectFileInit(unittest.TestCase):
         self.assert_(isinstance(obj, TestObject))
 
 
-class TestGetXmlObjectXPath(unittest.TestCase):    
-
-    def test_getXmlObjectXPath(self):
-
-        class TestSubSubObject(xmlmap.XmlObject):
-            fo = xmlmap.StringField('fi/fum')
-
-        class TestSubObject(xmlmap.XmlObject):
-            field = xmlmap.StringField('fighters')
-            fi = xmlmap.NodeField('fee/fo', TestSubSubObject)
-
-        class TestObject(xmlmap.XmlObject):
-            val = xmlmap.StringField('bar[1]/baz')
-            sub = xmlmap.NodeField('foo', TestSubObject)
-
-        class TestChildObject(TestObject):
-            # inherited xpaths should be accessible
-            subval = xmlmap.StringField('foo/bar')
-
-        self.assertEqual("bar[1]/baz", xmlmap.getXmlObjectXPath(TestObject, 'val'))
-        self.assertEqual("foo/bar", xmlmap.getXmlObjectXPath(TestChildObject, 'subval'))
-        self.assertEqual("bar[1]/baz", xmlmap.getXmlObjectXPath(TestChildObject, 'val'))
-        self.assertEqual("foo/fighters", xmlmap.getXmlObjectXPath(TestObject, 'sub__field'))
-        self.assertEqual("foo/fee/fo/fi/fum", xmlmap.getXmlObjectXPath(TestObject, 'sub__fi__fo'))
-        # attempting to get a path for something that isn't a child (fi not under field)
-        # FIXME: more specific exception?
-        self.assertRaises(Exception, xmlmap.getXmlObjectXPath, TestObject, 'sub__field__fi')
-
-
-
 if __name__ == '__main__':
     main()
