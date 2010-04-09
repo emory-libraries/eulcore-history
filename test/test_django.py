@@ -3,11 +3,14 @@
 import sys
 from django.core.management import setup_environ
 
-from django_tester import settings
-
 if __name__ == '__main__':
     # this code inlined (with simplifications) from relevant manage.py code
+
+    # use our settings file to bootstrap the test environment, then switch
+    # to the official one.
+    from django_tester import settings
     setup_environ(settings)
+    from django.conf import settings
 
     # FIXME: if we don't import existdb here, starting_tests doesn't get
     # triggered for some reason
