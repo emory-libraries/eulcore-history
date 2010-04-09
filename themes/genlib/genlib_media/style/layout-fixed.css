@@ -144,6 +144,7 @@ body
 {
     margin-left: 230px;
     padding: 0; /* DO NOT CHANGE. Add padding or margin to #content-inner. */
+    z-index: 0;
 }
 
 #content-inner
