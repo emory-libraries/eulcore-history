@@ -309,7 +309,7 @@ class EncodedArchivalDescription(xmlmap.XmlObject):
     eadid = xmlmap.StringField('eadheader/eadid')
     "ead id - `eadheader/eadid`"
     # mappings for fields common to access or display as top-level information
-    title = xmlmap.StringField('eadheader/filedesc/titlestmt/titleproper')
+    title = xmlmap.NodeField('eadheader/filedesc/titlestmt/titleproper', xmlmap.XmlObject)
     "record title - `eadheader/filedesc/titlestmt/titleproper`"
     author = xmlmap.StringField('eadheader/filedesc/titlestmt/author')
     "record author - `eadheader/filedesc/titlestmt/author`"

@@ -18,7 +18,7 @@ class TestEad(unittest.TestCase):
         self.assert_(isinstance(self.ead, EncodedArchivalDescription))
 
     def testBasicFields(self):
-        self.assertEqual(self.ead.title, "Seamus Heaney collection, 1972-1997")
+        self.assertEqual(unicode(self.ead.title), "Seamus Heaney collection, 1972-1997")
         self.assertEqual(self.ead.eadid, "heaney653.xml")
         self.assertEqual(self.ead.id, "heaney653-011")
         self.assertEqual(self.ead.author, "Manuscript, Archives, and Rare Book Library, Emory University")
