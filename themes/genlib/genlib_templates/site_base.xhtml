@@ -153,7 +153,7 @@ See the individual blocks for overriding and structure.
                               eulcore to load things like this.  For now however.  Modify that tag as
                               or copy the code into your own app as needed.
                               {% endcomment %}
-                                <li><a href="{% url site-index %}" class="first {% activebase request '^/$' %}">Home</a></li>
+                                <li><a href="{% url site-index %}" class="first {% if request %}{% activebase request '^/$' %}{% endif %}">Home</a></li>
                                 {# extend just navbar-items to use Home and Admin navbar links as-is #}
                                 {% block navbar-items %}{% endblock %}
                             {% if user.is_staff %}
