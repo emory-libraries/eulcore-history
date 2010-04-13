@@ -1,7 +1,13 @@
 {% load eulcore_tags %}
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
 {% comment %}
+IMPORTANT!!  In order to load the media URL properly you MUST provide the request
+context to the templates in your view return.  This is required so MEDIA_URL can
+be loaded from the template context processor.
+
+
 This is an adaptation of the Emory General Library Drupal theme provided by
 sharpdot for use in the library.  A considerable amount of cleanup went into it
 to make it more friendly for diverse sites.
@@ -32,19 +38,19 @@ See the individual blocks for overriding and structure.
 
   {% block page-head %}
     {% comment %}Put Extra Header information here.  Use block.super to keep the icon.{% endcomment %}
-  	<link rel="shortcut icon" href="/static/genlib_media/favicon.ico" type="image/x-icon" />
+  	<link rel="shortcut icon" href="{{ MEDIA_URL }}/genlib_media/favicon.ico" type="image/x-icon" />
   {% endblock %}
 
   {% block style %}
-    <link rel="stylesheet" type="text/css" href="/static/genlib_media/style/html-elements.css" />
-    <link rel="stylesheet" type="text/css" href="/static/genlib_media/style/libraryglobal.css" />
-    <link rel="stylesheet" type="text/css" href="/static/genlib_media/style/layout-fixed.css" />
-    <link rel="stylesheet" type="text/css" href="/static/genlib_media/style/tabbedpanels.css" />
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/html-elements.css" />
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/libraryglobal.css" />
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/layout-fixed.css" />
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/tabbedpanels.css" />
   {% endblock %}
 
 {% block scripts %}
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.1/jquery.min.js"></script>
-    <script type="text/javascript" src="/static/genlib_media/js/plugins/jquery.scrollTo.js"></script>
+    <script type="text/javascript" src="{{ MEDIA_URL }}/genlib_media/js/plugins/jquery.scrollTo.js"></script>
     <script type="text/javascript">
     $(document).ready(function() {	
         // The following code is for jquery tabbed panels in the header.
@@ -114,7 +120,7 @@ See the individual blocks for overriding and structure.
     	<div id="header-inner" class="clear-block">
             <div id="logo-title">
                 <div id="logo">
-                    <a href="{% url site-index %}" title="Home" rel="home"><img src="/static/genlib_media/images/emorylibbluelogo.png" alt="Home" id="logo-image" /></a>
+                    <a href="{% url site-index %}" title="Home" rel="home"><img src="{{ MEDIA_URL }}/genlib_media/images/emorylibbluelogo.png" alt="Home" id="logo-image" /></a>
                 </div>
 
                 <div id="site-name">
