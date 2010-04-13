@@ -23,22 +23,14 @@ class Field(object):
     def get_for_node(self, node, context):
         return self.manager.get(self.xpath, node, context, self.mapper.to_python)
 
-    def set_for_node(self, node, context, value):
-        return self.manager.set(self.xpath, node, context, self.mapper.to_xml, value)
-        
 # data mappers to translate between identified xml nodes and Python values
 
-class Mapper(object):
-    # generic mapper to_xml function
-    def to_xml(self, value):
-        return unicode(value)
-
-class StringMapper(Mapper):
+class StringMapper(object):
     XPATH = Compile('string()')
     def to_python(self, node):
         return node.xpath(self.XPATH)
-       
-class NumberMapper(Mapper):
+
+class NumberMapper(object):
     XPATH = Compile('number()')
     def to_python(self, node):
         return node.xpath(self.XPATH)
@@ -53,10 +45,6 @@ class DateMapper(object):
             rep = rep[:-6]
         dt = datetime.strptime(rep, '%Y-%m-%dT%H:%M:%S')
         return dt
-
-    def to_xml(self, dt):
-        # NOTE: untested!  this is probably close to what we need, but should be tested
-        return unicode(dt.isoformat())
 
 class NullMapper(object):
     def to_python(self, node):
@@ -78,34 +66,6 @@ class SingleNodeManager(object):
         if matches:
             return to_python(matches[0])
 
-    def set(self, xpath, node, context, to_xml, value):
-        matches = Evaluate(xpath, node, context)
-        if matches:
-            return self.set_in_xml(matches[0], to_xml(value))
-        else:
-            raise Exception("No matching node found for '%s', cannot set value '%s'"
-                % (xpath, value))
-        # silently fails if no match is found to set - what is correct behavior?
-        # some possibilities:
-        #  - throw an attribute error
-        #  - create the missing node with the value (at least for simple xpaths?)
-
-    def set_in_xml(self, node, val):
-        if node.nodeType == node.ATTRIBUTE_NODE:
-            node.value = val
-        else:
-            # put all text nodes into a single node so it can be replaced all at once
-            node.normalize()
-            if node.hasChildNodes():
-                if len(node.childNodes) == 1 and node.firstChild.nodeType == node.TEXT_NODE:
-                    # can only set value if there is only one child node and it is a text node
-                    node.firstChild.data = val
-                else:   # child nodes, but not single text node
-                    raise Exception("Cannot set string value - not a text node!")
-            else:   # no child nodes - create and append new text node
-                node.appendChild(node.ownerDocument.createTextNode(val))
-
-
 class NodeListManager(object):
     def get(self, xpath, node, context, to_python):
         matches = Evaluate(xpath, node, context)
@@ -117,10 +77,7 @@ class StringField(Field):
 
     """Map an XPath expression to a single Python string. If the XPath
     expression evaluates to an empty NodeList, a StringField evaluates to
-    `None`.
-
-    Supports setting values for attributes, empty nodes, or text-only nodes.
-    """
+    `None`."""
 
     def __init__(self, xpath):
         super(StringField, self).__init__(xpath,
@@ -142,10 +99,7 @@ class IntegerField(Field):
 
     """Map an XPath expression to a single Python integer. If the XPath
     expression evaluates to an empty NodeList, an IntegerField evaluates to
-    `None`.
-
-    Supports setting values for attributes, empty nodes, or text-only nodes.
-    """
+    `None`."""
 
     def __init__(self, xpath):
         super(IntegerField, self).__init__(xpath,

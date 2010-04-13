@@ -7,14 +7,13 @@ from testcore import main
 
 class TestFields(unittest.TestCase):
     FIXTURE_TEXT = '''
-        <foo id='a'>
+        <foo>
             <bar>
                 <baz>42</baz>
             </bar>
             <bar>
                 <baz>13</baz>
             </bar>
-            <empty_field/>
         </foo>
     '''
 
@@ -53,41 +52,12 @@ class TestFields(unittest.TestCase):
     def testStringField(self):
         class TestObject(xmlmap.XmlObject):
             val = xmlmap.StringField('bar[1]/baz')
-            empty = xmlmap.StringField('empty_field')
             missing = xmlmap.StringField('missing')
-            mixed = xmlmap.StringField('bar[1]')
-            id = xmlmap.StringField('@id')
 
         obj = TestObject(self.fixture.documentElement)
         self.assertEqual(obj.val, '42')
         self.assertEqual(obj.missing, None)
         # undefined if >1 matched nodes
-
-        # set an existing string value
-        obj.val = "forty-two"
-        # check that new value is set in the dom node
-        self.assertEqual(obj.dom_node.xpath('string(bar[1]/baz)'), "forty-two")
-        # check that new value is accessible via descriptor        
-        self.assertEqual(obj.val, 'forty-two')
-
-        # set an attribute
-        obj.id = 'z'
-        # check that new value is set in the dom node
-        self.assertEqual(obj.dom_node.xpath('string(@id)'), "z")
-        # check that new value is accessible via descriptor
-        self.assertEqual(obj.id, 'z')
-
-        # set value in an empty node
-        obj.empty = "full"
-        self.assertEqual(obj.dom_node.xpath('string(empty_field)'), "full")
-        # check that new value is accessible via descriptor
-        self.assertEqual(obj.empty, 'full')
-
-        # attempt to set missing field
-        self.assertRaises(Exception, obj.__setattr__, "missing", "not here")
-
-        # attempting to set a node that contains non-text nodes - error
-        self.assertRaises(Exception, obj.__setattr__, "mixed", "whoops")
 
     def testStringListField(self):
         class TestObject(xmlmap.XmlObject):
@@ -107,14 +77,6 @@ class TestFields(unittest.TestCase):
         self.assertEqual(obj.val, 13)
         self.assertEqual(obj.missing, None)
         # undefined if >1 matched nodes
-
-        # set an integer value
-        obj.val = 14
-        # check that new value is set in the dom node
-        self.assertEqual(obj.dom_node.xpath('number(bar[2]/baz)'), 14)
-        # check that new value is accessible via descriptor
-        self.assertEqual(obj.val, 14)
-
 
     def testIntegerListField(self):
         class TestObject(xmlmap.XmlObject):

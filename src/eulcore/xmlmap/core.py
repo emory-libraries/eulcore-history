@@ -1,5 +1,8 @@
+from datetime import datetime
+
 from Ft.Lib import Uri
 from Ft.Xml.Domlette import NonvalidatingReader
+from Ft.Xml.XPath import Compile, Evaluate
 from Ft.Xml.XPath.Context import Context
 from Ft.Xml.Xslt import Processor
 
@@ -19,9 +22,6 @@ class _FieldDescriptor(object):
         if obj is None:
             return self
         return self.field.get_for_node(obj.dom_node, obj.context)
-
-    def __set__(self, obj, value):        
-        return self.field.set_for_node(obj.dom_node, obj.context, value)
 
 
 class XmlObjectType(type):
