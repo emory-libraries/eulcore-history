@@ -72,7 +72,7 @@ class Repository(object):
         type = type or DigitalObject
 
         # FIXME: query production here is frankly sketchy
-        query = ' '.join([ '%s~%s' % (k, v) for k, v in kwargs.iteritems() ])
+        query = ' '.join([ '%s~%s' % (k, v) for k, v in kwargs.iteritems() ])        
         read = parse_xml_obj(add_auth(read_uri, self.username, self.password),
                              SearchResults)
 
@@ -268,7 +268,7 @@ class HTTP_API_Base(object):
 
     def read_relative_uri(self, relative_uri, read=None):
         read = read or self.read_uri
-        return read(urljoin(self.fedora_root, rel_path))
+        return read(urljoin(self.fedora_root, relative_uri))
 
     def relative_request(self, method, rel_path, body=None, headers={}):
         path = urljoin(self.fedora_root, rel_path)
@@ -339,6 +339,10 @@ class REST_API(HTTP_API_Base):
             # FIXME: either do something with this response, or else don't
             #   use a context manager here.
             pass
+
+    def getObjectXML(self, pid, read=None):
+        # return the entire xml for the specified object
+        return self.read_relative_uri('objects/%s/objectXML' % (pid,), read)
 
 
 class API_M(SimpleWSGISoapApp):
