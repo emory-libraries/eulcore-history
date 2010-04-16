@@ -41,7 +41,8 @@ def create_profile(sender, instance, created, **kwargs):
     # Create a profile only if the application is using
     # EmoryLDAPUserProfile. If you want to use anything else, you'll need to
     # create your own post_save handler.
-    if created and settings.AUTH_PROFILE_MODULE == 'emory.EmoryLDAPUserProfile':
+    auth_profile = getattr(settings, 'AUTH_PROFILE_MODULE', None)
+    if created and auth_profile == 'emory.EmoryLDAPUserProfile':
         profile = EmoryLDAPUserProfile(user=instance)
         profile.save()
 post_save.connect(create_profile, sender=User)
