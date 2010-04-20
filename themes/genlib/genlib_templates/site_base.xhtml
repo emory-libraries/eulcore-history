@@ -41,6 +41,19 @@ See the individual blocks for overriding and structure.
   	<link rel="shortcut icon" href="{{ MEDIA_URL }}/genlib_media/favicon.ico" type="image/x-icon" />
   {% endblock %}
 
+  {% block alternate-links %}
+  {% comment %}
+      Allows developers to provide alternate link values in views.  Just return an
+      iterable of dict values {'type': the-type, 'title': the-title, 'url': the-url}
+      and it should build those alt links automatically.
+  {% endcomment %}
+  {% if alt_links %}
+      {% for link in alt_links %}
+      <link rel="alternate" type="{{ link.type }}" title="{{ link.title }}" href="{{ link.url }}"/>
+      {% endfor %}
+  {% endif %}
+  {% endblock %}
+
   {% block style %}
     <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/html-elements.css" />
     <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/libraryglobal.css" />
