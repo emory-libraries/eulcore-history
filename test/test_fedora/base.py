@@ -1,10 +1,14 @@
 import os
 import unittest
 from eulcore.fedora.server import Repository
+from eulcore.fedora.xml import DigitalObject as XmlDigitalObject
+from eulcore.xmlmap.core import load_xmlobject_from_string
+import cStringIO
 
 REPO_ROOT = 'https://dev11.library.emory.edu:8643/fedora/'
 REPO_USER = 'fedoraAdmin'
 REPO_PASS = 'fedoraAdmin'
+TEST_PIDSPACE = 'eulcore-test'
 
 FIXTURE_ROOT = os.path.join(os.path.dirname(__file__), 'fixtures')
 def fixture_path(fname):
@@ -30,10 +34,18 @@ class FedoraTestCase(unittest.TestCase):
             self.repo.purge_object(pid)
 
     def loadFixtureData(self, fname):
-        return load_fixture_data(fname)
+        data = load_fixture_data(fname)
+        pidspace = getattr(self, 'pidspace', None)
+        # if pidspace is specified, get a new pid from fedora and set it as the pid in the xml 
+        if pidspace: 
+            xml = load_xmlobject_from_string(data, XmlDigitalObject)
+            xml.pid = self.repo.get_next_pid(namespace=pidspace)
+            return xml.serialize()
+        else:
+            return data
 
     def ingestFixture(self, fname):
-        object = load_fixture_data(fname)
+        object = self.loadFixtureData(fname)
         pid = self.repo.ingest(object)
         if pid:
             # we'd like this always to be true. if ingest fails we should
