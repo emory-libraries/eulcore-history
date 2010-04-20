@@ -68,7 +68,7 @@ class Repository(object):
             pid = pid[len('info:fedora/'):]
         return type(pid, self.fedora_root, self.username, self.password)
 
-    def find_objects(self, type=None, **kwargs):
+    def find_objects(self, type=None, chunksize=None, **kwargs):
         type = type or DigitalObject
 
         # FIXME: query production here is frankly sketchy
@@ -76,7 +76,7 @@ class Repository(object):
         read = parse_xml_obj(add_auth(read_uri, self.username, self.password),
                              SearchResults)
 
-        chunk = self.rest_api.findObjects(query, read=read)
+        chunk = self.rest_api.findObjects(query, read=read, chunksize=chunksize)
         while True:
             for result in chunk.results:
                 yield type(result.pid, self.fedora_root, self.username, self.password)
@@ -182,6 +182,7 @@ class DigitalObject(object):
         return REST_API(self.fedora_root, self.username, self.password)
 
     def get_datastream(self, ds_name, read=None):
+        # todo: error handling when attempting to get non-existent datastream
         return self.api_a_lite.getDatastreamDissemination(self.pid, ds_name, read)
 
     def get_datastream_as_xml(self, ds_name, xml_type):
@@ -196,13 +197,14 @@ class DigitalObject(object):
         return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
 
     def get_relationships(self):
+        # FIXME: gets a 404 if object does not have RELS-EXT; throw an exception for this?
         read = parse_rdf(add_auth(read_uri, self.username, self.password))
         return self.get_datastream('RELS-EXT', read)
 
     def add_relationship(self, rel_uri, object):
         obj_is_literal = True
         if isinstance(object, DigitalObject):
-            object = object.pid
+            object = object.uri
             obj_is_literal = False
         elif isinstance(object, str) and object.startswith('info:fedora/'):
             object = object[len('info:fedora/'):]
@@ -212,7 +214,11 @@ class DigitalObject(object):
         return self.api_m.addRelationship(self.pid, rel_uri, object, obj_is_literal, **extra_headers)
 
     def has_model(self, model):
-        st = (rdflib.URIRef(self.uri), rdflib.URIRef(URI_HAS_MODEL), rdflib.URIRef(model))
+        # TODO:
+        # - return false if object does not have a RELS-EXT datastream
+        # - accept DigitalObject for model?
+        # - convert model pid to info:fedora/ form if not passed in that way?
+        st = (rdflib.URIRef(self.uri), rdflib.URIRef(URI_HAS_MODEL), rdflib.URIRef(model))        
         return st in self.get_relationships()
 
 
@@ -283,7 +289,7 @@ class API_A_LITE(HTTP_API_Base):
 
 
 class REST_API(HTTP_API_Base):
-    def findObjects(self, query, pid=True, session_token=None, read=None):
+    def findObjects(self, query, pid=True,  chunksize=None, session_token=None, read=None):
         http_args = {
             'query': query,
             'resultFormat': 'xml',
@@ -292,6 +298,8 @@ class REST_API(HTTP_API_Base):
             http_args['pid'] = 'true'
         if session_token:
             http_args['sessionToken'] = session_token
+        if chunksize:
+            http_args['maxResults'] = chunksize
         return self.read_relative_uri('objects?' + urlencode(http_args), read)
 
     def getNextPID(self, numPIDs=None, namespace=None):
@@ -388,6 +396,8 @@ class ResourceIndex(object):
     def spoencode(self, val):
         if val is None:
             return '*'
+        elif "'" in val:    # FIXME: need better handling for literal strings
+            return val
         else:
             return '<%s>' % (val,)
 
