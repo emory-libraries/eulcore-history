@@ -108,5 +108,28 @@ class TestXmlObjectFileInit(unittest.TestCase):
         self.assert_(isinstance(obj, TestObject))
 
 
+class TestXmlObject(unittest.TestCase):
+
+    def setUp(self):
+        self.obj = xmlmap.load_xmlobject_from_string(TestXsl.FIXTURE_TEXT)
+        
+    def test__unicode(self):
+        u = self.obj.__unicode__()
+        self.assert_("42 13" in u)
+
+    def test_serialize_tostring(self):
+        xml_s = self.obj.serialize()        
+        self.assert_("<baz>42</baz>" in xml_s)
+
+    def test_serialize_tofile(self):
+        FILE = tempfile.TemporaryFile()
+        self.obj.serialize(stream=FILE)
+        FILE.flush()
+        FILE.seek(0)
+        self.assert_("<baz>13</baz>" in FILE.read())
+        FILE.close()
+
+
+
 if __name__ == '__main__':
     main()

@@ -1,10 +1,8 @@
-from datetime import datetime
-
 from Ft.Lib import Uri
-from Ft.Xml.Domlette import NonvalidatingReader
-from Ft.Xml.XPath import Compile, Evaluate
+from Ft.Xml.Domlette import NonvalidatingReader, Print
 from Ft.Xml.XPath.Context import Context
 from Ft.Xml.Xslt import Processor
+import cStringIO
 
 from eulcore.xmlmap.fields import Field
 
@@ -139,6 +137,26 @@ class XmlObject(object):
 
     def __unicode__(self):
         return self.dom_node.xpath("normalize-space(.)")
+
+    def serialize(self, stream=None):
+        """Serialize the contents of the XmlObject to a stream.
+
+        If no stream is specified, returns a string.
+        """
+        if stream is None:
+            string_mode = True
+            stream = cStringIO.StringIO()
+        else:
+            string_mode = False
+            
+        Print(self.dom_node, stream=stream)
+        
+        if string_mode:
+            data = stream.getvalue()
+            stream.close()
+            return data
+        
+        return stream
 
 
 def load_xmlobject_from_string(string, xmlclass=XmlObject):
