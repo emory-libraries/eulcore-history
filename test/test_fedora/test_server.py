@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from test_fedora.base import FedoraTestCase, load_fixture_data
-from eulcore.fedora.server import DigitalObject, ObjectDatastream, URI_HAS_MODEL
+from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL
+from eulcore.fedora.server import Repository, DigitalObject, ObjectDatastream, URI_HAS_MODEL
 from eulcore import xmlmap
 import rdflib
 from testcore import main
@@ -97,6 +97,22 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         no_cmodel = self.repo.get_objects_with_cmodel("control:NotARealCmodel")
         self.assertEqual([], no_cmodel)
 
+    def test_nonssl(self):
+        self.ingestFixture("basic-object.foxml")
+        pid = self.fedora_fixtures_ingested[0]
+        repo = Repository(REPO_ROOT_NONSSL)
+        found = list(repo.find_objects(pid=pid))
+        self.assertEqual(1, len(found))
+
+    def test_badhostname(self):
+        self.ingestFixture("basic-object.foxml")
+        pid = self.fedora_fixtures_ingested[0]
+        repo = Repository('http://bogus.host.name.foo:8080/fedora/')
+        # TODO: currently just a URLError; make test more specific if we add more specific exceptions
+        self.assertRaises(Exception, list, repo.find_objects(pid=pid))
+        
+        # FIXME: is there any way to test that RequestContextManager closes the connection?
+
 
 class TestDigitalObject(FedoraTestCase):
     fixtures = ['basic-object.foxml']
@@ -133,7 +149,7 @@ class TestDigitalObject(FedoraTestCase):
     def testRelationships(self):
         # tests add & get rel methods
 
-        # add relation to a resource
+        # add relation to a resource, by digital object
         related = DigitalObject("foo:123", self.repo.fedora_root)
         isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
         added = self.object.add_relationship(isMemberOf, related)
@@ -141,6 +157,14 @@ class TestDigitalObject(FedoraTestCase):
         rels_ext = self.object.get_datastream("RELS-EXT")        
         self.assert_("isMemberOf" in rels_ext)
         self.assert_(related.uri in rels_ext) # should be full uri, not just pid
+
+        # add relation to a resource, by string
+        isMemberOfCollection = "info:fedora/fedora-system:def/relations-external#isMemberOfCollection"
+        collection_uri = "info:fedora/foo:456"
+        self.object.add_relationship(isMemberOfCollection, collection_uri)
+        rels_ext = self.object.get_datastream("RELS-EXT")
+        self.assert_("isMemberOfCollection" in rels_ext)
+        self.assert_(collection_uri in rels_ext) 
 
         # add relation to a literal
         self.object.add_relationship("info:fedora/fedora-system:def/relations-external#owner", "testuser")

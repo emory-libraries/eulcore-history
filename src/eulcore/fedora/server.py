@@ -206,8 +206,7 @@ class DigitalObject(object):
         if isinstance(object, DigitalObject):
             object = object.uri
             obj_is_literal = False
-        elif isinstance(object, str) and object.startswith('info:fedora/'):
-            object = object[len('info:fedora/'):]
+        elif isinstance(object, str) and object.startswith('info:fedora/'):            
             obj_is_literal = False
 
         extra_headers = auth_headers(self.username, self.password)
