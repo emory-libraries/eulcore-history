@@ -333,5 +333,11 @@
                 </ptrgrp>
             </indexentry>
         </index>
+        <index>
+            <head>Second Index</head>
+                <note>
+                <p>Some finding aids have multiple indexes.</p>
+                </note>
+        </index>
     </archdesc>
 </ead>

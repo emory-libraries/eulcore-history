@@ -269,7 +269,8 @@ class ArchivalDescription(xmlmap.XmlObject):
     "other finding aid :class:`Section` - `otherfindaid`"
     controlaccess = xmlmap.NodeField("controlaccess", ControlledAccessHeadings)
     ":class:`ControlledAccessHeadings` - `controlaccess`; subject terms, names, etc."
-    index = xmlmap.NodeField("index", Index)
+    index = xmlmap.NodeListField("index", Index)
+    "list of :class:`Index` - `index`; e.g., index of selected correspondents"
 
 class Address(xmlmap.XmlObject):
     """Address information.
@@ -277,6 +278,7 @@ class Address(xmlmap.XmlObject):
       Expected dom_node element passed to constructor: `address`.
     """
     lines = xmlmap.StringListField("addressline")
+    "list of lines in an address - `line`"
 
 class PublicationStatement(xmlmap.XmlObject):
     """Publication information for an EAD document.

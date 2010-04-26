@@ -90,19 +90,24 @@ class TestEad(unittest.TestCase):
     def test_index_indexentry(self):
         ad = self.ead.archdesc
         # index and indexentry
-        self.assert_(isinstance(ad.index, Index))
-        self.assertEqual("Index of Selected Correspondents", ad.index.head)
-        self.assert_("relates to the correspondence in Series 1" in ad.index.note.content[0])
-        self.assertEqual(2, len(ad.index.entry))
-        self.assert_(isinstance(ad.index.entry[0], IndexEntry))
-        self.assertEqual("Batten, Guinn", ad.index.entry[0].name)
-        self.assert_(isinstance(ad.index.entry[0].ptrgroup, PointerGroup))
-        self.assertEqual(3, len(ad.index.entry[0].ptrgroup.ref))
-        self.assert_(isinstance(ad.index.entry[0].ptrgroup.ref[0], Reference))
-        self.assertEqual("simple", ad.index.entry[0].ptrgroup.ref[0].type)
-        self.assert_("1995 July" in ad.index.entry[0].ptrgroup.ref[0].value)
-        self.assertEqual("Belton, Neil", ad.index.entry[1].name)
-        self.assert_("1993 November 3" in ad.index.entry[1].ptrgroup.ref[-1].value)
+        index = ad.index[0]
+        self.assert_(isinstance(index, Index))
+        self.assertEqual("Index of Selected Correspondents", index.head)
+        self.assert_("relates to the correspondence in Series 1" in index.note.content[0])
+        self.assertEqual(2, len(index.entry))
+        self.assert_(isinstance(index.entry[0], IndexEntry))
+        self.assertEqual("Batten, Guinn", index.entry[0].name)
+        self.assert_(isinstance(index.entry[0].ptrgroup, PointerGroup))
+        self.assertEqual(3, len(index.entry[0].ptrgroup.ref))
+        self.assert_(isinstance(index.entry[0].ptrgroup.ref[0], Reference))
+        self.assertEqual("simple", index.entry[0].ptrgroup.ref[0].type)
+        self.assert_("1995 July" in index.entry[0].ptrgroup.ref[0].value)
+        self.assertEqual("Belton, Neil", index.entry[1].name)
+        self.assert_("1993 November 3" in index.entry[1].ptrgroup.ref[-1].value)
+
+        # multiple indexes
+        self.assert_(isinstance(ad.index[1], Index))
+        self.assertEqual("Second Index", ad.index[1].head)
 
 
         
