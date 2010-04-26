@@ -222,6 +222,7 @@ class Index(Section):
     """
     entry = xmlmap.NodeListField("indexentry", IndexEntry)
     "list of :class:`IndexEntry` - `index`; entry in the index"
+    id = xmlmap.StringField("@id")
 
 
 class ArchivalDescription(xmlmap.XmlObject):

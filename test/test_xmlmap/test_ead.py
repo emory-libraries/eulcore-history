@@ -90,9 +90,11 @@ class TestEad(unittest.TestCase):
     def test_index_indexentry(self):
         ad = self.ead.archdesc
         # index and indexentry
+        self.assertEqual(2, len(ad.index))
         index = ad.index[0]
         self.assert_(isinstance(index, Index))
         self.assertEqual("Index of Selected Correspondents", index.head)
+        self.assertEqual("index1", index.id)
         self.assert_("relates to the correspondence in Series 1" in index.note.content[0])
         self.assertEqual(2, len(index.entry))
         self.assert_(isinstance(index.entry[0], IndexEntry))
@@ -108,6 +110,7 @@ class TestEad(unittest.TestCase):
         # multiple indexes
         self.assert_(isinstance(ad.index[1], Index))
         self.assertEqual("Second Index", ad.index[1].head)
+        self.assertEqual("index2", ad.index[1].id)
 
 
         

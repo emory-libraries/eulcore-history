@@ -310,7 +310,7 @@
             </c01>
         </dsc>
         <!-- index copied from ciaran carson finding aid -->
-        <index>
+        <index id="index1">
             <head>Index of Selected Correspondents</head>
                 <note>
                 <p>This index, which relates to the correspondence in Series 1, covers
@@ -333,7 +333,7 @@
                 </ptrgrp>
             </indexentry>
         </index>
-        <index>
+        <index id="index2">
             <head>Second Index</head>
                 <note>
                 <p>Some finding aids have multiple indexes.</p>
