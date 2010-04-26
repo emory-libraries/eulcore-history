@@ -4,6 +4,7 @@ import unittest
 
 from eulcore import xmlmap
 from eulcore.existdb.db import ExistDB
+from eulcore.existdb.exceptions import DoesNotExist, ReturnedMultiple
 from eulcore.existdb.query import QuerySet, Xquery, PartialResultObject
 from testcore import main
 
@@ -160,10 +161,10 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_get_toomany(self):
-        self.assertRaises(Exception, self.qs.get, contains="one")
+        self.assertRaises(ReturnedMultiple, self.qs.get, contains="one")
 
     def test_get_nomatch(self):
-        self.assertRaises(Exception, self.qs.get, contains="fifty-four")
+        self.assertRaises(DoesNotExist, self.qs.get, contains="fifty-four")
 
     def test_get_byname(self):
         result  = self.qs.get(name="one")

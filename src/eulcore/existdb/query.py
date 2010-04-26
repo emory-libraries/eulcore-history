@@ -9,9 +9,9 @@ stand-in replacement in any context that expects one.
 """
 
 import re
-from Ft.Xml.XPath import Compile, Evaluate
 from eulcore.xmlmap import load_xmlobject_from_string
 from eulcore.xmlmap.fields import StringMapper
+from eulcore.existdb.exceptions import DoesNotExist, ReturnedMultiple
 
 __all__ = ['QuerySet', 'Xquery', 'PartialResultObject']
 
@@ -251,12 +251,11 @@ class QuerySet(object):
         fqs = self.filter(**kwargs)
         if fqs.count() == 1:
             return fqs[0]
+        # NOTE: behaves like django - throws a DoesNotExist or a MultipleObjectsReturned
+        elif fqs.count() == 0:
+            raise DoesNotExist("no match found with params %s" % kwargs)
         else:
-            # FIXME/todo: custom exception type?
-            # NOTE: django throws a DoesNotExist or a MultipleObjectsReturned
-            # see line 338, http://code.djangoproject.com/browser/django/trunk/django/db/models/query.py
-            raise Exception("get() did not return 1 match - got %s with params %s"
-                % (fqs.count(), kwargs))
+            raise ReturnedMultiple("returned %s with params %s" % (fqs.count(), kwargs))
 
     def __getitem__(self, k):
         """Return a single result or slice of results from the query."""        
