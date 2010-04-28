@@ -18,6 +18,7 @@ Contents
    xmlmap
    existdb
    django
+   fedora
 
 Dependencies
 ------------

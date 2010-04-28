@@ -113,7 +113,6 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         
         # FIXME: is there any way to test that RequestContextManager closes the connection?
 
-
 class TestDigitalObject(FedoraTestCase):
     fixtures = ['basic-object.foxml']
 
@@ -145,6 +144,10 @@ class TestDigitalObject(FedoraTestCase):
         ds_list = self.object.get_datastreams()        
         self.assert_("DC" in ds_list.keys())
         self.assert_(isinstance(ds_list["DC"], ObjectDatastream))
+        dc = ds_list["DC"]
+        self.assertEqual("DC", dc.dsid)
+        self.assertEqual("Dublin Core", dc.label)
+        self.assertEqual("text/xml", dc.mimeType)
 
     def testRelationships(self):
         # tests add & get rel methods
