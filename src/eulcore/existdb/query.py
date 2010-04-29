@@ -11,7 +11,7 @@ stand-in replacement in any context that expects one.
 import re
 from Ft.Xml.XPath import Compile, Evaluate
 from eulcore.xmlmap import load_xmlobject_from_string
-from eulcore.xmlmap.fields import StringMapper
+from eulcore.xmlmap.fields import StringField, NodeField, IntegerField, NodeListField
 from eulcore.xmlmap.core import XmlObjectType
 
 __all__ = ['QuerySet', 'Xquery', 'PartialResultObject']
@@ -277,43 +277,20 @@ class QuerySet(object):
         item = self._db.retrieve(self.result_id, k)
         if self.model is None or self.query._distinct:
             return item.data
+
+        return_type = self.model
+        
+        # if there are additional/partial fields that need to override defined fields,
+        # define a new class derived from the XmlObject model and map those fields
         if self.partial_fields:
-            obj = load_xmlobject_from_string(item.data)
-            partial = PartialResultObject()
-            self._apply_fields(self.partial_fields, partial, obj.dom_node)
-            return partial
-        else:
-            return_type = self.model
-            # if there are additional fields that need to override defined fields,
-            # define a new class derived from the XmlObject model and map the additional fields
-            if len(self.additional_fields):
-                pclassname = "Partial%s" % self.model.__name__
-                pfields = {}
-                for name, fields in self.additional_fields.iteritems():
-                    # nested object fields are indicated by basename__subname
-                    if '__' in name:
-                        basename, remainder = name.split('__', 1)
-                        # if sub-object does not already exist, create it as a partial result
-                        if basename not in pfields:
-                            pfields[basename] = PartialResultObject()
-                        # NOTE: additional fields must be mapped on PartialResultObject after instantiation
-                    else:
-                        # field with the same type as the original model, but with xpath of the variable
-                        # name, to match how additional field results are constructed by Xquery object
-                        pfields[name] = type(fields[-1])(name)
+            return_type = _create_return_class(self.model, self.partial_fields)
+        elif self.additional_fields:
+            return_type = _create_return_class(self.model, self.additional_fields)
 
-                # create the new class and set it as the return type to be initialized
-                return_type = XmlObjectType(pclassname, (self.model,), pfields)
-
-            obj = load_xmlobject_from_string(item.data, return_type)
-
-            if len(self.additional_fields):
-                # set fields on any sub-objects, which are created as instances of PartialResultObject
-                self._apply_fields(self.additional_fields, obj, obj.dom_node)
-
-            # make queryTime method available when retrieving a single item
-            setattr(obj, 'queryTime', self.queryTime)
-            return obj
+        obj = load_xmlobject_from_string(item.data, return_type)
+        # make queryTime method available when retrieving a single item
+        setattr(obj, 'queryTime', self.queryTime)
+        return obj
 
     def __iter__(self):
         """Iterate through available results."""
@@ -332,15 +309,67 @@ class QuerySet(object):
         # getDocument returns unicode instead of string-- need to decode before handing off to parseString
         return load_xmlobject_from_string(data.encode('utf_8'), self.model)
 
-    def _apply_fields(self, fieldmap, target, dom_node):
-        for name, fields in fieldmap.iteritems():
-            node = dom_node.xpath(name)[0]
-            if fields is None or isinstance(fields, basestring):
-                mapper = None
-            else:
-                mapper = fields[-1].mapper
-            _add_field_to_partial(target, name, node, mapper)
+    
 
+def _create_return_class(baseclass, override_fields, xpath_prefix=None):
+    """
+    Define a new return class which extends the specified baseclass and
+    overrides the specified fields.
+
+    :param baseclass: the baseclass to be extended; expected to be an instance of XmlObject
+    :param override_fields: dictionary of field, list of nodefields - in the format of partial_fields
+    	or additional_fields, as genreated by QuerySet.only or QuerySet.also
+    :param xpath_prefix: optional, should only be used when recursing.  By default, the xpath
+    	for a constructed node is assumed to be the same as the field name; for sub-object fields,
+        this parameter is used to pass the prefix in for creating the sub-object class.
+    """
+    
+    classname = "Partial%s" % baseclass.__name__
+    class_fields = {}
+
+    # collect names of subobjects, with information needed to create additional return classes 
+    subclasses = {}
+    subclass_fields = {}
+    for name, fields in override_fields.iteritems():
+        # nested object fields are indicated by basename__subname
+        if '__' in name:
+            basename, remainder = name.split('__', 1)
+            subclasses[basename] = fields[0]	# list of field types - first type is basename
+            if basename not in subclass_fields:
+                subclass_fields[basename] = {}
+            subclass_fields[basename][remainder] = fields[1:]
+            
+        else:
+            # field with the same type as the original model field, but with xpath of the variable
+            # name, to match how additional field results are constructed by Xquery object
+            if fields is None or isinstance(fields, basestring):	
+		field_type = StringField	# handle special cases like fulltext score
+            else:
+                field_type = type(fields[-1])
+            
+            xpath = name
+            if xpath_prefix:
+                xpath = "__".join((xpath_prefix, name))
+            #TODO: create a clone function for nodefield that takes an xpath
+            if isinstance(fields[-1], NodeField) or isinstance(fields[-1], NodeListField):
+                class_fields[name] = field_type(xpath, fields[-1]._get_node_class())
+            else:
+                class_fields[name] = field_type(xpath)
+
+    # create subclasses and add to current class fields
+    for subclass_name, nodefield in subclasses.iteritems():
+        # create a new class derived from the configured nodefield class, with subclass fields
+        prefix = subclass_name
+        if xpath_prefix:
+            prefix = "__".join((xpath_prefix, prefix))
+        # new subclass type
+        subclass = _create_return_class(nodefield._get_node_class(), subclass_fields[subclass_name],
+                                        xpath_prefix=prefix)
+        # field type (e.g. NodeField or NodeListField), to be instanced as new subclass
+        class_fields[subclass_name] = type(nodefield)(".", subclass) 
+    
+    # create the new class and set it as the return type to be initialized
+    return XmlObjectType(classname, (baseclass,), class_fields)
 
 def _quote_as_string_literal(s):
     return '"' + s.replace('"', '""').replace('&', '&amp;') + '"'
@@ -568,41 +597,6 @@ class Xquery(object):
             xpath  = xpath.replace("|./", "|%s/" % self.xq_var)
         return xpath
 
-
-class PartialResultObject(object):
-    """
-    Partial result object returned by a :class:`QuerySet` when
-    :meth:`~QuerySet.only` or :meth:`~QuerySet.also` are used to alter the
-    fields returned. These objects allow the fields to be accessed using the
-    same ``foo.bar`` syntax used for regular fields.
-    """
-    # There's actually nothing to do here. The fields are all added by the
-    # QuerySet machinery via _add_field_to_partial.
-
-
-def _add_field_to_partial(self, name, dom_node, mapper=None):
-    """
-    Add an ersatz field to a PartialResultObject, or to any object
-    really.
-      :param name: the ``__``-joined field name from the ``only`` call
-      :param dom_node: the XML DOM node to copy the data from
-      :param mapper: the :mod:`eulcore.xmlmap` field mapper to use for
-                     interpreting the XML data. defaults to simple string
-                     mapping.
-    """
-    if '__' in name:
-        basename, remainder = name.split('__', 1)
-        # if sub-object does not already exist, create it
-        if not hasattr(self, basename) or not isinstance(getattr(self, basename), PartialResultObject):
-            setattr(self, basename, PartialResultObject())
-
-        child_partial = getattr(self, basename)
-        _add_field_to_partial(child_partial, remainder, dom_node, mapper)
-    else:
-        if mapper is None:
-            mapper = StringMapper()
-        value = mapper.to_python(dom_node)
-        setattr(self, name, value)
 
 
 # some helpers for handling '__'-separated field names:
