@@ -12,6 +12,7 @@ import re
 from Ft.Xml.XPath import Compile, Evaluate
 from eulcore.xmlmap import load_xmlobject_from_string
 from eulcore.xmlmap.fields import StringMapper
+from eulcore.xmlmap.core import XmlObjectType
 
 __all__ = ['QuerySet', 'Xquery', 'PartialResultObject']
 
@@ -282,8 +283,33 @@ class QuerySet(object):
             self._apply_fields(self.partial_fields, partial, obj.dom_node)
             return partial
         else:
-            obj = load_xmlobject_from_string(item.data, self.model)
-            self._apply_fields(self.additional_fields, obj, obj.dom_node)
+            return_type = self.model
+            # if there are additional fields that need to override defined fields,
+            # define a new class derived from the XmlObject model and map the additional fields
+            if len(self.additional_fields):
+                pclassname = "Partial%s" % self.model.__name__
+                pfields = {}
+                for name, fields in self.additional_fields.iteritems():
+                    # nested object fields are indicated by basename__subname
+                    if '__' in name:
+                        basename, remainder = name.split('__', 1)
+                        # if sub-object does not already exist, create it as a partial result
+                        if basename not in pfields:
+                            pfields[basename] = PartialResultObject()
+                        # NOTE: additional fields must be mapped on PartialResultObject after instantiation
+                    else:
+                        # field with the same type as the original model, but with xpath of the variable
+                        # name, to match how additional field results are constructed by Xquery object
+                        pfields[name] = type(fields[-1])(name)
+
+                # create the new class and set it as the return type to be initialized
+                return_type = XmlObjectType(pclassname, (self.model,), pfields)
+
+            obj = load_xmlobject_from_string(item.data, return_type)
+
+            if len(self.additional_fields):
+                # set fields on any sub-objects, which are created as instances of PartialResultObject
+                self._apply_fields(self.additional_fields, obj, obj.dom_node)
 
             # make queryTime method available when retrieving a single item
             setattr(obj, 'queryTime', self.queryTime)
