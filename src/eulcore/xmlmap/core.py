@@ -1,5 +1,5 @@
 from Ft.Lib import Uri
-from Ft.Xml.Domlette import NonvalidatingReader, Print
+from Ft.Xml.Domlette import NonvalidatingReader, CanonicalPrint
 from Ft.Xml.XPath.Context import Context
 from Ft.Xml.Xslt import Processor
 import cStringIO
@@ -20,6 +20,9 @@ class _FieldDescriptor(object):
         if obj is None:
             return self
         return self.field.get_for_node(obj.dom_node, obj.context)
+
+    def __set__(self, obj, value):        
+        return self.field.set_for_node(obj.dom_node, obj.context, value)
 
 
 class XmlObjectType(type):
@@ -148,8 +151,9 @@ class XmlObject(object):
             stream = cStringIO.StringIO()
         else:
             string_mode = False
-            
-        Print(self.dom_node, stream=stream)
+
+        # NOTE: using CanonicalPrint to keep namespace declarations, etc. where they are in the original xml
+        CanonicalPrint(self.dom_node, stream=stream)
         
         if string_mode:
             data = stream.getvalue()

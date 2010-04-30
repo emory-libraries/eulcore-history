@@ -131,7 +131,7 @@ class Repository(object):
         type = type or DigitalObject
 
         # FIXME: query production here is frankly sketchy
-        query = ' '.join([ '%s~%s' % (k, v) for k, v in kwargs.iteritems() ])        
+        query = ' '.join([ '%s~%s' % (k, v) for k, v in kwargs.iteritems() ])
         read = parse_xml_obj(add_auth(read_uri, self.username, self.password),
                              SearchResults)
 
@@ -369,6 +369,7 @@ class DigitalObject(object):
 
 # make it easy to access a DigitalObject as other types if it has the
 # appropriate cmodel info.
+# currently unused - not officially released
 class ObjectTypeDescriptor(object):
     def __init__(self, model, objtype):
         self.model = model
@@ -384,6 +385,8 @@ class ObjectTypeDescriptor(object):
 # fedora apis
 
 class RequestContextManager(object):
+    # used by HTTP_API_Base to close http connections automatically and
+    # ease connection creation
     def __init__(self, method, url, body=None, headers=None):
         self.method = method
         self.url = url

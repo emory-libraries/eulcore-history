@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL
+from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL, TEST_PIDSPACE
 from eulcore.fedora.server import Repository, DigitalObject, ObjectDatastream, URI_HAS_MODEL
 from eulcore import xmlmap
 import rdflib
 from testcore import main
 
 class TestBasicFedoraFunctionality(FedoraTestCase):
+    pidspace = TEST_PIDSPACE	# will be used for any objects ingested with ingestFixture
     def testGetNextPID(self):
         pid = self.repo.get_next_pid()
         self.assertTrue(pid)
@@ -58,12 +59,10 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         obj = self.repo.get_object(testpid, MyDigitalObject)
         self.assertTrue(isinstance(obj, MyDigitalObject))
 
-
     def testFindObjects(self):
-        self.ingestFixture("basic-object.foxml")
+        self.ingestFixture("object-with-pid.foxml")
         pid = self.fedora_fixtures_ingested[0]
 
-        # TODO: use xmlmap setters and custom pids for ingest & find
         objects = list(self.repo.find_objects(ownerId='tester'))
         # should find test object
         self.assertEqual(objects[0].pid, pid)
@@ -73,16 +72,16 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         # ingest 2 more copies of the same test object, then retrieve with chunksize=2
         # - retrieve a second chunk of results with findObjects with a session token
         for p in (1,2):
-            self.ingestFixture("basic-object.foxml")
-        
-        objects = list(self.repo.find_objects(pid='changeme*', chunksize=2))
+            self.ingestFixture("object-with-pid.foxml")
+
+        objects = list(self.repo.find_objects(pid="%s:*" % TEST_PIDSPACE, chunksize=2))
         self.assertEqual(3, len(objects))
         found_pids = [o.pid for o in objects]
         for pid in self.fedora_fixtures_ingested:
             self.assert_(pid in found_pids)
 
     def testGetObjectsByCmodel(self):
-        self.ingestFixture("basic-object.foxml")
+        self.ingestFixture("object-with-pid.foxml")
         pid = self.fedora_fixtures_ingested[0]
         obj = self.repo.get_object(pid)
         # add a cmodel to test object so we can find our test object by cmodel
@@ -96,16 +95,16 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         # query by a non-existent cmodel
         no_cmodel = self.repo.get_objects_with_cmodel("control:NotARealCmodel")
         self.assertEqual([], no_cmodel)
-
+            
     def test_nonssl(self):
-        self.ingestFixture("basic-object.foxml")
+        self.ingestFixture('object-with-pid.foxml')
         pid = self.fedora_fixtures_ingested[0]
         repo = Repository(REPO_ROOT_NONSSL)
         found = list(repo.find_objects(pid=pid))
         self.assertEqual(1, len(found))
 
     def test_badhostname(self):
-        self.ingestFixture("basic-object.foxml")
+        self.ingestFixture('object-with-pid.foxml')
         pid = self.fedora_fixtures_ingested[0]
         repo = Repository('http://bogus.host.name.foo:8080/fedora/')
         # TODO: currently just a URLError; make test more specific if we add more specific exceptions
@@ -113,8 +112,10 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         
         # FIXME: is there any way to test that RequestContextManager closes the connection?
 
+
 class TestDigitalObject(FedoraTestCase):
-    fixtures = ['basic-object.foxml']
+    fixtures = ['object-with-pid.foxml']
+    pidspace = TEST_PIDSPACE
 
     def setUp(self):
         super(TestDigitalObject, self).setUp()
@@ -130,7 +131,6 @@ class TestDigitalObject(FedoraTestCase):
         dc = self.object.get_datastream("DC")
         self.assert_("<dc:title>" in dc)
 
-        # TODO: get datastream as xml?
     def testGetDatastreamAsXml(self):
         class SimpleDC(xmlmap.XmlObject):
             title = xmlmap.StringField('dc:title')
@@ -138,7 +138,7 @@ class TestDigitalObject(FedoraTestCase):
 
         dc = self.object.get_datastream_as_xml("DC", SimpleDC)
         self.assertTrue(isinstance(dc, SimpleDC))
-        self.assertEqual(dc.title, "A test object")
+        self.assertEqual(dc.title, "A partially-prepared test object")
 
     def testGetDatastreams(self):
         ds_list = self.object.get_datastreams()        
@@ -195,7 +195,8 @@ class TestDigitalObject(FedoraTestCase):
 
         
 class TestResourceIndex(FedoraTestCase):
-    fixtures = ['basic-object.foxml']
+    fixtures = ['object-with-pid.foxml']
+    pidspace = TEST_PIDSPACE
     # relationship predicates for testing
     rel_isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
     rel_owner = "info:fedora/fedora-system:def/relations-external#owner"

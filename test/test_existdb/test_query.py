@@ -5,7 +5,7 @@ import unittest
 from eulcore import xmlmap
 from eulcore.existdb.db import ExistDB
 from eulcore.existdb.exceptions import DoesNotExist, ReturnedMultiple
-from eulcore.existdb.query import QuerySet, Xquery, PartialResultObject
+from eulcore.existdb.query import QuerySet, Xquery
 from testcore import main
 
 from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_TEST_COLLECTION
@@ -203,12 +203,13 @@ class ExistQueryTest(unittest.TestCase):
         self.assert_('element name {' not in self.qs.query.getQuery(), "main queryset unchanged by only()")
         
         fqs = self.qs.filter(id='one').only('name','id', 'sub')
-        self.assert_(isinstance(fqs[0], PartialResultObject))
-        self.assertTrue(hasattr(fqs[0], "name"))
-        self.assertTrue(hasattr(fqs[0], "id"))
-        self.assertTrue(hasattr(fqs[0], "sub"))
-        self.assertTrue(hasattr(fqs[0].sub, 'subname'))
-        self.assertFalse(hasattr(fqs[0], "description"))
+        self.assert_(isinstance(fqs[0], QueryTestModel))	# actually a Partial type derived from this
+        # attributes that should be present
+        self.assertNotEqual(fqs[0].id, None)
+        self.assertNotEqual(fqs[0].sub, None)
+        self.assertNotEqual(fqs[0].sub.subname, None)
+        # attribute not returned
+        self.assertEqual(fqs[0].description, None)
         self.assertEqual('one', fqs[0].id)
         self.assertEqual('one', fqs[0].name)
         self.assertEqual('la', fqs[0].sub.subname)
@@ -307,8 +308,9 @@ class ExistQueryTest__FullText(unittest.TestCase):
 
     def test_only__fulltext_score(self):
         fqs = self.qs.filter(description__fulltext_terms='one').only('fulltext_score', 'name')
-        self.assert_(isinstance(fqs[0], PartialResultObject))
-        self.assertTrue(hasattr(fqs[0], "fulltext_score"))
+        self.assert_(isinstance(fqs[0], QueryTestModel))	# actually a Partial type derived from this
+        # fulltext score attribute should be present
+        self.assertNotEqual(fqs[0].fulltext_score, None)
         self.assert_(float(fqs[0].fulltext_score) > 0.5)    # full-text score should be a float
 
 
