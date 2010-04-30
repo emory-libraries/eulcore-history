@@ -49,7 +49,7 @@ See the individual blocks for overriding and structure.
   {% endcomment %}
   {% if alt_links %}
       {% for link in alt_links %}
-      <link rel="alternate" type="{{ link.type }}" title="{{ link.title }}" href="{{ link.url }}"/>
+      <link rel="alternate" type="{{ link.type }}" title="{{ link.title }}" href="{{ link.href }}"/>
       {% endfor %}
   {% endif %}
   {% endblock %}
