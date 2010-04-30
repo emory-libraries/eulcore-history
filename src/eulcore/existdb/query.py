@@ -11,10 +11,17 @@ stand-in replacement in any context that expects one.
 import re
 from Ft.Xml.XPath import Compile, Evaluate
 from eulcore.xmlmap import load_xmlobject_from_string
-from eulcore.xmlmap.fields import StringField, NodeField, IntegerField, NodeListField
+from eulcore.xmlmap.fields import StringField, NodeField, NodeListField
 from eulcore.xmlmap.core import XmlObjectType
 
 __all__ = ['QuerySet', 'Xquery', 'PartialResultObject']
+
+# TODO: update field info (currently only name/xpath?) passed to Query
+# object to include field type (e.g., StringField, NodeField) so that we
+# can handle Node and List field types more intelligently.
+# Note that any changes in the return structure for NodeFields will
+# most likely require a corresponding change in the _create_return_class function
+
 
 class QuerySet(object):
 
@@ -323,6 +330,9 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None):
     	for a constructed node is assumed to be the same as the field name; for sub-object fields,
         this parameter is used to pass the prefix in for creating the sub-object class.
     """
+
+    # NOTE: this class is tested indirectly via the QuerySet also and only functions,
+    # but it is *not* tested directly.    
     
     classname = "Partial%s" % baseclass.__name__
     class_fields = {}
@@ -351,6 +361,7 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None):
             if xpath_prefix:
                 xpath = "__".join((xpath_prefix, name))
             #TODO: create a clone function for nodefield that takes an xpath
+            # (this should make field-type instantiation more reliable and flexible)
             if isinstance(fields[-1], NodeField) or isinstance(fields[-1], NodeListField):
                 class_fields[name] = field_type(xpath, fields[-1]._get_node_class())
             else:
