@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL, TEST_PIDSPACE
+from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
 from eulcore.fedora.server import Repository, DigitalObject, ObjectDatastream, URI_HAS_MODEL
+
 from eulcore import xmlmap
 import rdflib
 from testcore import main
@@ -242,7 +243,6 @@ class TestResourceIndex(FedoraTestCase):
         objects =  list(self.risearch.get_objects(self.object.uri, URI_HAS_MODEL))
         self.assert_(self.cmodel.uri in objects)
         # also includes generic fedora-object cmodel
-
 
 if __name__ == '__main__':
     main()
