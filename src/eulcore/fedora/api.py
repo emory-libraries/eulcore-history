@@ -219,8 +219,9 @@ class REST_API(HTTP_API_Base):
     # addRelationship not implemented in REST API
 
     def compareDatastreamChecksum(self, pid, dsID): # date time
-        # call getDatastream with param validateChecksum = true
-        pass
+        # specical case of getDatastream, with validateChecksum = true
+        # currently returns datastream info returned by getDatastream...  what should it return?
+        return self.getDatastream(pid, dsID, validateChecksum=True)
 
     def export(self, pid, context=None, read=None):
         # /objects/{pid}/export ? [format] [context] [encoding]
@@ -231,10 +232,12 @@ class REST_API(HTTP_API_Base):
             uri += '?' + urlencode({'context' : context})
         return self.read_relative_uri(uri, read)
 
-    def getDatastream(self, pid, dsID, read=None):
+    def getDatastream(self, pid, dsID, validateChecksum=False, read=None):
         # /objects/{pid}/datastreams/{dsID} ? [asOfDateTime] [format] [validateChecksum]
         http_args = {}
-        http_args.update(self.format_xml)
+        if validateChecksum:
+            http_args['validateChecksum'] = 'true'
+        http_args.update(self.format_xml)        
         uri = 'objects/%s/datastreams/%s' % (pid, dsID) + '?' + urlencode(http_args)
         return self.read_relative_uri(uri, read)
 
@@ -375,11 +378,13 @@ class REST_API(HTTP_API_Base):
             http_args['endDT'] = endDT
 
         url = 'objects/%s/datastreams/%s' % (pid, dsID) + '?' + urlencode(http_args)
-        with self.relative_request('DELETE', url, '', {}) as response:            
+        with self.relative_request('DELETE', url, '', {}) as response:
             # returns 204 on success (204 No Content)
             # NOTE: response content may be useful on error, e.g.
             #       no path in db registry for [bogus:pid]
             # is there any useful way to pass this info back?
+            # *NOTE*: bug when purging non-existent datastream on a valid pid
+            # - reported here: http://www.fedora-commons.org/jira/browse/FCREPO-690
             return response.status == 204
 
     def purgeObject(self, pid, logMessage=None):
@@ -397,7 +402,7 @@ class REST_API(HTTP_API_Base):
             http_args['logMessage'] = logMessage
 
         url = 'objects/' + pid  + '?' + urlencode(http_args)
-        with self.relative_request('DELETE', url, '', {}) as response:            
+        with self.relative_request('DELETE', url, '', {}) as response:
             # returns 204 on success (204 No Content)
             return response.status == 204
 
@@ -415,10 +420,12 @@ class REST_API(HTTP_API_Base):
         # /objects/{pid}/datastreams/{dsID} ? [versionable]
         http_args = { 'versionable' : versionable }
         url = 'objects/%s/datastreams/%s' % (pid, dsID) + '?' + urlencode(http_args)
-        with self.relative_request('PUT', url, '', {}) as response:            
+        with self.relative_request('PUT', url, '', {}) as response:
             # returns response code 200 on success
             return response.status == 200        
 
+# NOTE: the "LITE" APIs are planned to be phased out; when that happens, these functions
+# (or their equivalents) should be available in the REST API
 
 class API_A_LITE(HTTP_API_Base):
     """
@@ -458,7 +465,7 @@ class API_M_LITE(HTTP_API_Base):
 
         with self.relative_request('POST', url, body, headers) as response:
             # returns 201 Created on success
-            #return response.status == 201
+            # return response.status == 201
             # content of response should be upload id, if successful
             return response.read()
 

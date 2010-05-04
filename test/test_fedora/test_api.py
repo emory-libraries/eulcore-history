@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
-from eulcore.fedora.api import API_A_LITE, REST_API
+from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE
 from testcore import main
 from datetime import date
 from time import sleep
 import tempfile
+import re
 
 # TODO: test for errors - bad pid, dsid, etc
 
@@ -39,6 +40,23 @@ class TestREST_API(FedoraTestCase):
     TEXT_CONTENT = """This is my text content for a new datastream.
         
 Hey, nonny-nonny."""
+
+    def _add_text_datastream(self):        
+        # add a text datastream to the current test object - used by multiple tests
+        FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
+        FILE.write(self.TEXT_CONTENT)
+        FILE.flush()
+
+        # info for calling addDatastream, and return
+        ds = {  'id' : 'TEXT', 'label' : 'text datastream', 'mimeType' : 'text/plain',
+            'controlGroup' : 'M', 'logMessage' : "creating new datastream",
+            'checksumType' : 'MD5'}
+
+        added = self.rest_api.addDatastream(self.pid, ds['id'], ds['label'],
+            ds['mimeType'], ds['logMessage'], ds['controlGroup'], filename=FILE.name,
+            checksumType=ds['checksumType'])
+        FILE.close()
+        return (added, ds)
 
     def setUp(self):
         super(TestREST_API, self).setUp()
@@ -81,9 +99,9 @@ Hey, nonny-nonny."""
     def test_listDatastreams(self):
         dslist = self.rest_api.listDatastreams(self.pid)
         self.assert_('<objectDatastreams' in dslist)
-        # TODO: possibly add additional datastreams to test object and confirm they are listed
+        # TODO: possibly add additional datastreams to test object and confirm they are listed?
         self.assert_('<datastream dsid="DC" label="Dublin Core" mimeType="text/xml"' in dslist)
-
+        
     def test_listMethods(self):
         methods = self.rest_api.listMethods(self.pid)
         self.assert_('<objectMethods' in methods)
@@ -100,47 +118,48 @@ Hey, nonny-nonny."""
     # API-M calls
 
     def test_addDatastream(self):
-        dsid = "TEXT"
-        # create a temporary file to upload to Fedora
-        
-        FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
-        FILE.write(self.TEXT_CONTENT)
-        FILE.flush()
+        # returns result from addDatastream call and info used for add
+        (added, ds) = self._add_text_datastream()
 
-        #ssl_rest_api = REST_API(REPO_ROOT, REPO_USER, REPO_PASS)
-        #print ssl_rest_api.upload(FILE.name)
-
-        added = self.rest_api.addDatastream(self.pid, dsid, "text datastream",
-            mimeType="text/plain", logMessage="creating new datastream",
-            controlGroup="M", filename=FILE.name)
-        self.assertTrue(added)
+        self.assertTrue(added)  # response from addDatastream
+        self.assert_(ds['logMessage'] in self.rest_api.getObjectXML(self.pid))
         dslist = self.rest_api.listDatastreams(self.pid)
-        self.assert_('<datastream dsid="TEXT" label="text datastream" mimeType="text/plain" />'
-                in dslist)
-
-        ds_profile = self.rest_api.getDatastream(self.pid, dsid)
-        self.assert_('dsID="TEXT" ' in ds_profile)
-        self.assert_('<dsLabel>text datastream</dsLabel>' in ds_profile)
-        self.assert_('<dsVersionID>TEXT.0</dsVersionID>' in ds_profile)
+        self.assert_('<datastream dsid="%(id)s" label="%(label)s" mimeType="%(mimeType)s" />'
+            % ds  in dslist)
+        ds_profile = self.rest_api.getDatastream(self.pid, ds['id'])
+        self.assert_('dsID="%s" ' % ds['id'] in ds_profile)
+        self.assert_('<dsLabel>%s</dsLabel>' % ds['label'] in ds_profile)
+        self.assert_('<dsVersionID>%s.0</dsVersionID>' % ds['id'] in ds_profile)
         self.assert_('<dsCreateDate>%s' % self.today in ds_profile)
         self.assert_('<dsState>A</dsState>' in ds_profile)
-        self.assert_('<dsMIME>text/plain</dsMIME>' in ds_profile)
-        self.assert_('<dsControlGroup>M</dsControlGroup>' in ds_profile)
+        self.assert_('<dsMIME>%s</dsMIME>' % ds['mimeType'] in ds_profile)
+        self.assert_('<dsControlGroup>%s</dsControlGroup>' % ds['controlGroup'] in ds_profile)
         self.assert_('<dsVersionable>true</dsVersionable>' in ds_profile)
 
         # content returned from fedora should be exactly what we started with
-        ds_content = self.rest_api.getDatastreamDissemination(self.pid, dsid)
+        ds_content = self.rest_api.getDatastreamDissemination(self.pid, ds['id'])
         self.assertEqual(self.TEXT_CONTENT, ds_content)
         
         # attempt to add to a non-existent object
-        added = self.rest_api.addDatastream("bogus:pid", dsid, "text datastream",
+        FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
+        FILE.write("bogus")
+        FILE.flush()
+        added = self.rest_api.addDatastream("bogus:pid", 'TEXT', "text datastream",
             mimeType="text/plain", logMessage="creating new datastream",
             controlGroup="M", filename=FILE.name)
         self.assertFalse(added)
 
         FILE.close()
 
-    # TODO : test compareDatastreamChecksum
+    def test_compareDatastreamChecksum(self):
+        # create datastream with checksum
+        (added, ds) = self._add_text_datastream()        
+        ds_info = self.rest_api.compareDatastreamChecksum(self.pid, ds['id'])
+        self.assert_('<dsChecksum>bfe1f7b3410d1e86676c4f7af2a84889</dsChecksum>' in ds_info)
+        # FIXME: how to test that checksum has actually been checked?
+
+        # check for log message in audit trail
+        self.assert_(ds['logMessage'] in self.rest_api.getObjectXML(self.pid))        
 
     def test_export(self):
         export = self.rest_api.export(self.pid)
@@ -174,10 +193,13 @@ Hey, nonny-nonny."""
     # TODO: test getNextPid - but result handling is going to change.. (?)
 
     def test_getObjectXML(self):
+        # update the object so we can look for audit trail in object xml
+        (added, ds) = self._add_text_datastream()   
         objxml = self.rest_api.getObjectXML(self.pid)
-        # TODO/FIXME: update the object so we can look for audit trail in object xml
         self.assert_('<foxml:digitalObject' in objxml)
         self.assert_('<foxml:datastream ID="DC" ' in objxml)
+        # audit trail accessible in full xml
+        self.assert_('<audit:auditTrail ' in objxml)    
 
     def test_ingest(self):
         object = load_fixture_data('basic-object.foxml')
@@ -193,16 +215,8 @@ Hey, nonny-nonny."""
         self.rest_api.purgeObject(pid, "removing test ingest object")
 
     def test_modifyDatastream(self):
-        dsid = "TEXT"
-        # create a temporary file to upload to Fedora, then modify
-        FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
-        FILE.write(self.TEXT_CONTENT)
-        FILE.flush()        
-
-        self.rest_api.addDatastream(self.pid, dsid, "text datastream",
-            mimeType="text/plain", logMessage="creating new datastream",
-            controlGroup="M", filename=FILE.name)
-        FILE.close()
+        # add a datastream to be modified
+        (added, ds) = self._add_text_datastream()   
 
         new_text = """Sigh no more, ladies sigh no more.
 Men were deceivers ever.
@@ -212,17 +226,19 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         FILE.flush()
 
         # modify managed datastream by file
-        updated = self.rest_api.modifyDatastream(self.pid, dsid, "text datastream (modified)",
-            mimeType="text/other", logMessage="modifying TEXT datastream", filename=FILE.name)        
-        
+        updated = self.rest_api.modifyDatastream(self.pid, ds['id'], "text datastream (modified)",
+            mimeType="text/other", logMessage="modifying TEXT datastream", filename=FILE.name)                
         self.assertTrue(updated)
-        ds_profile = self.rest_api.getDatastream(self.pid, dsid)
+        # log message in audit trail
+        self.assert_('modifying TEXT datastream' in self.rest_api.getObjectXML(self.pid))
+
+        ds_profile = self.rest_api.getDatastream(self.pid, ds['id'])
         self.assert_('<dsLabel>text datastream (modified)</dsLabel>' in ds_profile)
-        self.assert_('<dsVersionID>TEXT.1</dsVersionID>' in ds_profile)
+        self.assert_('<dsVersionID>%s.1</dsVersionID>' % ds['id'] in ds_profile)
         self.assert_('<dsState>A</dsState>' in ds_profile)
         self.assert_('<dsMIME>text/other</dsMIME>' in ds_profile)  
         
-        content = self.rest_api.getDatastreamDissemination(self.pid, "TEXT")
+        content = self.rest_api.getDatastreamDissemination(self.pid, ds['id'])
         self.assertEqual(content, new_text)       
 
         # modify DC (inline xml) by string
@@ -251,6 +267,8 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         modified = self.rest_api.modifyObject(self.pid, "modified test object", "testuser",
             "I", "testing modify object")
         self.assertTrue(modified)
+        # log message in audit trail
+        self.assert_('testing modify object' in self.rest_api.getObjectXML(self.pid))
         
         profile = self.rest_api.getObjectProfile(self.pid)
         self.assert_('<objLabel>modified test object</objLabel>' in profile)
@@ -262,23 +280,27 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         self.assertFalse(modified)
 
     def test_purgeDatastream(self):
-        # TODO: check this - attempting to purge a non-existent datastream returns 204?
+        # add a datastream that can be purged
+        (added, ds) = self._add_text_datastream()          
+
+        purged = self.rest_api.purgeDatastream(self.pid, ds['id'], logMessage="purging text datastream")
+        self.assertTrue(purged)
+        # log message in audit trail
+        self.assert_('purging text datastream' in self.rest_api.getObjectXML(self.pid))
+        # datastream no longer listed
+        dslist = self.rest_api.listDatastreams(self.pid)
+        self.assert_('<datastream dsid="%s"' % ds['id'] not in dslist)
+
+        # NOTE: Fedora bug - attempting to purge a non-existent datastream returns 204?
         #purged = self.rest_api.purgeDatastream(self.pid, "BOGUS",
         #    logMessage="test purging non-existent datastream")
+        #self.assertFalse(purged)
 
         purged = self.rest_api.purgeDatastream("bogus:pid", "BOGUS",
             logMessage="test purging non-existent datastream from non-existent object")
-        self.assertFalse(purged)
-
-
-        # FIXME/TODO: can't delete DC!  add a new DS and then purge
-        #purged = self.rest_api.purgeDatastream(self.pid, "DC", logMessage="purging DC")
-        #self.assertTrue(purged)
+        self.assertFalse(purged)   
         
-        #dslist = self.rest_api.listDatastreams(self.pid)
-        #self.assert_('<datastream dsid="DC"' not in dslist)
-
-        # also TODO: purge specific versions of a datastream
+        # also test purging specific versions of a datastream ? 
 
     def test_purgeObject(self):
         object = load_fixture_data('basic-object.foxml')
@@ -326,7 +348,27 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         set_versioned = self.rest_api.setDatastreamVersionable("bogus:pid", "DC", True)
         self.assertFalse(set_versioned)
 
-        
+
+class TestAPI_M_LITE(FedoraTestCase):
+    fixtures = ['object-with-pid.foxml']
+    pidspace = TEST_PIDSPACE
+
+    def setUp(self):
+        super(TestAPI_M_LITE, self).setUp()
+        self.pid = self.fedora_fixtures_ingested[0]
+        self.api_m = API_M_LITE(REPO_ROOT, REPO_USER, REPO_PASS)
+
+    def testUpload(self):
+        FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
+        FILE.write("Here is some temporary content to upload to fedora.")
+        FILE.flush()
+
+        upload_id = self.api_m.upload(FILE.name)
+        # current format looks like uploaded://####
+        pattern = re.compile('uploaded://[0-9]+')
+        self.assert_(pattern.match(upload_id))
+
+
 
 if __name__ == '__main__':
     main()
