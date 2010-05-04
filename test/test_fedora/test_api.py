@@ -226,9 +226,14 @@ Hey, nonny-nonny."""
 
         # bogus pid
         self.assertRaises(Exception, self.rest_api.getDatastream, "bogus:pid", "DC")
+        
+    def test_getNextPID(self):
+        (pids, url) = self.rest_api.getNextPID()
+        self.assert_('<pidList' in pids)
+        self.assert_('<pid>' in pids)
 
-
-    # TODO: test getNextPid - but result handling is going to change.. (?)
+        (pids, url) = self.rest_api.getNextPID(numPIDs=3, namespace="test-ns")        
+        self.assertEqual(3, pids.count("<pid>test-ns:"))        
 
     def test_getObjectXML(self):
         # update the object so we can look for audit trail in object xml

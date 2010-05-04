@@ -283,16 +283,8 @@ class REST_API(HTTP_API_Base):
         rel_url = 'objects/nextPID?' + urlencode(http_args)
         url = urljoin(self.fedora_root, rel_url)
         with self.relative_request('POST', url, '', {}) as response:
-            text = response.read()
-        dom = NonvalidatingReader.parseString(text, url)
-        pids = [ node.nodeValue for node in dom.xpath('/pidList/pid/text()') ]
-
-        # FIXME: just return the xml here and do the parsing at a higher level
-
-        if numPIDs is None:
-            return pids[0]
-        else:
-            return pids
+            # returning url so it can be used as context for xml parsing
+            return (response.read(), url)
 
     def getObjectXML(self, pid, read=None):
         """

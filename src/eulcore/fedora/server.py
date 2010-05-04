@@ -4,6 +4,7 @@ from urllib2 import urlopen, Request
 from soaplib.client import make_service_client
 import rdflib
 from Ft.Xml.XPath.Context import Context
+from Ft.Xml.Domlette import NonvalidatingReader
 
 from eulcore import xmlmap
 from eulcore.fedora.api import REST_API, API_A_LITE, API_M, read_uri
@@ -51,7 +52,16 @@ class Repository(object):
             kwargs['namespace'] = namespace
         if count:
             kwargs['numPIDs'] = count
-        return self.rest_api.getNextPID(**kwargs)
+        (nextpids, url) = self.rest_api.getNextPID(**kwargs)
+        
+        dom = NonvalidatingReader.parseString(nextpids, url)
+        pids = [ node.nodeValue for node in dom.xpath('/pidList/pid/text()') ]
+
+        if count is None:
+            return pids[0]
+        else:
+            return pids
+
 
     def ingest(self, text, log_message=None):
         """
