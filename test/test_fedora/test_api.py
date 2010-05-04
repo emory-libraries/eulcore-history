@@ -66,7 +66,22 @@ Hey, nonny-nonny."""
 
     # API-A calls
 
-    # TODO: test findObjects/resumefind
+
+    def test_findObjects(self):
+        found = self.rest_api.findObjects("ownerId~tester")
+        print found
+
+        # ingest 2 more copies of the same test object, then retrieve with chunksize=2
+        # - retrieve a second chunk of results with findObjects with a session token
+        #for p in (1,2):
+        #    self.ingestFixture("object-with-pid.foxml")
+
+        #objects = list(self.repo.find_objects(pid="%s:*" % TEST_PIDSPACE, chunksize=2))
+        #self.assertEqual(3, len(objects))
+        #found_pids = [o.pid for o in objects]
+        #for pid in self.fedora_fixtures_ingested:
+        #    self.assert_(pid in found_pids)
+
 
     def test_getDatastreamDissemination(self):
         dc = self.rest_api.getDatastreamDissemination(self.pid, "DC")
