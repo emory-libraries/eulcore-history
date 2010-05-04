@@ -37,26 +37,3 @@ Fedora objects
 
 .. autoclass:: SearchResult
     :members:
-
-API Wrappers
-^^^^^^^^^^^^
-
-.. autoclass:: REST_API
-    :members:
-
-.. autoclass:: API_A_LITE
-    :members:
-
-.. autoclass:: API_M
-    :members:
-
-Utility functions
-^^^^^^^^^^^^^^^^^
-
-.. automethod:: eulcore.fedora.server.read_uri
-
-.. automethod:: eulcore.fedora.server.auth_headers
-
-.. automethod:: eulcore.fedora.server.parse_rdf
-
-.. automethod:: eulcore.fedora.server.parse_xml_object
