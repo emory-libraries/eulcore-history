@@ -126,9 +126,13 @@ class REST_API(HTTP_API_Base):
             http_args['maxResults'] = chunksize
         return self.read_relative_uri('objects?' + urlencode(http_args), read)
 
-    def getDatastreamDissemination(self, pid, dsID, read=None):    # datetime?
+    def getDatastreamDissemination(self, pid, dsID, asOfDateTime=None, read=None):
         # /objects/{pid}/datastreams/{dsID}/content ? [asOfDateTime] [download]
-        return self.read_relative_uri('objects/%s/datastreams/%s/content' % (pid, dsID), read)
+        http_args = {}
+        if asOfDateTime:
+            http_args['asOfDateTime'] = asOfDateTime
+        url = 'objects/%s/datastreams/%s/content?%s' % (pid, dsID, urlencode(http_args))
+        return self.read_relative_uri(url, read)
 
     def getDissemination(self, pid, sdefPid, method, method_params={}, read=None):
         # /objects/{pid}/methods/{sdefPid}/{method} ? [method parameters]
@@ -142,9 +146,14 @@ class REST_API(HTTP_API_Base):
         # /objects/{pid}/versions ? [format]        
         return self.read_relative_uri('objects/%s/versions?%s' % (pid, urlencode(self.format_xml)), read)
 
-    def getObjectProfile(self, pid, read=None): # date?
+    def getObjectProfile(self, pid, asOfDateTime=None, read=None): # date?
         # /objects/{pid} ? [format] [asOfDateTime]
-        return self.read_relative_uri('objects/%s?%s' % (pid, urlencode(self.format_xml)), read)
+        http_args = {}
+        if asOfDateTime:
+            http_args['asOfDateTime'] = asOfDateTime
+        http_args.update(self.format_xml)
+        url = 'objects/%s?%s' % (pid, urlencode(http_args))
+        return self.read_relative_uri(url, read)
 
     def listDatastreams(self, pid, read=None):
         """
@@ -173,7 +182,7 @@ class REST_API(HTTP_API_Base):
     ### API-M methods (management) ####
 
     def addDatastream(self, pid, dsID, dsLabel,  mimeType, logMessage,
-        controlGroup=None, dsLocation=None, altIDs={}, versionable=None,
+        controlGroup=None, dsLocation=None, altIDs=None, versionable=None,
         dsState=None, formatURI=None, checksumType=None, checksum=None, filename=None):
         # objects/{pid}/datastreams/NEWDS? [opts]
         # content via multipart file in request content, or dsLocation=URI
@@ -210,33 +219,44 @@ class REST_API(HTTP_API_Base):
             body = None
 
         url = 'objects/%s/datastreams/%s?' % (pid, dsID) + urlencode(http_args)
-        with self.relative_request('POST', url, body, headers) as response:
+        with self.relative_request('POST', url, body, headers) as response:            
+            # expected response: 201 Created (on success)
             # when pid is invalid, response body contains error message
             #  e.g., no path in db registry for [bogus:pid]
-            # returns 201 Created on success
-            return response.status == 201
+            # return success/failure and any additional information
+            return (response.status == 201, response.read())
 
     # addRelationship not implemented in REST API
 
-    def compareDatastreamChecksum(self, pid, dsID): # date time
+    def compareDatastreamChecksum(self, pid, dsID, asOfDateTime=None): # date time
         # specical case of getDatastream, with validateChecksum = true
         # currently returns datastream info returned by getDatastream...  what should it return?
-        return self.getDatastream(pid, dsID, validateChecksum=True)
+        return self.getDatastream(pid, dsID, validateChecksum=True, asOfDateTime=asOfDateTime)
 
-    def export(self, pid, context=None, read=None):
+    def export(self, pid, context=None, format=None, encoding=None, read=None):
         # /objects/{pid}/export ? [format] [context] [encoding]
-        # - currently assuming default format (FOXML 1.1), encoding (UTF-8)
+        # - if format is not specified, use fedora default (FOXML 1.1)
+        # - if encoding is not specified, use fedora default (UTF-8)
         # - context should be one of: public, migrate, archive (default is public)
-        uri = 'objects/%s/export' % pid
+        http_args = {}
         if context:
-            uri += '?' + urlencode({'context' : context})
+            http_args['context'] = context
+        if format:
+            http_args['format'] = format
+        if encoding:
+            http_args['encoding'] = encoding
+        uri = 'objects/%s/export' % pid
+        if http_args:
+            uri += '?' + urlencode(http_args)
         return self.read_relative_uri(uri, read)
 
-    def getDatastream(self, pid, dsID, validateChecksum=False, read=None):
+    def getDatastream(self, pid, dsID, asOfDateTime=None, validateChecksum=False, read=None):
         # /objects/{pid}/datastreams/{dsID} ? [asOfDateTime] [format] [validateChecksum]
         http_args = {}
         if validateChecksum:
-            http_args['validateChecksum'] = 'true'
+            http_args['validateChecksum'] = validateChecksum
+        if asOfDateTime:
+            http_args['asOfDateTime'] = asOfDateTime
         http_args.update(self.format_xml)        
         uri = 'objects/%s/datastreams/%s' % (pid, dsID) + '?' + urlencode(http_args)
         return self.read_relative_uri(uri, read)
@@ -313,11 +333,12 @@ class REST_API(HTTP_API_Base):
 
     def modifyDatastream(self, pid, dsID, dsLabel, mimeType, logMessage, dsLocation=None,
         altIDs=None, versionable=None, dsState=None, formatURI=None, checksumType=None,
-        checksum=None, filename=None, content=None):    # force, ignore content?
+        checksum=None, filename=None, content=None, force=False):   
         # /objects/{pid}/datastreams/{dsID} ? [dsLocation] [altIDs] [dsLabel] [versionable] [dsState] [formatURI] [checksumType] [checksum] [mimeType] [logMessage] [force] [ignoreContent]
+        # NOTE: not implementing ignoreContent (unneeded)
         
         # content via multipart file in request content, or dsLocation=URI
-        # one of dsLocation, filename, or content must be specified
+        # if dsLocation, filename, or content is not specified, datastream content will not be updated
 
         http_args = { 'dsLabel' : dsLabel, 'mimeType' : mimeType,
             'logMessage' : logMessage}        
@@ -335,6 +356,8 @@ class REST_API(HTTP_API_Base):
             http_args['checksumType'] = checksumType
         if checksum:
             http_args['checksum'] = checksum
+        if force:
+            http_args['force'] = force
 
         headers = {}
         body = None
@@ -350,11 +373,10 @@ class REST_API(HTTP_API_Base):
 
         url = 'objects/%s/datastreams/%s?' % (pid, dsID) + urlencode(http_args)
         with self.relative_request('PUT', url, body, headers) as response:
-            # when pid is invalid, response body contains error message
-            #  e.g., no path in db registry for [bogus:pid] (404)
-            # returns 200 on success
-            return response.status == 200
-        
+            # expected response: 200 (success)
+            # response body contains error message, if any
+            # return success/failure and any additional information
+            return (response.status == 200, response.read())        
 
     def modifyObject(self, pid, label, ownerId, state, logMessage):
         # /objects/{pid} ? [label] [ownerId] [state] [logMessage]
@@ -367,7 +389,8 @@ class REST_API(HTTP_API_Base):
             # returns response code 200 on success
             return response.status == 200
 
-    def purgeDatastream(self, pid, dsID, startDT=None, endDT=None, logMessage=None): # force?
+    def purgeDatastream(self, pid, dsID, startDT=None, endDT=None, logMessage=None,
+            force=False):
         # /objects/{pid}/datastreams/{dsID} ? [startDT] [endDT] [logMessage] [force]
         http_args = {}
         if logMessage:
@@ -376,6 +399,8 @@ class REST_API(HTTP_API_Base):
             http_args['startDT'] = startDT
         if endDT:
             http_args['endDT'] = endDT
+        if force:
+            http_args['force'] = force
 
         url = 'objects/%s/datastreams/%s' % (pid, dsID) + '?' + urlencode(http_args)
         with self.relative_request('DELETE', url, '', {}) as response:
@@ -440,7 +465,7 @@ class API_A_LITE(HTTP_API_Base):
         http_args = { 'xml': 'true' }
         return self.read_relative_uri('describe?' + urlencode(http_args), read)
 
-    # NOTE: REST API version of getDatastreamDissemination also available
+    # NOTE: REST API version of getDatastreamDissemination should be preferred
     def getDatastreamDissemination(self, pid, ds_name, read=None):
         """
         Retrieve the contents of a single datastream from a fedora object.
@@ -494,3 +519,6 @@ class API_M(SimpleWSGISoapApp):
         :param isLiteral: boolean, is the related object a literal or an rdf resource
         """
         pass
+
+    # TODO: getRelationships
+    # TODO: purgeRelationship

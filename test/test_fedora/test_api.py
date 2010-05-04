@@ -3,35 +3,12 @@
 from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
 from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE
 from testcore import main
-from datetime import date
+from datetime import date, datetime
 from time import sleep
 import tempfile
 import re
 
 # TODO: test for errors - bad pid, dsid, etc
-
-
-class TestAPI_A_LITE(FedoraTestCase):
-    fixtures = ['object-with-pid.foxml']
-    pidspace = TEST_PIDSPACE
-
-    def setUp(self):
-        super(TestAPI_A_LITE, self).setUp()
-        self.pid = self.fedora_fixtures_ingested[0]
-        self.api_a = API_A_LITE(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
-
-    def testDescribeRepository(self):
-        desc = self.api_a.describeRepository()
-        self.assert_('<repositoryName>' in desc)
-        self.assert_('<repositoryVersion>' in desc)
-        self.assert_('<adminEmail>' in desc)
-
-    def testGetDatastreamDissemination(self):
-        dc = self.api_a.getDatastreamDissemination(self.pid, "DC")
-        self.assert_('<oai_dc:dc' in dc)
-        self.assert_('<dc:title>A partially-prepared test object</dc:title>' in dc)
-        self.assert_('<dc:description>' in dc)
-        self.assert_('<dc:identifier>%s</dc:identifier>' % self.pid in dc)
 
 class TestREST_API(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
@@ -66,28 +43,44 @@ Hey, nonny-nonny."""
 
     # API-A calls
 
-
     def test_findObjects(self):
+        # search for current test object
         found = self.rest_api.findObjects("ownerId~tester")
-        print found
+        self.assert_('<result ' in found)
+        self.assert_('<resultList>' in found)
+        self.assert_('<pid>%s</pid>' % self.pid in found)
 
-        # ingest 2 more copies of the same test object, then retrieve with chunksize=2
-        # - retrieve a second chunk of results with findObjects with a session token
-        #for p in (1,2):
-        #    self.ingestFixture("object-with-pid.foxml")
+        # crazy search that shouldn't match anything
+        found = self.rest_api.findObjects("title~supercalifragilistexpi...")
+        self.assert_('<objectFields>' not in found)
 
-        #objects = list(self.repo.find_objects(pid="%s:*" % TEST_PIDSPACE, chunksize=2))
-        #self.assertEqual(3, len(objects))
-        #found_pids = [o.pid for o in objects]
-        #for pid in self.fedora_fixtures_ingested:
-        #    self.assert_(pid in found_pids)
+        # search for everything - get enough results to get a session token
+        # - note that current test fedora includes a number of control objects
+        found = self.rest_api.findObjects("title~*")
+        self.assert_('<listSession>' in found)
+        self.assert_('<token>' in found)
 
+        # NOTE: not testing resumeFind here because it would require parsing the xml
+        # for the session token - tested at the server/Repository level
 
     def test_getDatastreamDissemination(self):
         dc = self.rest_api.getDatastreamDissemination(self.pid, "DC")
         self.assert_("<dc:title>A partially-prepared test object</dc:title>" in dc)
         self.assert_("<dc:description>This object has more data" in dc)
         self.assert_("<dc:identifier>%s</dc:identifier>" % self.pid in dc)
+
+        # with date-time param
+        now_dc = self.rest_api.getDatastreamDissemination(self.pid, "DC",
+            asOfDateTime=datetime.utcnow())
+        self.assertEqual(dc, now_dc)    # should be unchanged
+        
+        # bogus datastream
+        self.assertRaises(Exception, self.rest_api.getDatastreamDissemination,
+            self.pid, "BOGUS")
+
+        # bogus pid
+        self.assertRaises(Exception, self.rest_api.getDatastreamDissemination,
+            "bogus:pid", "BOGUS")
 
     #def test_getDissemination(self):
         # testing with built-in fedora dissemination
@@ -100,6 +93,9 @@ Hey, nonny-nonny."""
         self.assert_('pid="%s"' % self.pid in history)
         self.assert_('<objectChangeDate>%s' % self.today in history)
 
+        # bogus pid
+        self.assertRaises(Exception, self.rest_api.getObjectHistory, "bogus:pid")
+
     def test_getObjectProfile(self):
         profile = self.rest_api.getObjectProfile(self.pid)
         self.assert_('<objectProfile' in profile)
@@ -111,11 +107,21 @@ Hey, nonny-nonny."""
         self.assert_('<objState>A</objState>' in profile)
         # unchecked: objDissIndexViewURL, objItemIndexViewURL
 
+        # with time
+        profile_now = self.rest_api.getObjectProfile(self.pid, asOfDateTime=datetime.utcnow())
+        self.assertEqual(profile, profile_now)
+
+        # bogus pid        
+        self.assertRaises(Exception, self.rest_api.getObjectHistory, "bogus:pid")
+
     def test_listDatastreams(self):
         dslist = self.rest_api.listDatastreams(self.pid)
-        self.assert_('<objectDatastreams' in dslist)
-        # TODO: possibly add additional datastreams to test object and confirm they are listed?
+        self.assert_('<objectDatastreams' in dslist)        
         self.assert_('<datastream dsid="DC" label="Dublin Core" mimeType="text/xml"' in dslist)
+
+        # bogus pid
+        self.assertRaises(Exception, self.rest_api.listDatastreams, "bogus:pid")
+
         
     def test_listMethods(self):
         methods = self.rest_api.listMethods(self.pid)
@@ -130,11 +136,13 @@ Hey, nonny-nonny."""
         # NOTE: this causes a 404 error; fedora bug? possibly does not work with system methods?
         # methods = self.rest_api.listMethods(self.pid, 'fedora-system:3')
 
+        self.assertRaises(Exception, self.rest_api.listMethods, "bogus:pid")
+
     # API-M calls
 
     def test_addDatastream(self):
         # returns result from addDatastream call and info used for add
-        (added, ds) = self._add_text_datastream()
+        ((added, msg), ds) = self._add_text_datastream()
 
         self.assertTrue(added)  # response from addDatastream
         self.assert_(ds['logMessage'] in self.rest_api.getObjectXML(self.pid))
@@ -159,10 +167,11 @@ Hey, nonny-nonny."""
         FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
         FILE.write("bogus")
         FILE.flush()
-        added = self.rest_api.addDatastream("bogus:pid", 'TEXT', "text datastream",
+        (added, msg) = self.rest_api.addDatastream("bogus:pid", 'TEXT', "text datastream",
             mimeType="text/plain", logMessage="creating new datastream",
             controlGroup="M", filename=FILE.name)
         self.assertFalse(added)
+        self.assertEqual("no path in db registry for [bogus:pid]", msg)
 
         FILE.close()
 
@@ -192,6 +201,9 @@ Hey, nonny-nonny."""
         export = self.rest_api.export(self.pid, context="archive")
         self.assert_('<foxml:datastream' in export)
 
+        # bogus id
+        self.assertRaises(Exception, self.rest_api.export, "bogus:pid")
+
     def test_getDatastream(self):
         ds_profile = self.rest_api.getDatastream(self.pid, "DC")        
         self.assert_('<datastreamProfile' in ds_profile)
@@ -205,6 +217,17 @@ Hey, nonny-nonny."""
         self.assert_('<dsControlGroup>X</dsControlGroup>' in ds_profile)
         self.assert_('<dsVersionable>true</dsVersionable>' in ds_profile)
 
+        # with date param
+        ds_profile_now = self.rest_api.getDatastream(self.pid, "DC", asOfDateTime=datetime.utcnow())
+        self.assertEqual(ds_profile, ds_profile_now)
+        
+        # bogus datastream id on valid pid
+        self.assertRaises(Exception, self.rest_api.getDatastream, self.pid, "BOGUS")
+
+        # bogus pid
+        self.assertRaises(Exception, self.rest_api.getDatastream, "bogus:pid", "DC")
+
+
     # TODO: test getNextPid - but result handling is going to change.. (?)
 
     def test_getObjectXML(self):
@@ -214,7 +237,10 @@ Hey, nonny-nonny."""
         self.assert_('<foxml:digitalObject' in objxml)
         self.assert_('<foxml:datastream ID="DC" ' in objxml)
         # audit trail accessible in full xml
-        self.assert_('<audit:auditTrail ' in objxml)    
+        self.assert_('<audit:auditTrail ' in objxml)
+
+        # bogus id
+        self.assertRaises(Exception, self.rest_api.getObjectXML, "bogus:pid")
 
     def test_ingest(self):
         object = load_fixture_data('basic-object.foxml')
@@ -241,7 +267,7 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         FILE.flush()
 
         # modify managed datastream by file
-        updated = self.rest_api.modifyDatastream(self.pid, ds['id'], "text datastream (modified)",
+        (updated, msg) = self.rest_api.modifyDatastream(self.pid, ds['id'], "text datastream (modified)",
             mimeType="text/other", logMessage="modifying TEXT datastream", filename=FILE.name)                
         self.assertTrue(updated)
         # log message in audit trail
@@ -263,7 +289,7 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
           <dc:title>Test-Object</dc:title>
           <dc:description>modified!</dc:description>
         </oai_dc:dc>"""
-        updated = self.rest_api.modifyDatastream(self.pid, "DC", "Dublin Core",
+        (updated, msg) = self.rest_api.modifyDatastream(self.pid, "DC", "Dublin Core",
             mimeType="text/xml", logMessage="updating DC", content=new_dc)
         self.assertTrue(updated)
         dc = self.rest_api.getDatastreamDissemination(self.pid, "DC")
@@ -271,10 +297,17 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         self.assert_('<dc:title>Test-Object</dc:title>' in dc)
         self.assert_('<dc:description>modified!</dc:description>' in dc)
 
-        # bogus pid
-        updated = self.rest_api.modifyDatastream("bogus:pid", "TEXT", "Text DS",
+        # bogus datastream on valid pid
+        (updated, msg) = self.rest_api.modifyDatastream(self.pid, "BOGUS", "Text DS",
             mimeType="text/plain", logMessage="modifiying non-existent DS", filename=FILE.name)
-        self.assertFalse(updated)    
+        self.assertFalse(updated)
+        # NOTE: error message is useless in this case (java null pointer)  - fedora bug
+
+        # bogus pid
+        (updated, msg) = self.rest_api.modifyDatastream("bogus:pid", "TEXT", "Text DS",
+            mimeType="text/plain", logMessage="modifiying non-existent DS", filename=FILE.name)
+        self.assertFalse(updated)
+        self.assertEqual("no path in db registry for [bogus:pid]", msg)
 
         FILE.close()
 
@@ -290,6 +323,7 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         self.assert_('<objOwnerId>testuser</objOwnerId>' in profile)
         self.assert_('<objState>I</objState>' in profile)
 
+        # bogus id
         modified = self.rest_api.modifyObject("bogus:pid", "modified test object", "testuser",
             "I", "testing modify object")
         self.assertFalse(modified)
@@ -362,6 +396,29 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         # non-existent pid
         set_versioned = self.rest_api.setDatastreamVersionable("bogus:pid", "DC", True)
         self.assertFalse(set_versioned)
+
+
+class TestAPI_A_LITE(FedoraTestCase):
+    fixtures = ['object-with-pid.foxml']
+    pidspace = TEST_PIDSPACE
+
+    def setUp(self):
+        super(TestAPI_A_LITE, self).setUp()
+        self.pid = self.fedora_fixtures_ingested[0]
+        self.api_a = API_A_LITE(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+
+    def testDescribeRepository(self):
+        desc = self.api_a.describeRepository()
+        self.assert_('<repositoryName>' in desc)
+        self.assert_('<repositoryVersion>' in desc)
+        self.assert_('<adminEmail>' in desc)
+
+    def testGetDatastreamDissemination(self):
+        dc = self.api_a.getDatastreamDissemination(self.pid, "DC")
+        self.assert_('<oai_dc:dc' in dc)
+        self.assert_('<dc:title>A partially-prepared test object</dc:title>' in dc)
+        self.assert_('<dc:description>' in dc)
+        self.assert_('<dc:identifier>%s</dc:identifier>' % self.pid in dc)
 
 
 class TestAPI_M_LITE(FedoraTestCase):
