@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
-from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE
+from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE, API_M, auth_headers, API_M_Service
+from soaplib.client import make_service_client
+from eulcore.fedora.server import  URI_HAS_MODEL
 from testcore import main
 from datetime import date, datetime
 from time import sleep
@@ -445,6 +447,79 @@ class TestAPI_M_LITE(FedoraTestCase):
         pattern = re.compile('uploaded://[0-9]+')
         self.assert_(pattern.match(upload_id))
 
+# NOTE: to debug soap, uncomment these lines
+#from soaplib.client import debug
+#debug(True)
+
+class TestAPI_M(FedoraTestCase):
+    fixtures = ['object-with-pid.foxml']
+    pidspace = TEST_PIDSPACE
+
+    # relationship predicates for testing
+    rel_isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
+    rel_owner = "info:fedora/fedora-system:def/relations-external#owner"
+
+    def setUp(self):
+        super(TestAPI_M, self).setUp()
+        self.pid = self.fedora_fixtures_ingested[0]
+        self.api_m = API_M(REPO_ROOT, REPO_USER, REPO_PASS)
+        self.rest_api = REST_API(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+
+    def test_addRelationship(self):
+        # rel to resource
+        added = self.api_m.addRelationship(self.pid, URI_HAS_MODEL, "info:fedora/pid:123", False)
+        self.assertTrue(added)
+        rels = self.rest_api.getDatastreamDissemination(self.pid, "RELS-EXT")
+        self.assert_('<hasModel' in rels)
+        self.assert_('rdf:resource="info:fedora/pid:123"' in rels)
+
+        # literal
+        added = self.api_m.addRelationship(self.pid, self.rel_owner, "johndoe", True)
+        self.assertTrue(added)
+        rels = self.rest_api.getDatastreamDissemination(self.pid, "RELS-EXT")
+        self.assert_('<owner' in rels)
+        self.assert_('>johndoe<' in rels)
+
+        # bogus pid
+        self.assertRaises(Exception, self.api_m.addRelationship,
+            "bogus:pid", self.rel_owner, "johndoe", True)
+
+    def test_getRelationships(self):
+        # add relations
+        self.api_m.addRelationship(self.pid, URI_HAS_MODEL, "info:fedora/pid:123", False)
+        self.api_m.addRelationship(self.pid, self.rel_owner, "johndoe", True)
+
+        response = self.api_m.getRelationships(self.pid, URI_HAS_MODEL)
+        rels = response.relationships
+
+        self.assertEqual(2, len(rels))  # includes fedora-system cmodel
+        self.assertEqual(rels[0].subject, 'info:fedora/' + self.pid)
+        self.assertEqual(rels[0].predicate, URI_HAS_MODEL)
+        cmodels = [rels[0].object, rels[1].object]
+        self.assert_('info:fedora/fedora-system:FedoraObject-3.0' in cmodels)
+        self.assert_('info:fedora/pid:123' in cmodels)
+
+        response = self.api_m.getRelationships(self.pid, self.rel_owner)
+        rels = response.relationships
+        self.assertEqual(1, len(rels))
+        self.assertEqual(rels[0].subject, 'info:fedora/' + self.pid)
+        self.assertEqual(rels[0].predicate, self.rel_owner)
+        self.assertEqual(rels[0].object, "johndoe")
+
+    def test_purgeRelationship(self):
+        # add relation to purge
+        self.api_m.addRelationship(self.pid, URI_HAS_MODEL, "info:fedora/pid:123", False)
+        
+        purged = self.api_m.purgeRelationship(self.pid, URI_HAS_MODEL, "info:fedora/pid:123", False)
+        self.assertEqual(purged, True)
+
+        # purge non-existent rel on valid pid
+        purged = self.api_m.purgeRelationship(self.pid, self.rel_owner, "johndoe", True)
+        self.assertFalse(purged)
+
+        # bogus pid
+        self.assertRaises(Exception, self.api_m.purgeRelationship, "bogus:pid",
+            self.rel_owner, "johndoe", True)        
 
 
 if __name__ == '__main__':

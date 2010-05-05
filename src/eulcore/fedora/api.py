@@ -1,12 +1,13 @@
 import httplib
 from soaplib.serializers import primitive as soap_types
+from soaplib.serializers.clazz import ClassSerializer
 from soaplib.service import soapmethod
+from soaplib.client import ServiceClient, SimpleSoapClient
 from soaplib.wsgi_soap import SimpleWSGISoapApp
 from urllib import urlencode
 from urllib2 import urlopen, Request
 from urlparse import urljoin, urlsplit
 from base64 import standard_b64encode as b64encode
-from Ft.Xml.Domlette import NonvalidatingReader
 from eulcore.fedora.util import encode_multipart_formdata, get_content_type
 
 # low-level wrappers for Fedora APIs
@@ -486,20 +487,37 @@ class API_M_LITE(HTTP_API_Base):
             # content of response should be upload id, if successful
             return response.read()
 
-    
 
-class API_M(SimpleWSGISoapApp):
+# return object for getRelationships soap call
+class GetRelationshipResponse:    
+    def from_xml(self, *elements):
+        self.relationships = []
+        for el in elements:
+            self.relationships.append(RelationshipTuple.from_xml(el))
+        return self
+    
+class RelationshipTuple(ClassSerializer):
+    class types:
+        subject = soap_types.String
+        predicate = soap_types.String
+        object = soap_types.String
+        isLiteral = soap_types.Boolean
+        datatype = soap_types.String
+    
+# service class stub for soap method definitions
+class API_M_Service(SimpleWSGISoapApp):
     """
        Python object for accessing `Fedora's SOAP API-M <http://fedora-commons.org/confluence/display/FCR30/API-M>`_.
     """
     # FIXME: also accepts an optional String datatype
     @soapmethod(
-            soap_types.String,  # pid
+            soap_types.String,  # pid       NOTE: fedora docs say URI, but at least in 3.2 it's really pid
             soap_types.String,  # relationship
             soap_types.String,  # object
             soap_types.Boolean, # isLiteral
+            _outVariableName='added',
             _returns = soap_types.Boolean)
-    def addRelationship(self, pid, relationship, object, isLiteral):
+    def addRelationship(self, pid, relationship, object, isLiteral, _returnValueName='added'):
         """
         Add a new relationship to an object's RELS-EXT datastream.
 
@@ -512,5 +530,47 @@ class API_M(SimpleWSGISoapApp):
         """
         pass
 
-    # TODO: getRelationships
-    # TODO: purgeRelationship
+    @soapmethod(
+            soap_types.String,  # subject (fedora object or datastream URI) 
+            soap_types.String,  # relationship
+            _outVariableName='relationships',
+            _returns = GetRelationshipResponse())   # custom class for complex soap type
+    def getRelationships(self, subject=None, relationship=None):
+        pass
+
+    @soapmethod(
+            soap_types.String,  # pid
+            soap_types.String,  # relationship; null matches all
+            soap_types.String,  # object; null matches all
+            soap_types.Boolean, # isLiteral     # optional literal datatype ?
+            _returns = soap_types.Boolean,
+            _outVariableName='purged',)
+    def purgeRelationship(self, pid, relationship=None, object=None, isLiteral=False):
+        pass
+
+# extend SimpleSoapClient to accept auth headers and pass them to any soap call that is made
+class AuthSoapClient(SimpleSoapClient):
+    def __init__(self,host,path,descriptor,scheme="http", auth_headers={}):
+        self.auth_headers = auth_headers
+        return super(AuthSoapClient, self).__init__(host, path, descriptor, scheme)
+
+    def __call__(self,*args,**kwargs):
+        kwargs.update(self.auth_headers)
+        return super(AuthSoapClient, self).__call__(*args, **kwargs)
+
+class API_M(ServiceClient):
+
+    def __init__(self, repo_root, username, password):
+        self.auth_headers = auth_headers(username, password)
+        urlparts = urlsplit(repo_root)
+        hostname = urlparts.hostname
+        api_path = urlparts.path + 'services/management'
+        if urlparts.port:
+            hostname += ':%s' % urlparts.port
+
+        # this is basically equivalent to calling make_service_client or ServiceClient init
+        # - using custom AuthSoapClient and passing auth headers
+        self.server = API_M_Service()
+        for method in self.server.methods():
+            setattr(self,method.name,AuthSoapClient(hostname, api_path, method,
+                urlparts.scheme, self.auth_headers))
