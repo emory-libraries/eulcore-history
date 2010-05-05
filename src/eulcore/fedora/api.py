@@ -517,7 +517,7 @@ class API_M_Service(SimpleWSGISoapApp):
             soap_types.Boolean, # isLiteral
             _outVariableName='added',
             _returns = soap_types.Boolean)
-    def addRelationship(self, pid, relationship, object, isLiteral, _returnValueName='added'):
+    def addRelationship(self, pid, relationship, object, isLiteral):
         """
         Add a new relationship to an object's RELS-EXT datastream.
 
