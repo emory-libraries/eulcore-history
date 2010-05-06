@@ -1,7 +1,6 @@
 from StringIO import StringIO
 from urllib import urlencode
 from urllib2 import urlopen, Request
-from soaplib.client import make_service_client
 import rdflib
 from Ft.Xml.XPath.Context import Context
 from Ft.Xml.Domlette import NonvalidatingReader
@@ -225,8 +224,7 @@ class DigitalObject(object):
     @property
     def api_m(self):
         "SOAP client for Fedora API-M"
-        # FIXME: needs credentials?
-        return make_service_client(self.fedora_root + 'services/management', API_M())
+        return API_M(self.fedora_root, self.username, self.password)
 
     @property
     def rest_api(self):

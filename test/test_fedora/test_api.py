@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
-from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE, API_M, auth_headers, API_M_Service
-from soaplib.client import make_service_client
+from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE, API_M
 from eulcore.fedora.server import  URI_HAS_MODEL
 from testcore import main
 from datetime import date, datetime
