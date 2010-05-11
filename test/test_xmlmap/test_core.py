@@ -68,7 +68,17 @@ class TestXsl(unittest.TestCase):
 # NOTE: using TestXsl fixture text for the init tests
 
 class TestXmlObjectStringInit(unittest.TestCase):
-
+    # example invalid document from 4suite documentation
+    INVALID_XML = """<!DOCTYPE a [
+  <!ELEMENT a (b, b)>
+  <!ELEMENT b EMPTY>
+]>
+<a><b/><b/><b/></a>"""
+    VALID_XML = """<!DOCTYPE a [
+  <!ELEMENT a (b, b)>
+  <!ELEMENT b EMPTY>
+]>
+<a><b/><b/></a>"""
     def test_load_from_string(self):
         """Test using shortcut to initialize XmlObject from string"""
         obj = xmlmap.load_xmlobject_from_string(TestXsl.FIXTURE_TEXT)
@@ -83,6 +93,16 @@ class TestXmlObjectStringInit(unittest.TestCase):
         obj = xmlmap.load_xmlobject_from_string(TestXsl.FIXTURE_TEXT, TestObject)
         self.assert_(isinstance(obj, TestObject))
 
+    def test_load_from_string_with_validation(self):
+       
+        self.assertRaises(Exception, xmlmap.load_xmlobject_from_string, self.INVALID_XML, validate=True)
+        # fixture with no doctype also causes a validation error
+        self.assertRaises(Exception, xmlmap.load_xmlobject_from_string,
+            TestXsl.FIXTURE_TEXT, validate=True)
+
+        obj = xmlmap.load_xmlobject_from_string(self.VALID_XML)
+        self.assert_(isinstance(obj, xmlmap.XmlObject))
+
 
 class TestXmlObjectFileInit(unittest.TestCase):
     
@@ -90,6 +110,15 @@ class TestXmlObjectFileInit(unittest.TestCase):
         self.FILE = tempfile.NamedTemporaryFile(mode="w")
         self.FILE.write(TestXsl.FIXTURE_TEXT)
         self.FILE.flush()
+
+        # valid and invalid examples with a simple doctype
+        self.VALID = tempfile.NamedTemporaryFile(mode="w")
+        self.VALID.write(TestXmlObjectStringInit.VALID_XML)
+        self.VALID.flush()
+
+        self.INVALID = tempfile.NamedTemporaryFile(mode="w")
+        self.INVALID.write(TestXmlObjectStringInit.INVALID_XML)
+        self.INVALID.flush()
 
     def tearDown(self):
         self.FILE.close()
@@ -107,6 +136,14 @@ class TestXmlObjectFileInit(unittest.TestCase):
         obj = xmlmap.load_xmlobject_from_file(self.FILE.name, TestObject)
         self.assert_(isinstance(obj, TestObject))
 
+    def test_load_from_file_with_validation(self):
+        # has doctype, but not valid
+        self.assertRaises(Exception, xmlmap.load_xmlobject_from_file, self.INVALID.name, validate=True)
+        # no doctype
+        self.assertRaises(Exception, xmlmap.load_xmlobject_from_file, self.FILE.name, validate=True)
+        # doctype, valid
+        obj = xmlmap.load_xmlobject_from_file(self.VALID.name, validate=True)
+        self.assert_(isinstance(obj, xmlmap.XmlObject))
 
 class TestXmlObject(unittest.TestCase):
 

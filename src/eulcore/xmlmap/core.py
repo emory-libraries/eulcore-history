@@ -1,5 +1,5 @@
 from Ft.Lib import Uri
-from Ft.Xml.Domlette import NonvalidatingReader, CanonicalPrint
+from Ft.Xml.Domlette import NonvalidatingReader, CanonicalPrint, ValidatingReader
 from Ft.Xml.XPath.Context import Context
 from Ft.Xml.Xslt import Processor
 import cStringIO
@@ -163,7 +163,7 @@ class XmlObject(object):
         return stream
 
 
-def load_xmlobject_from_string(string, xmlclass=XmlObject):
+def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False):
     """Initialize an XmlObject from a string.
 
     If an xmlclass is specified, construct an instance of that class instead
@@ -171,11 +171,15 @@ def load_xmlobject_from_string(string, xmlclass=XmlObject):
     be passed a single DOM node.
     
     """
+    if validate:
+        parser = ValidatingReader.parseString
+    else:
+        parser = NonvalidatingReader.parseString
     # parseString wants a uri, but context doesn't really matter for a string...
-    parsed_str= parseString(string, "urn:bogus")
+    parsed_str= parser(string, "urn:bogus")
     return xmlclass(parsed_str.documentElement)
 
-def load_xmlobject_from_file(filename, xmlclass=XmlObject):
+def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False):
     """Initialize an XmlObject from a file.
 
     If an xmlclass is specified, construct an instance of that class instead
@@ -183,8 +187,13 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject):
     be passed a single DOM node.
     
     """
+    if validate:
+        parser = ValidatingReader.parseUri
+    else:
+        parser = NonvalidatingReader.parseUri
+
     file_uri = Uri.OsPathToUri(filename)
-    parsed_file = parseUri(file_uri)
+    parsed_file = parser(file_uri)
     return xmlclass(parsed_file.documentElement)
 
 # Import these for backward compatibility. Should consider deprecating these
