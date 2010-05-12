@@ -313,6 +313,16 @@ class ExistQueryTest__FullText(unittest.TestCase):
         self.assertNotEqual(fqs[0].fulltext_score, None)
         self.assert_(float(fqs[0].fulltext_score) > 0.5)    # full-text score should be a float
 
+    def test_document_name(self):
+        fqs = self.qs.filter(id='one').only('document_name')
+        # document_name attribute should be present
+        self.assertNotEqual(fqs[0].document_name, None)
+        self.assertEqual(fqs[0].document_name, "f1.xml")
+
+        fqs = self.qs.filter(id='one').also('document_name')
+        self.assertNotEqual(fqs[0].document_name, None)
+        self.assertEqual(fqs[0].document_name, "f1.xml")
+
 
 
 

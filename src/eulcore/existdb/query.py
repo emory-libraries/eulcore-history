@@ -167,6 +167,9 @@ class QuerySet(object):
         modify the original. When results are returned from the updated
         copy, they will contain only the specified fields.
 
+        Special fields available:
+         * fulltext_score (should only be used in combination with fulltext search)
+         * document_name 
         """
         field_objs = {}
         field_xpath = {}
@@ -194,6 +197,7 @@ class QuerySet(object):
         modify the original. When results are returned from the updated
         copy, they will contain the specified additional fields.
 
+        For special fields available, see :meth:`only`.
         """
         field_objs = {}
         field_xpath = {}
@@ -352,7 +356,7 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None):
             # field with the same type as the original model field, but with xpath of the variable
             # name, to match how additional field results are constructed by Xquery object
             if fields is None or isinstance(fields, basestring):	
-		field_type = StringField	# handle special cases like fulltext score
+                field_type = StringField	# handle special cases like fulltext score
             else:
                 field_type = type(fields[-1])
             
@@ -527,6 +531,7 @@ class Xquery(object):
         if return_el == 'node()':       # FIXME: other () expressions?
             return_el = 'node'
 
+        # TODO: consolidate logic for return fields and additional fields
         if self.return_fields:
             rblocks = []
             for name, xpath in self.return_fields.iteritems():
@@ -535,6 +540,8 @@ class Xquery(object):
                 # - attributes returned as elements for simplicity, use with distinct, etc.
                 if name == 'fulltext_score':
                     rblocks.append('element %s {$fulltext_score}' % name)
+                elif name == "document_name":
+                    rblocks.append('element %s {util:document-name(%s)}' % (name, self.xq_var))
                 else:
                     if xpath[0] == '@':
                         xpath = "string(%s)" % xpath        # put contents of attribute in constructed element
@@ -553,6 +560,8 @@ class Xquery(object):
             for name, xpath in self.additional_return_fields.iteritems():
                 if name == 'fulltext_score':
                     rblocks.append('element %s {$fulltext_score}' % name)
+                elif name == "document_name":
+                    rblocks.append('element %s {util:document-name(%s)}' % (name, self.xq_var))
                 else:
                     # similar logic as return fields above (how to consolidate?)
                     if re.search('@[^/]+$', xpath):     # last element in path is an attribute node
