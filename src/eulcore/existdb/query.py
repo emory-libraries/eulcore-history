@@ -531,48 +531,33 @@ class Xquery(object):
         if return_el == 'node()':       # FIXME: other () expressions?
             return_el = 'node'
 
-        # TODO: consolidate logic for return fields and additional fields
-        if self.return_fields:
-            rblocks = []
-            for name, xpath in self.return_fields.iteritems():
-                # construct return element with specified field name and xpath
-                # - return fields are presumed relative to root return variable
-                # - attributes returned as elements for simplicity, use with distinct, etc.
+        if self.return_fields or self.additional_return_fields:
+            # returns for only/also fields are constructed almost exactly the same
+            if self.return_fields:
+                rblocks = []
+            elif self.additional_return_fields:
+                # return everything under matched node - all attributes, all nodes
+                rblocks = ["%s/@*" % self.xq_var, "%s/node()" % self.xq_var]
+                
+            fields = dict(self.return_fields, **self.additional_return_fields)
+            for name, xpath in fields.iteritems():
+                # special cases
                 if name == 'fulltext_score':
                     rblocks.append('element %s {$fulltext_score}' % name)
                 elif name == "document_name":
                     rblocks.append('element %s {util:document-name(%s)}' % (name, self.xq_var))
+                elif name == "collection_name":
+                    rblocks.append('element %s {util:collection-name(%s)}' % (name, self.xq_var))
                 else:
-                    if xpath[0] == '@':
+                    if re.search('@[^/,]+$', xpath):     # last element in path is an attribute node
+                        # returning attributes as elements to avoid attribute conflict
                         xpath = "string(%s)" % xpath        # put contents of attribute in constructed element
                     elif '(' not in xpath:          # do not add node() if xpath contains a function (likely to breaks things)
                         # note: using node() so element *contents* will be in named element instead of nesting elements
                         xpath = "%s/node()" % xpath
-                    xpath = self.prep_xpath(xpath)
-                    
+                    xpath = self.prep_xpath(xpath)                    
                     # define element, e.g. element id {$n/title/node()} or {$n/string(@id)}
                     rblocks.append('element %s {%s/%s}' % (name, self.xq_var, xpath))
-                
-            r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
-        elif self.additional_return_fields:
-            # return everything under matched node - all attributes, all nodes
-            rblocks = ["%s/@*" % self.xq_var, "%s/node()" % self.xq_var]
-            for name, xpath in self.additional_return_fields.iteritems():
-                if name == 'fulltext_score':
-                    rblocks.append('element %s {$fulltext_score}' % name)
-                elif name == "document_name":
-                    rblocks.append('element %s {util:document-name(%s)}' % (name, self.xq_var))
-                else:
-                    # similar logic as return fields above (how to consolidate?)
-                    if re.search('@[^/]+$', xpath):     # last element in path is an attribute node
-                        # set attributes as fields to avoid attribute conflict;
-                        rblocks.append('element %s {%s/string(%s)}' % (name, self.xq_var, xpath))
-                    else:
-                        if '(' in xpath:
-                            node = ""
-                        else:
-                            node = "/node()"
-                        rblocks.append('element %s {%s/%s%s}' % (name, self.xq_var, xpath, node))
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
         else:
             r = 'return %s' % self.xq_var
