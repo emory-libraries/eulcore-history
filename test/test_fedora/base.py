@@ -26,6 +26,7 @@ class FedoraTestCase(unittest.TestCase):
 
     def setUp(self):
         self.repo = Repository(REPO_ROOT, REPO_USER, REPO_PASS)
+        self.opener = self.repo.opener
         fixtures = getattr(self, 'fixtures', [])
         for fixture in fixtures:
             self.ingestFixture(fixture)

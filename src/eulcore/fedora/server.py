@@ -1,14 +1,12 @@
-from StringIO import StringIO
 from urllib import urlencode
-from urllib2 import urlopen, Request
 import rdflib
 from Ft.Xml.XPath.Context import Context
-from Ft.Xml.Domlette import NonvalidatingReader
 
 from eulcore import xmlmap
-from eulcore.fedora.api import REST_API, API_A_LITE, API_M, read_uri
+from eulcore.fedora.api import HTTP_API_Base, REST_API, API_A_LITE, API_M
 # FIXME: should risearch be moved to apis?
-from eulcore.fedora.api import auth_headers, add_auth
+from eulcore.fedora.util import XmlObjectParser, parse_rdf, RdfParser, \
+                                RelativeOpener
 
 # FIXME: DateField still needs significant improvements before we can make
 # it part of the real xmlmap interface.
@@ -22,6 +20,7 @@ class Repository(object):
     "Pythonic interface to a single Fedora Commons repository instance."
     
     def __init__(self, root, username=None, password=None):
+        self.opener = RelativeOpener(root, username, password)
         self.fedora_root = root
         self.username = username
         self.password = password
@@ -29,12 +28,12 @@ class Repository(object):
     @property
     def risearch(self):
         "instance of :class:`ResourceIndex`, with the same root url and credentials"
-        return ResourceIndex(self.fedora_root, self.username, self.password)
+        return ResourceIndex(self.opener)
 
     @property
     def rest_api(self):
         "instance of :class:`REST_API`, with the same root url and credentials"
-        return REST_API(self.fedora_root, self.username, self.password)
+        return REST_API(self.opener)
 
     def get_next_pid(self, namespace=None, count=None):
         """
@@ -51,15 +50,13 @@ class Repository(object):
             kwargs['namespace'] = namespace
         if count:
             kwargs['numPIDs'] = count
-        (nextpids, url) = self.rest_api.getNextPID(**kwargs)
-        
-        dom = NonvalidatingReader.parseString(nextpids, url)
-        pids = [ node.nodeValue for node in dom.xpath('/pidList/pid/text()') ]
+        parse = XmlObjectParser(NewPids)
+        nextpids = self.rest_api.getNextPID(parse=parse, **kwargs)
 
         if count is None:
-            return pids[0]
+            return nextpids.pids[0]
         else:
-            return pids
+            return nextpids.pids
 
 
     def ingest(self, text, log_message=None):
@@ -116,7 +113,7 @@ class Repository(object):
             type = DigitalObject
         if pid.startswith('info:fedora/'): # passed a uri
             pid = pid[len('info:fedora/'):]
-        return type(pid, self.fedora_root, self.username, self.password)
+        return type(pid, self.opener)
 
     def find_objects(self, type=None, chunksize=None, **kwargs):
         """
@@ -136,18 +133,17 @@ class Repository(object):
 
         # FIXME: query production here is frankly sketchy
         query = ' '.join([ '%s~%s' % (k, v) for k, v in kwargs.iteritems() ])
-        read = parse_xml_obj(add_auth(read_uri, self.username, self.password),
-                             SearchResults)
-
-        chunk = self.rest_api.findObjects(query, read=read, chunksize=chunksize)
+        parse = XmlObjectParser(SearchResults)
+        chunk = self.rest_api.findObjects(query, chunksize=chunksize, parse=parse)
         while True:
             for result in chunk.results:
-                yield type(result.pid, self.fedora_root, self.username, self.password)
+                yield type(result.pid, self.opener)
 
             if chunk.session_token:
-                chunk = self.rest_api.findObjects(query, session_token=chunk.session_token, read=read)
+                chunk = self.rest_api.findObjects(query, session_token=chunk.session_token, parse=parse)
             else:
                 break
+
 
 # xml objects to wrap around xml returns from fedora
 
@@ -192,6 +188,9 @@ class SearchResults(xmlmap.XmlObject):
     expiration_date = DateField('res:listSession/res:expirationDate')
     results = xmlmap.NodeListField('res:resultList/res:objectFields', SearchResult)
 
+class NewPids(xmlmap.XmlObject):
+    pids = xmlmap.StringListField('pid')
+
 # a single digital object in a repo; basically another facade for api access
 
 class DigitalObject(object):
@@ -199,11 +198,9 @@ class DigitalObject(object):
     A single digital object in a Fedora respository, with methods for accessing
     the parts of that object.
     """
-    def __init__(self, pid, fedora_root, username=None, password=None):
-        self.fedora_root = fedora_root
+    def __init__(self, pid, opener):
         self.pid = pid
-        self.username = username
-        self.password = password
+        self.opener = opener
 
     def __str__(self):
         return self.pid
@@ -219,31 +216,32 @@ class DigitalObject(object):
     @property
     def api_a_lite(self):
         "instance of :class:`API_A_LITE`, with the same fedora root url and credentials"
-        return API_A_LITE(self.fedora_root, self.username, self.password)
+        return API_A_LITE(self.opener)
 
     @property
     def api_m(self):
         "SOAP client for Fedora API-M"
-        return API_M(self.fedora_root, self.username, self.password)
+        return API_M(self.opener.base_url, self.opener.username, self.opener.password)
 
     @property
     def rest_api(self):
         "instance of :class:`REST_API`, with the same fedora root url and credentials"
-        return REST_API(self.fedora_root, self.username, self.password)
+        return REST_API(self.opener)
 
-    def get_datastream(self, ds_name, read=None):
+    def get_datastream(self, ds_name, parse=None):
         """
         Retrieve one of this object's datastreams from fedora.
 
         Calls `API-A-LITE getDatastreamDissemination <http://fedora-commons.org/confluence/display/FCR30/API-A-LITE#API-A-LITE-getDatastreamDissemination>`_
 
         :param ds_name: name of the datastream to be retrieved
-        :param read: optional reader function; defaults to :meth:`read_uri`
+        :param parse: optional data parser function; defaults to returning
+                      raw string data
         :rtype: string
         """
         # TODO: fill out info on read param and return type
         # todo: error handling when attempting to get non-existent datastream
-        return self.api_a_lite.getDatastreamDissemination(self.pid, ds_name, read)
+        return self.api_a_lite.getDatastreamDissemination(self.pid, ds_name, parse)
 
     def get_datastream_as_xml(self, ds_name, xml_type):
         """
@@ -253,9 +251,8 @@ class DigitalObject(object):
         :param ds_name: name of the datastream to be retrieved
         :param xml_type: :class:`~eulcore.xmlmap.XmlObject` type to be returned
         """
-        read = parse_xml_obj(add_auth(read_uri, self.username, self.password),
-                             xml_type)
-        return self.get_datastream(ds_name, read)
+        parse = XmlObjectParser(xml_type)
+        return self.get_datastream(ds_name, parse=parse)
 
     def get_datastreams(self):
         """
@@ -266,9 +263,8 @@ class DigitalObject(object):
 
         :rtype: dictionary
         """
-        read = parse_xml_obj(add_auth(read_uri, self.username, self.password),
-                             ObjectDatastreams)
-        dsobj = self.rest_api.listDatastreams(self.pid, read)
+        parse = XmlObjectParser(ObjectDatastreams)
+        dsobj = self.rest_api.listDatastreams(self.pid, parse=parse)
         return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
 
     def get_relationships(self):
@@ -278,8 +274,7 @@ class DigitalObject(object):
         :rtype: :class:`rdflib.ConjunctiveGraph`
         """
         # FIXME: gets a 404 if object does not have RELS-EXT; throw an exception for this?
-        read = parse_rdf(add_auth(read_uri, self.username, self.password))
-        return self.get_datastream('RELS-EXT', read)
+        return self.get_datastream('RELS-EXT', parse=parse_rdf)
 
     def add_relationship(self, rel_uri, object):
         """
@@ -306,9 +301,8 @@ class DigitalObject(object):
         elif isinstance(object, str) and object.startswith('info:fedora/'):            
             obj_is_literal = False
 
-        extra_headers = auth_headers(self.username, self.password)
         # FIXME: currently no value returned; should be boolean on success
-        return self.api_m.addRelationship(self.pid, rel_uri, object, obj_is_literal, **extra_headers)
+        return self.api_m.addRelationship(self.pid, rel_uri, object, obj_is_literal)
 
     def has_model(self, model):
         """
@@ -322,7 +316,7 @@ class DigitalObject(object):
         # - return false if object does not have a RELS-EXT datastream
         # - accept DigitalObject for model?
         # - convert model pid to info:fedora/ form if not passed in that way?
-        st = (rdflib.URIRef(self.uri), rdflib.URIRef(URI_HAS_MODEL), rdflib.URIRef(model))        
+        st = (rdflib.URIRef(self.uri), rdflib.URIRef(URI_HAS_MODEL), rdflib.URIRef(model))
         return st in self.get_relationships()
 
 
@@ -337,7 +331,7 @@ class ObjectTypeDescriptor(object):
     def __get__(self, obj, objtype):
         try:
             if obj.has_model(self.model):
-                return self.objtype(obj.pid, obj.fedora_root, obj.username, obj.password)
+                return self.objtype(obj.pid, self.opener)
         except:
             return None
 
@@ -378,35 +372,8 @@ class RepositoryDescription(xmlmap.XmlObject):
     "administrator emails"
 
 
-# readers to interpret fedora as xml, rdf
-
-def parse_xml_obj(reader, xml_class):
-    "Read the contents of a URI and convert it to an xml object."
-    def read_xml_uri(uri):
-        data = reader(uri)
-        doc = xmlmap.parseString(data, uri)
-        return xml_class(doc.documentElement)
-    return read_xml_uri
-
-
-def parse_rdf(reader):
-    "Read the contents of a URI and parse it as RDF."
-    def read_rdf_uri(uri):
-        graph = rdflib.ConjunctiveGraph()
-        data = reader(uri)
-        # reader returns a string, but graph.parse() wants a file
-        graph.parse(StringIO(reader(uri)))
-        return graph
-    return read_rdf_uri
-
-
-class ResourceIndex(object):
+class ResourceIndex(HTTP_API_Base):
     "Python object for accessing Fedora's Resource Index."
-    
-    def __init__(self, root, username=None, password=None):
-        self.fedora_root = root
-        self.username = username
-        self.password = password
 
     def find_statements(self, spo_query):
         """
@@ -415,7 +382,7 @@ class ResourceIndex(object):
         :param spo_query: SPO query as a string
         :rtype: :class:`rdflib.ConjunctiveGraph`
         """
-        risearch_uri = self.fedora_root + '/risearch?'
+        risearch_url = 'risearch?'
         http_args = {
             'type': 'triples',
             'lang': 'spo',
@@ -423,13 +390,9 @@ class ResourceIndex(object):
             'query': spo_query,
         }
 
-        uri = risearch_uri + urlencode(http_args)
-        request = Request(uri, headers=auth_headers(self.username, self.password))
-        data = urlopen(request).read()
-
-        graph = rdflib.ConjunctiveGraph()
-        graph.parse(StringIO(data), format='n3')
-        return graph
+        rel_url = risearch_url + urlencode(http_args)
+        parse = RdfParser(format='n3')
+        return self.read(rel_url, parse=parse)
 
     def spo_search(self, subject=None, predicate=None, object=None):
         """

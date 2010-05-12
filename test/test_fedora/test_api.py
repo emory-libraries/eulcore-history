@@ -2,7 +2,8 @@
 
 from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
 from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE, API_M
-from eulcore.fedora.server import  URI_HAS_MODEL
+from eulcore.fedora.server import URI_HAS_MODEL
+from eulcore.fedora.util import RelativeOpener
 from testcore import main
 from datetime import date, datetime
 from time import sleep
@@ -39,7 +40,8 @@ Hey, nonny-nonny."""
     def setUp(self):
         super(TestREST_API, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
-        self.rest_api = REST_API(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+        self.opener = RelativeOpener(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+        self.rest_api = REST_API(self.opener)
         self.today = date.today()
 
     # API-A calls
@@ -229,11 +231,11 @@ Hey, nonny-nonny."""
         self.assertRaises(Exception, self.rest_api.getDatastream, "bogus:pid", "DC")
         
     def test_getNextPID(self):
-        (pids, url) = self.rest_api.getNextPID()
+        pids = self.rest_api.getNextPID()
         self.assert_('<pidList' in pids)
         self.assert_('<pid>' in pids)
 
-        (pids, url) = self.rest_api.getNextPID(numPIDs=3, namespace="test-ns")        
+        pids = self.rest_api.getNextPID(numPIDs=3, namespace="test-ns")        
         self.assertEqual(3, pids.count("<pid>test-ns:"))        
 
     def test_getObjectXML(self):
@@ -411,7 +413,8 @@ class TestAPI_A_LITE(FedoraTestCase):
     def setUp(self):
         super(TestAPI_A_LITE, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
-        self.api_a = API_A_LITE(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+        self.opener = RelativeOpener(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+        self.api_a = API_A_LITE(self.opener)
 
     def testDescribeRepository(self):
         desc = self.api_a.describeRepository()
@@ -434,7 +437,7 @@ class TestAPI_M_LITE(FedoraTestCase):
     def setUp(self):
         super(TestAPI_M_LITE, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
-        self.api_m = API_M_LITE(REPO_ROOT, REPO_USER, REPO_PASS)
+        self.api_m = API_M_LITE(self.opener)
 
     def testUpload(self):
         FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
@@ -461,8 +464,9 @@ class TestAPI_M(FedoraTestCase):
     def setUp(self):
         super(TestAPI_M, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
+        self.opener = RelativeOpener(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
         self.api_m = API_M(REPO_ROOT, REPO_USER, REPO_PASS)
-        self.rest_api = REST_API(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+        self.rest_api = REST_API(self.opener)
 
     def test_addRelationship(self):
         # rel to resource

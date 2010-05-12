@@ -5,6 +5,7 @@ from eulcore.fedora.server import Repository, DigitalObject, ObjectDatastream, U
 
 from eulcore import xmlmap
 import rdflib
+from rdflib.Graph import Graph
 from testcore import main
 
 class TestBasicFedoraFunctionality(FedoraTestCase):
@@ -86,7 +87,7 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         pid = self.fedora_fixtures_ingested[0]
         obj = self.repo.get_object(pid)
         # add a cmodel to test object so we can find our test object by cmodel
-        cmodel = DigitalObject("control:TestObject", self.repo.fedora_root)
+        cmodel = DigitalObject("control:TestObject", self.opener)
         obj.add_relationship(URI_HAS_MODEL, cmodel)
         # query by test cmodel
         objs_by_cmodel = self.repo.get_objects_with_cmodel(cmodel.uri)
@@ -154,7 +155,7 @@ class TestDigitalObject(FedoraTestCase):
         # tests add & get rel methods
 
         # add relation to a resource, by digital object
-        related = DigitalObject("foo:123", self.repo.fedora_root)
+        related = DigitalObject("foo:123", self.opener)
         isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
         added = self.object.add_relationship(isMemberOf, related)
         # FIXME: currently returns None on success (?)      
@@ -177,7 +178,7 @@ class TestDigitalObject(FedoraTestCase):
         self.assert_("testuser" in rels_ext)
 
         rels = self.object.get_relationships()
-        self.assert_(isinstance(rels, rdflib.ConjunctiveGraph))
+        self.assert_(isinstance(rels, Graph))
         # convert firxt added relationship to rdflib statement to check that it is in the rdf graph
         st = (rdflib.URIRef(self.object.uri), rdflib.URIRef(isMemberOf), rdflib.URIRef(related.uri))
         self.assertTrue(st in rels)
@@ -187,7 +188,7 @@ class TestDigitalObject(FedoraTestCase):
 
 
     def testHasModel(self):
-        cmodel =  DigitalObject("control:ContentType", self.repo.fedora_root)
+        cmodel =  DigitalObject("control:ContentType", self.opener)
         # FIXME: currently causes an error because rels-ext datastream does not exist
         #self.assertFalse(self.object.has_model(cmodel.uri))
         self.object.add_relationship(URI_HAS_MODEL, cmodel)
@@ -209,9 +210,9 @@ class TestResourceIndex(FedoraTestCase):
         pid = self.fedora_fixtures_ingested[0]
         self.object = self.repo.get_object(pid)
         # add some rels to query
-        self.cmodel = DigitalObject("control:TestObject", self.repo.fedora_root)
+        self.cmodel = DigitalObject("control:TestObject", self.opener)
         self.object.add_relationship(URI_HAS_MODEL, self.cmodel)
-        self.related = DigitalObject("foo:123", self.repo.fedora_root)
+        self.related = DigitalObject("foo:123", self.opener)
         self.object.add_relationship(self.rel_isMemberOf, self.related)
         self.object.add_relationship(self.rel_owner, "testuser")
 
