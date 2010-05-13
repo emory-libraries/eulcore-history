@@ -5,8 +5,7 @@ from Ft.Xml.XPath.Context import Context
 from eulcore import xmlmap
 from eulcore.fedora.api import HTTP_API_Base, REST_API, API_A_LITE, API_M
 # FIXME: should risearch be moved to apis?
-from eulcore.fedora.util import XmlObjectParser, parse_rdf, RdfParser, \
-                                RelativeOpener
+from eulcore.fedora.util import RelativeOpener, parse_rdf, parse_xml_object
 
 # FIXME: DateField still needs significant improvements before we can make
 # it part of the real xmlmap interface.
@@ -50,8 +49,8 @@ class Repository(object):
             kwargs['namespace'] = namespace
         if count:
             kwargs['numPIDs'] = count
-        parse = XmlObjectParser(NewPids)
-        nextpids = self.rest_api.getNextPID(parse=parse, **kwargs)
+        data, url = self.rest_api.getNextPID(**kwargs)
+        nextpids = parse_xml_object(NewPids, data, url)
 
         if count is None:
             return nextpids.pids[0]
@@ -133,14 +132,15 @@ class Repository(object):
 
         # FIXME: query production here is frankly sketchy
         query = ' '.join([ '%s~%s' % (k, v) for k, v in kwargs.iteritems() ])
-        parse = XmlObjectParser(SearchResults)
-        chunk = self.rest_api.findObjects(query, chunksize=chunksize, parse=parse)
+        data, url = self.rest_api.findObjects(query, chunksize=chunksize)
+        chunk = parse_xml_object(SearchResults, data, url)
         while True:
             for result in chunk.results:
                 yield type(result.pid, self.opener)
 
             if chunk.session_token:
-                chunk = self.rest_api.findObjects(query, session_token=chunk.session_token, parse=parse)
+                data, url = self.rest_api.findObjects(query, session_token=chunk.session_token, chunksize=chunksize)
+                chunk = parse_xml_object(SearchResults, data, url)
             else:
                 break
 
@@ -228,20 +228,22 @@ class DigitalObject(object):
         "instance of :class:`REST_API`, with the same fedora root url and credentials"
         return REST_API(self.opener)
 
-    def get_datastream(self, ds_name, parse=None):
+    def _get_datastream_with_url(self, ds_name):
+        return self.api_a_lite.getDatastreamDissemination(self.pid, ds_name)
+
+    def get_datastream(self, ds_name):
         """
         Retrieve one of this object's datastreams from fedora.
 
         Calls `API-A-LITE getDatastreamDissemination <http://fedora-commons.org/confluence/display/FCR30/API-A-LITE#API-A-LITE-getDatastreamDissemination>`_
 
         :param ds_name: name of the datastream to be retrieved
-        :param parse: optional data parser function; defaults to returning
-                      raw string data
         :rtype: string
         """
         # TODO: fill out info on read param and return type
         # todo: error handling when attempting to get non-existent datastream
-        return self.api_a_lite.getDatastreamDissemination(self.pid, ds_name, parse)
+        data, url = self._get_datastream_with_url(ds_name)
+        return data
 
     def get_datastream_as_xml(self, ds_name, xml_type):
         """
@@ -251,8 +253,8 @@ class DigitalObject(object):
         :param ds_name: name of the datastream to be retrieved
         :param xml_type: :class:`~eulcore.xmlmap.XmlObject` type to be returned
         """
-        parse = XmlObjectParser(xml_type)
-        return self.get_datastream(ds_name, parse=parse)
+        data, url = self._get_datastream_with_url(ds_name)
+        return parse_xml_object(xml_type, data, url)
 
     def get_datastreams(self):
         """
@@ -263,8 +265,8 @@ class DigitalObject(object):
 
         :rtype: dictionary
         """
-        parse = XmlObjectParser(ObjectDatastreams)
-        dsobj = self.rest_api.listDatastreams(self.pid, parse=parse)
+        data, url = self.rest_api.listDatastreams(self.pid)
+        dsobj = parse_xml_object(ObjectDatastreams, data, url)
         return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
 
     def get_relationships(self):
@@ -274,7 +276,8 @@ class DigitalObject(object):
         :rtype: :class:`rdflib.ConjunctiveGraph`
         """
         # FIXME: gets a 404 if object does not have RELS-EXT; throw an exception for this?
-        return self.get_datastream('RELS-EXT', parse=parse_rdf)
+        data, url = self._get_datastream_with_url('RELS-EXT')
+        return parse_rdf(data, url)
 
     def add_relationship(self, rel_uri, object):
         """
@@ -391,8 +394,8 @@ class ResourceIndex(HTTP_API_Base):
         }
 
         rel_url = risearch_url + urlencode(http_args)
-        parse = RdfParser(format='n3')
-        return self.read(rel_url, parse=parse)
+        data, abs_url = self.read(rel_url)
+        return parse_rdf(data, abs_url, format='n3')
 
     def spo_search(self, subject=None, predicate=None, object=None):
         """

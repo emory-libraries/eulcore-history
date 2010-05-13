@@ -2,6 +2,7 @@ import httplib
 import mimetypes
 import random
 import string
+from cStringIO import StringIO
 
 from base64 import b64encode
 from urlparse import urljoin, urlsplit
@@ -148,40 +149,25 @@ class RelativeOpener(object):
         return self._abs_open(method, abs_url, body, headers,
                               throw_errors=throw_errors)
 
-    def read(self, rel_url, data=None, parse=None):
+    def read(self, rel_url, data=None):
         method = 'GET'
         if data is not None:
             method = 'POST'
         abs_url = self.absurl(rel_url)
         with self._abs_open(method, abs_url, data) as fobj:
-            if parse is None:
-                return fobj.read()
-            else:
-                return parse(fobj, abs_url)
+            return fobj.read(), abs_url
 
 
-# parser for RelativeOpener.read: parse into RDF graph
-class RdfParser(object):
-    def __init__(self, format=None):
-        self.format = format
+def parse_rdf(data, url, format=None):
+    fobj = StringIO(data)
+    id = URIRef(url)
+    graph = Graph(identifier=id)
+    if format is None:
+        graph.parse(fobj)
+    else:
+        graph.parse(fobj, format=format)
+    return graph
 
-    def __call__(self, fobj, url):
-        id = URIRef(url)
-        graph = Graph(identifier=id)
-        if self.format is None:
-            graph.parse(fobj)
-        else:
-            graph.parse(fobj, format=self.format)
-        return graph
-parse_rdf = RdfParser()
-
-# parser for RelativeOpener.read: parse into XmlObject
-class XmlObjectParser(object):
-    def __init__(self, cls):
-        self.cls = cls
-
-    def __call__(self, fobj, url):
-        data = fobj.read()
-        doc = xmlmap.parseString(data, url)
-        return self.cls(doc.documentElement)
-
+def parse_xml_object(cls, data, url):
+    doc = xmlmap.parseString(data, url)
+    return cls(doc.documentElement)

@@ -40,7 +40,7 @@ class REST_API(HTTP_API_Base):
     ### API-A methods (access) #### 
     # describeRepository not implemented in REST, use API-A-LITE version
 
-    def findObjects(self, query, pid=True, chunksize=None, session_token=None, parse=None):
+    def findObjects(self, query, pid=True, chunksize=None, session_token=None):
         """
         Wrapper function for `Fedora REST API findObjects <http://fedora-commons.org/confluence/display/FCR30/REST+API#RESTAPI-findObjects>`_
         and `Fedora REST API resumeFindObjects <http://fedora-commons.org/confluence/display/FCR30/REST+API#RESTAPI-resumeFindObjects>`_
@@ -63,38 +63,38 @@ class REST_API(HTTP_API_Base):
             http_args['sessionToken'] = session_token
         if chunksize:
             http_args['maxResults'] = chunksize
-        return self.read('objects?' + urlencode(http_args), parse=parse)
+        return self.read('objects?' + urlencode(http_args))
 
-    def getDatastreamDissemination(self, pid, dsID, asOfDateTime=None, parse=None):
+    def getDatastreamDissemination(self, pid, dsID, asOfDateTime=None):
         # /objects/{pid}/datastreams/{dsID}/content ? [asOfDateTime] [download]
         http_args = {}
         if asOfDateTime:
             http_args['asOfDateTime'] = asOfDateTime
         url = 'objects/%s/datastreams/%s/content?%s' % (pid, dsID, urlencode(http_args))
-        return self.read(url, parse=parse)
+        return self.read(url)
 
-    def getDissemination(self, pid, sdefPid, method, method_params={}, parse=None):
+    def getDissemination(self, pid, sdefPid, method, method_params={}):
         # /objects/{pid}/methods/{sdefPid}/{method} ? [method parameters]
         # not working/implemented?  getting 404
         uri = 'objects/%s/methods/%s/%s/' % (pid, sdefPid, method)
         if method_params:
             uri += '?' + urlencode(method_params)
-        return self.read(uri, parse=parse)
+        return self.read(uri)
 
-    def getObjectHistory(self, pid, parse=None):
+    def getObjectHistory(self, pid):
         # /objects/{pid}/versions ? [format]
-        return self.read('objects/%s/versions?%s' % (pid, urlencode(self.format_xml)), parse=parse)
+        return self.read('objects/%s/versions?%s' % (pid, urlencode(self.format_xml)))
 
-    def getObjectProfile(self, pid, asOfDateTime=None, parse=None): # date?
+    def getObjectProfile(self, pid, asOfDateTime=None): # date?
         # /objects/{pid} ? [format] [asOfDateTime]
         http_args = {}
         if asOfDateTime:
             http_args['asOfDateTime'] = asOfDateTime
         http_args.update(self.format_xml)
         url = 'objects/%s?%s' % (pid, urlencode(http_args))
-        return self.read(url, parse=parse)
+        return self.read(url)
 
-    def listDatastreams(self, pid, parse=None):
+    def listDatastreams(self, pid):
         """
         Get a list of all datastreams for a specified object.
 
@@ -106,9 +106,9 @@ class REST_API(HTTP_API_Base):
         :rtype: string xml data
         """
         # /objects/{pid}/datastreams ? [format, datetime]        
-        return self.read('objects/%s/datastreams?%s' % (pid, urlencode(self.format_xml)), parse=parse)
+        return self.read('objects/%s/datastreams?%s' % (pid, urlencode(self.format_xml)))
 
-    def listMethods(self, pid, sdefpid=None, parse=None):
+    def listMethods(self, pid, sdefpid=None):
         # /objects/{pid}/methods ? [format, datetime]
         # /objects/{pid}/methods/{sdefpid} ? [format, datetime]
         
@@ -117,7 +117,7 @@ class REST_API(HTTP_API_Base):
         uri = 'objects/%s/methods' % pid
         if sdefpid:
             uri += '/' + sdefpid
-        return self.read(uri + '?' + urlencode(self.format_xml), parse=parse)
+        return self.read(uri + '?' + urlencode(self.format_xml))
 
     ### API-M methods (management) ####
 
@@ -173,7 +173,7 @@ class REST_API(HTTP_API_Base):
         # currently returns datastream info returned by getDatastream...  what should it return?
         return self.getDatastream(pid, dsID, validateChecksum=True, asOfDateTime=asOfDateTime)
 
-    def export(self, pid, context=None, format=None, encoding=None, parse=None):
+    def export(self, pid, context=None, format=None, encoding=None):
         # /objects/{pid}/export ? [format] [context] [encoding]
         # - if format is not specified, use fedora default (FOXML 1.1)
         # - if encoding is not specified, use fedora default (UTF-8)
@@ -188,9 +188,9 @@ class REST_API(HTTP_API_Base):
         uri = 'objects/%s/export' % pid
         if http_args:
             uri += '?' + urlencode(http_args)
-        return self.read(uri, parse=parse)
+        return self.read(uri)
 
-    def getDatastream(self, pid, dsID, asOfDateTime=None, validateChecksum=False, parse=None):
+    def getDatastream(self, pid, dsID, asOfDateTime=None, validateChecksum=False):
         # /objects/{pid}/datastreams/{dsID} ? [asOfDateTime] [format] [validateChecksum]
         http_args = {}
         if validateChecksum:
@@ -199,13 +199,13 @@ class REST_API(HTTP_API_Base):
             http_args['asOfDateTime'] = asOfDateTime
         http_args.update(self.format_xml)        
         uri = 'objects/%s/datastreams/%s' % (pid, dsID) + '?' + urlencode(http_args)
-        return self.read(uri, parse=parse)
+        return self.read(uri)
 
     # getDatastreamHistory not implemented in REST API
 
     # getDatastreams not implemented in REST API
 
-    def getNextPID(self, numPIDs=None, namespace=None, parse=None):
+    def getNextPID(self, numPIDs=None, namespace=None):
         """
         Wrapper function for `Fedora REST API getNextPid <http://fedora-commons.org/confluence/display/FCR30/REST+API#RESTAPI-getNextPID>`_
 
@@ -221,9 +221,9 @@ class REST_API(HTTP_API_Base):
             http_args['namespace'] = namespace
 
         rel_url = 'objects/nextPID?' + urlencode(http_args)
-        return self.read(rel_url, data='', parse=parse)
+        return self.read(rel_url, data='')
 
-    def getObjectXML(self, pid, parse=None):
+    def getObjectXML(self, pid):
         """
            Return the entire xml for the specified object.
 
@@ -233,7 +233,7 @@ class REST_API(HTTP_API_Base):
            :rtype: string xml content of entire object
         """
         # /objects/{pid}/objectXML
-        return self.read('objects/%s/objectXML' % (pid,), parse=parse)
+        return self.read('objects/%s/objectXML' % (pid,))
 
     # getRelationships not implemented in REST API
 
@@ -387,17 +387,17 @@ class API_A_LITE(HTTP_API_Base):
     """
        Python object for accessing `Fedora's API-A-LITE <http://fedora-commons.org/confluence/display/FCR30/API-A-LITE>`_.
     """
-    def describeRepository(self, parse=None):
+    def describeRepository(self):
         """
         Get information about a Fedora repository.
 
         :rtype: string
         """
         http_args = { 'xml': 'true' }
-        return self.read('describe?' + urlencode(http_args), parse)
+        return self.read('describe?' + urlencode(http_args))
 
     # NOTE: REST API version of getDatastreamDissemination should be preferred
-    def getDatastreamDissemination(self, pid, ds_name, parse=None):
+    def getDatastreamDissemination(self, pid, ds_name):
         """
         Retrieve the contents of a single datastream from a fedora object.
 
@@ -407,11 +407,10 @@ class API_A_LITE(HTTP_API_Base):
                       raw string data
         :rtype: string
         """
-        return self.read('get/%s/%s' % (pid, ds_name), parse=parse)
+        return self.read('get/%s/%s' % (pid, ds_name))
 
 
 class API_M_LITE(HTTP_API_Base):
-
     def upload(self, filename):
         fp = open(filename, 'rb')
         url = 'management/upload'

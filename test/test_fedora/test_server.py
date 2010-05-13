@@ -35,7 +35,8 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         pid = self.repo.ingest(object, "this is my test ingest message")
         # ingest message is stored in AUDIT datastream
         # - can currently only be accessed by retrieving entire object xml
-        self.assertTrue("this is my test ingest message" in self.repo.rest_api.getObjectXML(pid))
+        xml, url = self.repo.rest_api.getObjectXML(pid)
+        self.assertTrue("this is my test ingest message" in xml)
         self.repo.purge_object(pid, "removing test ingest object")
         # FIXME: how can we test logMessage arg to purge?
         #  -- have no idea where log message is actually stored... (if anywhere)
