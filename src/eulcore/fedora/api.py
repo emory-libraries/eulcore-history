@@ -1,26 +1,17 @@
+from urllib import urlencode
+from urlparse import urlsplit
+from base64 import b64encode
+
 from soaplib.serializers import primitive as soap_types
 from soaplib.serializers.clazz import ClassSerializer
 from soaplib.service import soapmethod
 from soaplib.client import ServiceClient, SimpleSoapClient
 from soaplib.wsgi_soap import SimpleWSGISoapApp
-from urllib import urlencode
-from urlparse import urlsplit
-from base64 import b64encode
-from eulcore.fedora.util import encode_multipart_formdata, get_content_type
+
+from eulcore.fedora.util import auth_headers, encode_multipart_formdata, \
+                                get_content_type
 
 # low-level wrappers for Fedora APIs
-
-# readers used internally to affect how we interpret network data from fedora
-
-def auth_headers(username, password):
-    "Build HTTP basic authentication headers"
-    if username and password:
-        token = b64encode('%s:%s' % (username, password))
-        return { 'Authorization': 'Basic ' + token }
-    else:
-        return {}
-
-# fedora apis
 
 class HTTP_API_Base(object):
     def __init__(self, opener):
@@ -489,19 +480,19 @@ class API_M_Service(SimpleWSGISoapApp):
 
 # extend SimpleSoapClient to accept auth headers and pass them to any soap call that is made
 class AuthSoapClient(SimpleSoapClient):
-    def __init__(self,host,path,descriptor,scheme="http", auth_headers={}):
+    def __init__(self, host, path, descriptor, scheme="http", auth_headers={}):
         self.auth_headers = auth_headers
         return super(AuthSoapClient, self).__init__(host, path, descriptor, scheme)
 
-    def __call__(self,*args,**kwargs):
+    def __call__(self, *args, **kwargs):
         kwargs.update(self.auth_headers)
         return super(AuthSoapClient, self).__call__(*args, **kwargs)
 
 
 class API_M(ServiceClient):
-    def __init__(self, repo_root, username, password):
-        self.auth_headers = auth_headers(username, password)
-        urlparts = urlsplit(repo_root)
+    def __init__(self, opener):
+        self.auth_headers = auth_headers(opener.username, opener.password)
+        urlparts = urlsplit(opener.base_url)
         hostname = urlparts.hostname
         api_path = urlparts.path + 'services/management'
         if urlparts.port:
@@ -511,5 +502,12 @@ class API_M(ServiceClient):
         # - using custom AuthSoapClient and passing auth headers
         self.server = API_M_Service()
         for method in self.server.methods():
-            setattr(self,method.name,AuthSoapClient(hostname, api_path, method,
+            setattr(self, method.name, AuthSoapClient(hostname, api_path, method,
                 urlparts.scheme, self.auth_headers))
+
+
+class ApiFacade(REST_API, API_A_LITE, API_M_LITE, API_M): # there is no API_A today
+    """Pull together all Fedora APIs into one place."""
+    def __init__(self, opener):
+        HTTP_API_Base.__init__(self, opener)
+        API_M.__init__(self, opener)

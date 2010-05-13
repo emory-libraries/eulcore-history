@@ -77,6 +77,14 @@ def generate_boundary():
 
 # utilities for making HTTP requests to fedora
 
+def auth_headers(username, password):
+    "Build HTTP basic authentication headers"
+    if username and password:
+        token = b64encode('%s:%s' % (username, password))
+        return { 'Authorization': 'Basic ' + token }
+    else:
+        return {}
+
 class RequestFailed(IOError):
     def __init__(self, response):
         super(RequestFailed, self).__init__('%d %s' % (response.status, response.reason))

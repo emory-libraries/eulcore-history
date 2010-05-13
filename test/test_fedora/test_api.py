@@ -470,8 +470,8 @@ class TestAPI_M(FedoraTestCase):
     def setUp(self):
         super(TestAPI_M, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
+        self.api_m = API_M(self.opener)
         self.opener = RelativeOpener(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
-        self.api_m = API_M(REPO_ROOT, REPO_USER, REPO_PASS)
         self.rest_api = REST_API(self.opener)
 
     def test_addRelationship(self):

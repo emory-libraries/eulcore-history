@@ -3,7 +3,7 @@ import rdflib
 from Ft.Xml.XPath.Context import Context
 
 from eulcore import xmlmap
-from eulcore.fedora.api import HTTP_API_Base, REST_API, API_A_LITE, API_M
+from eulcore.fedora.api import HTTP_API_Base, ApiFacade
 # FIXME: should risearch be moved to apis?
 from eulcore.fedora.util import RelativeOpener, parse_rdf, parse_xml_object
 
@@ -30,9 +30,9 @@ class Repository(object):
         return ResourceIndex(self.opener)
 
     @property
-    def rest_api(self):
-        "instance of :class:`REST_API`, with the same root url and credentials"
-        return REST_API(self.opener)
+    def api(self):
+        "instance of :class:`ApiFacade`, with the same root url and credentials"
+        return ApiFacade(self.opener)
 
     def get_next_pid(self, namespace=None, count=None):
         """
@@ -49,7 +49,7 @@ class Repository(object):
             kwargs['namespace'] = namespace
         if count:
             kwargs['numPIDs'] = count
-        data, url = self.rest_api.getNextPID(**kwargs)
+        data, url = self.api.getNextPID(**kwargs)
         nextpids = parse_xml_object(NewPids, data, url)
 
         if count is None:
@@ -70,7 +70,7 @@ class Repository(object):
         kwargs = { 'text': text }
         if log_message:
             kwargs['logMessage'] = log_message
-        return self.rest_api.ingest(**kwargs)
+        return self.api.ingest(**kwargs)
 
     def purge_object(self, pid, log_message=None):
         """
@@ -83,7 +83,7 @@ class Repository(object):
         kwargs = { 'pid': pid }
         if log_message:
             kwargs['logMessage'] = log_message
-        return self.rest_api.purgeObject(**kwargs)
+        return self.api.purgeObject(**kwargs)
 
     def get_objects_with_cmodel(self, cmodel_uri, type=None):
         """
@@ -132,14 +132,14 @@ class Repository(object):
 
         # FIXME: query production here is frankly sketchy
         query = ' '.join([ '%s~%s' % (k, v) for k, v in kwargs.iteritems() ])
-        data, url = self.rest_api.findObjects(query, chunksize=chunksize)
+        data, url = self.api.findObjects(query, chunksize=chunksize)
         chunk = parse_xml_object(SearchResults, data, url)
         while True:
             for result in chunk.results:
                 yield type(result.pid, self.opener)
 
             if chunk.session_token:
-                data, url = self.rest_api.findObjects(query, session_token=chunk.session_token, chunksize=chunksize)
+                data, url = self.api.findObjects(query, session_token=chunk.session_token, chunksize=chunksize)
                 chunk = parse_xml_object(SearchResults, data, url)
             else:
                 break
@@ -214,22 +214,12 @@ class DigitalObject(object):
         return 'info:fedora/' + self.pid
 
     @property
-    def api_a_lite(self):
-        "instance of :class:`API_A_LITE`, with the same fedora root url and credentials"
-        return API_A_LITE(self.opener)
-
-    @property
-    def api_m(self):
-        "SOAP client for Fedora API-M"
-        return API_M(self.opener.base_url, self.opener.username, self.opener.password)
-
-    @property
-    def rest_api(self):
-        "instance of :class:`REST_API`, with the same fedora root url and credentials"
-        return REST_API(self.opener)
+    def api(self):
+        "instance of :class:`ApiFacade`, with the same fedora root url and credentials"
+        return ApiFacade(self.opener)
 
     def _get_datastream_with_url(self, ds_name):
-        return self.api_a_lite.getDatastreamDissemination(self.pid, ds_name)
+        return self.api.getDatastreamDissemination(self.pid, ds_name)
 
     def get_datastream(self, ds_name):
         """
@@ -265,7 +255,7 @@ class DigitalObject(object):
 
         :rtype: dictionary
         """
-        data, url = self.rest_api.listDatastreams(self.pid)
+        data, url = self.api.listDatastreams(self.pid)
         dsobj = parse_xml_object(ObjectDatastreams, data, url)
         return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
 
@@ -305,7 +295,7 @@ class DigitalObject(object):
             obj_is_literal = False
 
         # FIXME: currently no value returned; should be boolean on success
-        return self.api_m.addRelationship(self.pid, rel_uri, object, obj_is_literal)
+        return self.api.addRelationship(self.pid, rel_uri, object, obj_is_literal)
 
     def has_model(self, model):
         """
