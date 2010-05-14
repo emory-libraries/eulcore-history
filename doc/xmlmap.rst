@@ -19,6 +19,7 @@ Contents
    :maxdepth: 1
 
    Encoded Archive Description (EAD) XmlObject <xmlmap_ead>
+   Dublin Core XmlObject <xmlmap/dc>
 
 General Usage
 -------------
