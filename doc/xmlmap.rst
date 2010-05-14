@@ -18,7 +18,7 @@ Contents
 .. toctree::
    :maxdepth: 1
 
-   Encoded Archive Description (EAD) XmlObject <xmlmap_ead>
+   Encoded Archive Description (EAD) XmlObject <xmlmap/ead>
    Dublin Core XmlObject <xmlmap/dc>
 
 General Usage
