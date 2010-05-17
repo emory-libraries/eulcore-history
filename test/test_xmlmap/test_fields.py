@@ -7,7 +7,7 @@ from testcore import main
 
 class TestFields(unittest.TestCase):
     FIXTURE_TEXT = '''
-        <foo id='a'>
+        <foo id='a' xmlns:ex='http://example.com/'>
             <bar>
                 <baz>42</baz>
             </bar>
@@ -61,7 +61,9 @@ class TestFields(unittest.TestCase):
             val = xmlmap.StringField('bar[1]/baz')
             empty = xmlmap.StringField('empty_field')
             missing = xmlmap.StringField('missing')
+            missing_ns = xmlmap.StringField('ex:missing')
             missing_att = xmlmap.StringField('@missing')
+            missing_att_ns = xmlmap.StringField('@ex:missing')
             sub_missing = xmlmap.StringField('bar[1]/missing')
             mixed = xmlmap.StringField('bar[1]')
             id = xmlmap.StringField('@id')
@@ -91,15 +93,19 @@ class TestFields(unittest.TestCase):
         # check that new value is accessible via descriptor
         self.assertEqual(obj.empty, 'full')
 
-        # set missing field in node
+        # set missing fields
         obj.missing = 'not here'
         self.assertEqual(obj.dom_node.xpath('string(missing)'), 'not here')
-
-        # set missing field in attrib
+        # with ns
+        obj.missing_ns = 'over there'
+        self.assertEqual(obj.dom_node.xpath('string(ex:missing)'), 'over there')
+        # in attrib
         obj.missing_att = 'out to pasture'
         self.assertEqual(obj.dom_node.xpath('string(@missing)'), 'out to pasture')
-
-        # set missing field inside an existing element
+        # in attrib with ns
+        obj.missing_att_ns = "can't find me!"
+        self.assertEqual(obj.dom_node.xpath('string(@ex:missing)'), "can't find me!")
+        # in subelement
         obj.sub_missing = 'pining (for the fjords)'
         self.assertEqual(obj.dom_node.xpath('string(bar/missing)'), 'pining (for the fjords)')
 

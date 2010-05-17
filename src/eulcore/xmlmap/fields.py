@@ -123,18 +123,8 @@ class SingleNodeManager(object):
 
         # relative paths if the parent exists:
         if isinstance(effective_xpath, ParsedRelativeLocationPath):
-            parent_xpath = effective_xpath._left
-            parent_nodeset = parent_xpath.evaluate(context)
-            if len(parent_nodeset) != 1:
-                msg = ("Missing element for '%s', and node creation is " + \
-                       "supported only when parent xpath '%s' evaluates " + \
-                       "to a single node. Instead, it evaluates to %d.") % \
-                       (repr(xpath), repr(parent_xpath), len(parent_nodeset))
-                raise Exception(msg)
-
-            # otherwise, we found the parent.
-            effective_xpath = effective_xpath._right
-            node = parent_nodeset[0]
+            node, effective_xpath = \
+                self._find_parent_node(effective_xpath, node, context)
 
         # and if the last part of the path is a simple, unpredicated child
         # or attribute
@@ -150,21 +140,34 @@ class SingleNodeManager(object):
                "only for simple child and attribute nodes.") % (repr(xpath),)
         raise Exception(msg)
 
+    def _find_parent_node(self, xpath, node, context):
+        parent_xpath = xpath._left
+        parent_nodeset = parent_xpath.evaluate(context)
+        if len(parent_nodeset) != 1:
+            msg = ("Missing element for '%s', and node creation is " + \
+                   "supported only when parent xpath '%s' evaluates " + \
+                   "to a single node. Instead, it evaluates to %d.") % \
+                   (repr(xpath), repr(parent_xpath), len(parent_nodeset))
+            raise Exception(msg)
+
+        # otherwise, we found the parent.
+        return parent_nodeset[0], xpath._right
+
     def create_child_node(self, xpath, node, context):
-        ns_uri, node_name = self._get_name_parts(xpath._nodeTest)
+        ns_uri, node_name = self._get_name_parts(xpath._nodeTest, context)
         doc = node.ownerDocument
         new_node = doc.createElementNS(ns_uri, node_name)
         node.appendChild(new_node)
         return new_node
 
     def create_attribute_node(self, xpath, node, context):
-        ns_uri, node_name = self._get_name_parts(xpath._nodeTest)
+        ns_uri, node_name = self._get_name_parts(xpath._nodeTest, context)
         doc = node.ownerDocument
         new_node = doc.createAttributeNS(ns_uri, node_name)
         node.setAttributeNodeNS(new_node)
         return new_node
 
-    def _get_name_parts(self, node_name_test):
+    def _get_name_parts(self, node_name_test, context):
         node_name = repr(node_name_test)
         if isinstance(node_name_test, LocalNameTest):
             ns_uri = None
