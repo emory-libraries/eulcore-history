@@ -1,5 +1,8 @@
 from datetime import datetime
 from Ft.Xml.XPath import Compile, Evaluate
+from Ft.Xml.XPath.ParsedNodeTest import LocalNameTest, QualifiedNameTest
+from Ft.Xml.XPath.ParsedRelativeLocationPath import ParsedRelativeLocationPath
+from Ft.Xml.XPath.ParsedStep import ParsedStep
 
 __all__ = [
     'StringField', 'StringListField',
@@ -21,10 +24,10 @@ class Field(object):
         self.mapper = mapper
 
     def get_for_node(self, node, context):
-        return self.manager.get(self.xpath, node, context, self.mapper.to_python)
+        return self.manager.get(self._xpath, node, context, self.mapper.to_python)
 
     def set_for_node(self, node, context, value):
-        return self.manager.set(self.xpath, node, context, self.mapper.to_xml, value)
+        return self.manager.set(self._xpath, node, context, self.mapper.to_xml, value)
         
 # data mappers to translate between identified xml nodes and Python values
 
@@ -74,21 +77,81 @@ class NodeMapper(object):
 
 class SingleNodeManager(object):
     def get(self, xpath, node, context, to_python):
-        matches = Evaluate(xpath, node, context)
-        if matches:
-            return to_python(matches[0])
+        match = self.find_xml_node(xpath, node, context)
+        if match:
+            return to_python(match)
 
     def set(self, xpath, node, context, to_xml, value):
+        match = self.find_xml_node(xpath, node, context)
+        if not match:
+            match = self.create_xml_node(xpath, node, context)
+            # create_xml_node() throws an exception on failure
+
+        return self.set_in_xml(match, to_xml(value))
+
+    def find_xml_node(self, xpath, node, context):
         matches = Evaluate(xpath, node, context)
         if matches:
-            return self.set_in_xml(matches[0], to_xml(value))
-        else:
-            raise Exception("No matching node found for '%s', cannot set value '%s'"
-                % (xpath, value))
-        # silently fails if no match is found to set - what is correct behavior?
-        # some possibilities:
-        #  - throw an attribute error
-        #  - create the missing node with the value (at least for simple xpaths?)
+            return matches[0]
+
+    def create_xml_node(self, xpath, node, context):
+        effective_xpath = xpath  # use copy so error reporting can use orig
+
+        # the cases we can create:
+
+        # relative paths if the parent exists:
+        if isinstance(effective_xpath, ParsedRelativeLocationPath):
+            parent_xpath = effective_xpath._left
+            parent_nodeset = parent_xpath.evaluate(context)
+            if len(parent_nodeset) != 1:
+                msg = ("Missing element for '%s', and node creation is " + \
+                       "supported only when parent xpath '%s' evaluates " + \
+                       "to a single node. Instead, it evaluates to %d.") % \
+                       (repr(xpath), repr(parent_xpath), len(parent_nodeset))
+                raise Exception(msg)
+
+            # otherwise, we found the parent.
+            effective_xpath = effective_xpath._right
+            node = parent_nodeset[0]
+
+        # and if the last part of the path is a simple, unpredicated child
+        # or attribute
+        if isinstance(effective_xpath, ParsedStep):
+            if effective_xpath._predicates is None:
+                if repr(effective_xpath._axis) == 'child':
+                    return self.create_child_node(effective_xpath, node, context)
+                if repr(effective_xpath._axis) == 'attribute':
+                    return self.create_attribute_node(effective_xpath, node, context)
+
+        # anything else, throw an exception:
+        msg = ("Missing element for '%s', and node creation is supported " + \
+               "only for simple child and attribute nodes.") % (repr(xpath),)
+        raise Exception(msg)
+
+    def create_child_node(self, xpath, node, context):
+        ns_uri, node_name = self._get_name_parts(xpath._nodeTest)
+        doc = node.ownerDocument
+        new_node = doc.createElementNS(ns_uri, node_name)
+        node.appendChild(new_node)
+        return new_node
+
+    def create_attribute_node(self, xpath, node, context):
+        ns_uri, node_name = self._get_name_parts(xpath._nodeTest)
+        doc = node.ownerDocument
+        new_node = doc.createAttributeNS(ns_uri, node_name)
+        node.setAttributeNodeNS(new_node)
+        return new_node
+
+    def _get_name_parts(self, node_name_test):
+        node_name = repr(node_name_test)
+        if isinstance(node_name_test, LocalNameTest):
+            ns_uri = None
+        elif isinstance(node_name_test, QualifiedNameTest):
+            prefix = node_name_test._prefix
+            ns_uri = context.processorNss.get(prefix, None)
+            # we could throw an exception here if ns_uri wasn't found, but
+            # for now assume the user knows what he's doing...
+        return ns_uri, node_name
 
     def set_in_xml(self, node, val):
         if node.nodeType == node.ATTRIBUTE_NODE:

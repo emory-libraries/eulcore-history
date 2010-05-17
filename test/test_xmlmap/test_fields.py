@@ -55,6 +55,8 @@ class TestFields(unittest.TestCase):
             val = xmlmap.StringField('bar[1]/baz')
             empty = xmlmap.StringField('empty_field')
             missing = xmlmap.StringField('missing')
+            missing_att = xmlmap.StringField('@missing')
+            sub_missing = xmlmap.StringField('bar[1]/missing')
             mixed = xmlmap.StringField('bar[1]')
             id = xmlmap.StringField('@id')
 
@@ -83,8 +85,17 @@ class TestFields(unittest.TestCase):
         # check that new value is accessible via descriptor
         self.assertEqual(obj.empty, 'full')
 
-        # attempt to set missing field
-        self.assertRaises(Exception, obj.__setattr__, "missing", "not here")
+        # set missing field in node
+        obj.missing = 'not here'
+        self.assertEqual(obj.dom_node.xpath('string(missing)'), 'not here')
+
+        # set missing field in attrib
+        obj.missing_att = 'out to pasture'
+        self.assertEqual(obj.dom_node.xpath('string(@missing)'), 'out to pasture')
+
+        # set missing field inside an existing element
+        obj.sub_missing = 'pining (for the fjords)'
+        self.assertEqual(obj.dom_node.xpath('string(bar/missing)'), 'pining (for the fjords)')
 
         # attempting to set a node that contains non-text nodes - error
         self.assertRaises(Exception, obj.__setattr__, "mixed", "whoops")
