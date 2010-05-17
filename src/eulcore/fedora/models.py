@@ -4,32 +4,64 @@ from eulcore.xmlmap.core import XmlObject
 from eulcore.fedora.util import parse_xml_object
 
 class DatastreamProfile(xmlmap.XmlObject):
+    ":class:`xmlmap.XmlObject` for datastream profile information returned by Fedora REST API."
     label = xmlmap.StringField('dsLabel')
+    "datastream label"
     version_id = xmlmap.StringField('dsVersionID')
-    created = xmlmap.StringField('dsCreateDate')
+    "current datastream version id"
+    created = xmlmap.StringField('dsCreateDate')        # date?
+    "date the datastream was created"
     state = xmlmap.StringField('dsState')
+    "datastream state (A/I/D - Active, Inactive, Deleted)"
     mimetype = xmlmap.StringField('dsMIME')
+    "datastream mimetype"
     format = xmlmap.StringField('dsFormatURI')
+    "format URI for the datastream, if any"
     control_group = xmlmap.StringField('dsControlGroup')
+    "datastream control group (inline XML, Managed, etc)"
     size = xmlmap.IntegerField('dsSize')    # not reliable for managed datastreams as of Fedora 3.3
+    "integer; size of the datastream content"
     versionable = xmlmap.SimpleBooleanField('dsVersionable', 'true', 'false')
+    "boolean; indicates whether or not the datastream is currently being versioned"
     # infoType ?
     # location ?
-    checksum_type = xmlmap.StringField('dsChecksumType')
     checksum = xmlmap.StringField('dsChecksum')
+    "checksum for current datastream contents"
+    checksum_type = xmlmap.StringField('dsChecksumType')
+    "type of checksum"
+
 
 class DigitalObject(object):
     # NOTE: to be consolidated with other version of  Digital Object
+    
     def __init__(self):
         self.dscache = {}       # accessed by DatastreamDescriptor to store and cache datastreams
 
     def getDatastreamProfile(self, dsid):
+        """Get information about a particular datastream on this object.
+        
+        :rtype: :class:`DatastreamProfile`
+        """
         data, url = self.api.getDatastream(self.pid, dsid)
         return parse_xml_object(DatastreamProfile, data, url)
     
 
 class DatastreamObject(object):
-    
+    """Object to easy accessing and updating a datastream belonging to a Fedora object.
+
+    Intended to be used with :class:`DigitalObject` and intialized
+    via :class:`Datastream`.
+
+    Initialization parameters:
+        :param obj: the :class:`DigitalObject` that this datastream belongs to.
+        :param id: datastream id
+        :param label: default datastream label
+        :param content: contents of the datastream; currently handles text or XmlObject
+        :param mimetype: default datastream mimetype
+        :param versionable: default configuration for datastream versioning
+        :param state: default configuration for datastream state
+        :param format: default configuration for datastream format URI
+    """
     def __init__(self, obj, id, label, content=None, mimetype="text/xml", versionable=False,
         state="A", format=None):
         self.obj = obj
@@ -54,7 +86,7 @@ class DatastreamObject(object):
         """Check if either the datastream content or profile fields have changed
         and should be saved to Fedora.
         
-        :rtype boolean:
+        :rtype: boolean
         """
         return self.info_modified or self._content_digest() != self.digest
 
@@ -99,11 +131,11 @@ class DatastreamObject(object):
         self.info.format = val
         self.info.modified = True
 
-    label = property(_get_label, _set_label)    
-    mimetype = property(_get_mimetype, _set_mimetype)
-    versionable = property(_get_versionable, _set_versionable)  
-    state = property(_get_state, _set_state)
-    format = property(_get_format, _set_format)
+    label = property(_get_label, _set_label, None, "datastream label")
+    mimetype = property(_get_mimetype, _set_mimetype, None, "mimetype for the datastream")
+    versionable = property(_get_versionable, _set_versionable, None, "boolean; is the datastream versioned")
+    state = property(_get_state, _set_state, None, "datastream state (A/I/D)")
+    format = property(_get_format, _set_format, "datastream format URI")
 
     @property       # read-only info property
     def control_group(self):
@@ -120,7 +152,7 @@ class DatastreamObject(object):
         """Save datastream content and any changed datastream profile
         information to Fedora.
 
-        :rtype boolean: success
+        :rtype: boolean for success
         """
         data = self._content_as_text()
         
@@ -153,7 +185,19 @@ class DatastreamObject(object):
             
         return success      # msg ?
     
-class DatastreamDescriptor(object):
+class Datastream(object):
+    """Datastream descriptor to make it easy to configure datastreams that belong
+    to a particular :class:`DigitalObject`.
+
+    When accessed, will initialize a :class:`DatastreamObject` and cache it on
+    the :class:`DigitalObject` that it belongs to.  If an object type is specified,
+    the datastream contents will be initialized as an
+    :class:`eulcore.xmlmap.core.XmlObject` and made accessible as the content of
+    the :class:`DatastreamObject`.  Otherwise, the content will be available
+    exactly as it was returned to Fedora.
+
+    All other configuration defaults are passed on to the :class:`DatastreamObject`.
+    """
     
     def __init__(self, id, label, objtype=None, defaults={}):
         self.datastream = None

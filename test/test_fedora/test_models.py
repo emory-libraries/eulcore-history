@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 import tempfile
 
-from test_fedora.base import FedoraTestCase, TEST_PIDSPACE, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS
 from eulcore.fedora.api import ApiFacade
 from eulcore.fedora.util import RelativeOpener
-from eulcore.fedora.models import DatastreamDescriptor, DatastreamObject, DigitalObject
+from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject
 from eulcore.xmlmap.dc import DublinCore
 
+from test_fedora.base import FedoraTestCase, TEST_PIDSPACE, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS
 from testcore import main
 
 class TestDigitalObject(DigitalObject):
-    dc = DatastreamDescriptor("DC", "Dublin Core metadata", DublinCore)
-    text = DatastreamDescriptor("TEXT", "Text datastream", defaults={'mimetype': 'text/plain'})
+    dc = Datastream("DC", "Dublin Core metadata", DublinCore)
+    text = Datastream("TEXT", "Text datastream", defaults={'mimetype': 'text/plain'})
 
 class TestDatastreams(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
