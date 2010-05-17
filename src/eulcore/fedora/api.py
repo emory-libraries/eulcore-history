@@ -266,7 +266,7 @@ class REST_API(HTTP_API_Base):
             http_args['dsLabel'] = dsLabel
         if mimeType:
             http_args['mimeType'] = mimeType
-        if 'logMessage':
+        if logMessage:
             http_args['logMessage'] = logMessage
         if dsLocation:
             http_args['dsLocation'] = dsLocation
