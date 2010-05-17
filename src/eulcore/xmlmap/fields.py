@@ -8,7 +8,7 @@ __all__ = [
     'StringField', 'StringListField',
     'IntegerField', 'IntegerListField',
     'NodeField', 'NodeListField',
-    'ItemField',
+    'ItemField', 'SimpleBooleanField'
 # NOTE: DateField and DateListField are undertested and underdocumented. If
 #   you really need them, you should import them explicitly. Or even better,
 #   flesh them out so they can be properly released.
@@ -45,6 +45,28 @@ class NumberMapper(Mapper):
     XPATH = Compile('number()')
     def to_python(self, node):
         return node.xpath(self.XPATH)
+
+class SimpleBooleanMapper(Mapper):
+    XPATH = Compile('string()')
+    def __init__(self, true, false):
+        self.true = true
+        self.false = false
+        
+    def to_python(self, node):
+        value = node.xpath(self.XPATH)     
+        if value == str(self.true):
+            return True
+        if value == str(self.false):
+            return False        
+        # what happens if it is neither of these?
+        raise Exception("Boolean field value '%s' is neither '%s' nor '%s'" % (value, self.true, self.false))
+        
+
+    def to_xml(self, value):
+        if value:
+            return str(self.true)
+        else:
+            return str(self.false)
 
 class DateMapper(object):
     XPATH = Compile('string()')
@@ -225,6 +247,21 @@ class IntegerListField(Field):
         super(IntegerListField, self).__init__(xpath,
                 manager = NodeListManager(),
                 mapper = NumberMapper())
+
+class SimpleBooleanField(Field):
+
+    """Map an XPath expression to a Python boolean.  Constructor takes additional
+    parameter of true, false values for comparison and setting in xml.  This only
+    handles simple boolean that can be read and set via string comparison.
+
+    Supports setting values for attributes, empty nodes, or text-only nodes.
+    """
+
+    def __init__(self, xpath, true, false):
+        super(SimpleBooleanField, self).__init__(xpath,
+                manager = SingleNodeManager(),
+                mapper = SimpleBooleanMapper(true, false))
+
 
 class DateField(Field):
 

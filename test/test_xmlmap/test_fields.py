@@ -15,6 +15,12 @@ class TestFields(unittest.TestCase):
                 <baz>13</baz>
             </bar>
             <empty_field/>
+            <boolean>
+                    <text1>yes</text1>
+                    <text2>no</text2>
+                    <num1>1</num1>
+                    <num2>0</num2>
+            </boolean>
         </foo>
     '''
 
@@ -144,6 +150,33 @@ class TestFields(unittest.TestCase):
         obj = TestObject(self.fixture.documentElement)
         self.assertEqual(obj.letter, '4')
         self.assertEqual(obj.missing, None)
+
+    def testBooleanField(self):        
+        class TestObject(xmlmap.XmlObject):
+            txt_bool1 = xmlmap.SimpleBooleanField('boolean/text1', 'yes', 'no')
+            txt_bool2 = xmlmap.SimpleBooleanField('boolean/text2', 'yes', 'no')
+            num_bool1 = xmlmap.SimpleBooleanField('boolean/num1', 1, 0)
+            num_bool2 = xmlmap.SimpleBooleanField('boolean/num2', 1, 0)
+
+        obj = TestObject(self.fixture.documentElement)
+        self.assertEqual(obj.txt_bool1, True)
+        self.assertEqual(obj.txt_bool2, False)
+        self.assertEqual(obj.num_bool1, True)
+        self.assertEqual(obj.num_bool2, False)
+
+        # set text boolean
+        obj.txt_bool1 = False
+        # check that new value is set in the dom node
+        self.assertEqual(obj.dom_node.xpath('string(boolean/text1)'), 'no')
+        # check that new value is accessible via descriptor
+        self.assertEqual(obj.txt_bool1, False)
+
+        # set numeric boolean
+        obj.num_bool1 = False
+        # check for new new value in the dom node and via descriptor
+        self.assertEqual(obj.dom_node.xpath('number(boolean/num1)'), 0)
+        self.assertEqual(obj.num_bool1, False)
+
 
 
     # FIXME: DateField and DateListField are hacked together. Until we
