@@ -252,7 +252,7 @@ class REST_API(HTTP_API_Base):
 
         return pid
 
-    def modifyDatastream(self, pid, dsID, dsLabel, mimeType, logMessage, dsLocation=None,
+    def modifyDatastream(self, pid, dsID, dsLabel=None, mimeType=None, logMessage=None, dsLocation=None,
         altIDs=None, versionable=None, dsState=None, formatURI=None, checksumType=None,
         checksum=None, filename=None, content=None, force=False):   
         # /objects/{pid}/datastreams/{dsID} ? [dsLocation] [altIDs] [dsLabel] [versionable] [dsState] [formatURI] [checksumType] [checksum] [mimeType] [logMessage] [force] [ignoreContent]
@@ -261,13 +261,18 @@ class REST_API(HTTP_API_Base):
         # content via multipart file in request content, or dsLocation=URI
         # if dsLocation, filename, or content is not specified, datastream content will not be updated
 
-        http_args = { 'dsLabel' : dsLabel, 'mimeType' : mimeType,
-            'logMessage' : logMessage}        
+        http_args = {}
+        if dsLabel:
+            http_args['dsLabel'] = dsLabel
+        if mimeType:
+            http_args['mimeType'] = mimeType
+        if 'logMessage':
+            http_args['logMessage'] = logMessage
         if dsLocation:
             http_args['dsLocation'] = dsLocation
         if altIDs:
             http_args['altIDs'] = altIDs
-        if versionable:
+        if versionable is not None:
             http_args['versionable'] = versionable
         if dsState:
             http_args['dsState'] = dsState
