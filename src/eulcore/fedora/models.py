@@ -47,7 +47,7 @@ class DigitalObject(object):
     
 
 class DatastreamObject(object):
-    """Object to easy accessing and updating a datastream belonging to a Fedora object.
+    """Object to ease accessing and updating a datastream belonging to a Fedora object.
 
     Intended to be used with :class:`DigitalObject` and intialized
     via :class:`Datastream`.
@@ -62,13 +62,18 @@ class DatastreamObject(object):
         :param state: default configuration for datastream state
         :param format: default configuration for datastream format URI
     """
-    def __init__(self, obj, id, label, content=None, mimetype="text/xml", versionable=False,
-        state="A", format=None):
+    def __init__(self, obj, id, label, content=None, mimetype="text/xml",
+                 versionable=False, state="A", format=None):
         self.obj = obj
         self.id = id
         self.content = content
-        self.defaults = {'label': label, 'mimetype': mimetype, 'versionable' : versionable,
-            'state' : state, 'format': format}
+        self.defaults = {
+            'label': label,
+            'mimetype': mimetype,
+            'versionable': versionable,
+            'state' : state,
+            'format': format,
+        }
         self._info = None
 
         self.info_modified = False
@@ -98,43 +103,37 @@ class DatastreamObject(object):
 
     def _get_label(self):
         return self.info.label
-
     def _set_label(self, val):
         self.info.label = val
         self.info_modified = True    
+    label = property(_get_label, _set_label, None, "datastream label")
     
     def _get_mimetype(self):
         return self.info.mimetype
-    
     def _set_mimetype(self, val):
         self.info.mimetype = val
         self.info_modified = True
+    mimetype = property(_get_mimetype, _set_mimetype, None, "mimetype for the datastream")
 
     def _get_versionable(self):
         return self.info.versionable
-
     def _set_versionable(self, val):
         self.info.versionable = val
         self.info_modified = True
+    versionable = property(_get_versionable, _set_versionable, None, "boolean; is the datastream versioned")
 
     def _get_state(self):
         return self.info.state
-
     def _set_state(self, val):
         self.info.state = val
         self.info_modified = True
+    state = property(_get_state, _set_state, None, "datastream state (A/I/D)")
 
     def _get_format(self):
         return self.info.format
-
     def _set_format(self, val):
         self.info.format = val
         self.info.modified = True
-
-    label = property(_get_label, _set_label, None, "datastream label")
-    mimetype = property(_get_mimetype, _set_mimetype, None, "mimetype for the datastream")
-    versionable = property(_get_versionable, _set_versionable, None, "boolean; is the datastream versioned")
-    state = property(_get_state, _set_state, None, "datastream state (A/I/D)")
     format = property(_get_format, _set_format, "datastream format URI")
 
     @property       # read-only info property
@@ -143,10 +142,10 @@ class DatastreamObject(object):
 
     def _content_as_text(self):
         # return datastream content as text
-        if isinstance(self.content, XmlObject):
+        if hasattr(self.content, 'serialize'):
             return self.content.serialize()
         else:
-            return self.content
+            return str(self.content)
     
     def save(self, logmessage=None):
         """Save datastream content and any changed datastream profile
@@ -209,7 +208,7 @@ class Datastream(object):
     def __get__(self, obj, objtype): 
         if obj is None:
             return self
-        if not self.id in obj.dscache.keys() or obj.dscache[self.id] is None:
+        if obj.dscache.get(self.id, None) is None:
             data, url = obj.api.getDatastreamDissemination(obj.pid, self.id)
             if self.objtype:
                 ds_content = parse_xml_object(self.objtype, data, url)
