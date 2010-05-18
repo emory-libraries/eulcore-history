@@ -3,7 +3,6 @@ import unittest
 from eulcore.fedora.server import Repository
 from eulcore.fedora.xml import DigitalObject as XmlDigitalObject
 from eulcore.xmlmap.core import load_xmlobject_from_string
-import cStringIO
 
 REPO_ROOT = 'https://dev11.library.emory.edu:8643/fedora/'
 REPO_ROOT_NONSSL = 'http://dev11.library.emory.edu:8280/fedora/'

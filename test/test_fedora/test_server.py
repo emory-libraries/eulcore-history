@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
-from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
-from eulcore.fedora.server import Repository, DigitalObject, ObjectDatastream, URI_HAS_MODEL
+from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL, TEST_PIDSPACE
+from eulcore.fedora.models import DigitalObject, URI_HAS_MODEL
+from eulcore.fedora.server import Repository
 
-from eulcore import xmlmap
-import rdflib
-from rdflib.Graph import Graph
 from testcore import main
 
 class TestBasicFedoraFunctionality(FedoraTestCase):
@@ -116,87 +114,7 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         # FIXME: is there any way to test that RequestContextManager closes the connection?
 
 
-class TestDigitalObject(FedoraTestCase):
-    fixtures = ['object-with-pid.foxml']
-    pidspace = TEST_PIDSPACE
-
-    def setUp(self):
-        super(TestDigitalObject, self).setUp()
-        self.pid = self.fedora_fixtures_ingested[0]
-        self.object = self.repo.get_object(self.pid)
-
-    def testBasicProperties(self):
-        self.assertEqual(self.pid, self.object.pid)
-        self.assertTrue(self.object.uri.startswith("info:fedora/"))
-        self.assertTrue(self.object.uri.endswith(self.pid))
-
-    def testGetDatastream(self):
-        dc = self.object.get_datastream("DC")
-        self.assert_("<dc:title>" in dc)
-
-    def testGetDatastreamAsXml(self):
-        class SimpleDC(xmlmap.XmlObject):
-            title = xmlmap.StringField('dc:title')
-            description = xmlmap.StringField('dc:description')
-
-        dc = self.object.get_datastream_as_xml("DC", SimpleDC)
-        self.assertTrue(isinstance(dc, SimpleDC))
-        self.assertEqual(dc.title, "A partially-prepared test object")
-
-    def testGetDatastreams(self):
-        ds_list = self.object.get_datastreams()        
-        self.assert_("DC" in ds_list.keys())
-        self.assert_(isinstance(ds_list["DC"], ObjectDatastream))
-        dc = ds_list["DC"]
-        self.assertEqual("DC", dc.dsid)
-        self.assertEqual("Dublin Core", dc.label)
-        self.assertEqual("text/xml", dc.mimeType)
-
-    def testRelationships(self):
-        # tests add & get rel methods
-
-        # add relation to a resource, by digital object
-        related = DigitalObject("foo:123", self.opener)
-        isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
-        added = self.object.add_relationship(isMemberOf, related)
-        # FIXME: currently returns None on success (?)      
-        rels_ext = self.object.get_datastream("RELS-EXT")        
-        self.assert_("isMemberOf" in rels_ext)
-        self.assert_(related.uri in rels_ext) # should be full uri, not just pid
-
-        # add relation to a resource, by string
-        isMemberOfCollection = "info:fedora/fedora-system:def/relations-external#isMemberOfCollection"
-        collection_uri = "info:fedora/foo:456"
-        self.object.add_relationship(isMemberOfCollection, collection_uri)
-        rels_ext = self.object.get_datastream("RELS-EXT")
-        self.assert_("isMemberOfCollection" in rels_ext)
-        self.assert_(collection_uri in rels_ext) 
-
-        # add relation to a literal
-        self.object.add_relationship("info:fedora/fedora-system:def/relations-external#owner", "testuser")
-        rels_ext = self.object.get_datastream("RELS-EXT")
-        self.assert_("owner" in rels_ext)
-        self.assert_("testuser" in rels_ext)
-
-        rels = self.object.get_relationships()
-        self.assert_(isinstance(rels, Graph))
-        # convert firxt added relationship to rdflib statement to check that it is in the rdf graph
-        st = (rdflib.URIRef(self.object.uri), rdflib.URIRef(isMemberOf), rdflib.URIRef(related.uri))
-        self.assertTrue(st in rels)
-
-    #def testGetRelationships(self):
-        # TODO: should do something besides HTTPError/404 when object does not have RELS-EXT
-
-
-    def testHasModel(self):
-        cmodel =  DigitalObject("control:ContentType", self.opener)
-        # FIXME: currently causes an error because rels-ext datastream does not exist
-        #self.assertFalse(self.object.has_model(cmodel.uri))
-        self.object.add_relationship(URI_HAS_MODEL, cmodel)
-        self.assertTrue(self.object.has_model(cmodel.uri))
-        self.assertFalse(self.object.has_model(self.object.uri))
-
-        
+     
 class TestResourceIndex(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
     pidspace = TEST_PIDSPACE

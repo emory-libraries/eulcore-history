@@ -1,8 +1,33 @@
 import hashlib
+import rdflib
+
 from eulcore import xmlmap
-from eulcore.xmlmap.dc import DublinCore
 from eulcore.fedora.api import ApiFacade
-from eulcore.fedora.util import parse_xml_object
+from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed
+
+# FIXME: needed by both server and models, where to put?
+URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
+
+# xml objects to wrap around xml returns from fedora
+# FIXME: where should these actually live?
+
+class ObjectDatastream(xmlmap.XmlObject):
+    """:class:`~eulcore.xmlmap.XmlObject` for a single datastream as returned
+        by :meth:`REST_API.listDatastreams` """
+    dsid = xmlmap.StringField('@dsid')
+    "datastream id - `@dsid`"
+    label = xmlmap.StringField('@label')
+    "datastream label - `@label`"
+    mimeType = xmlmap.StringField('@mimeType')
+    "datastream mime type - `@mimeType`"
+
+class ObjectDatastreams(xmlmap.XmlObject):
+    """:class:`~eulcore.xmlmap.XmlObject` for the list of a single object's
+        datastreams, as returned by  :meth:`REST_API.listDatastreams`"""
+    pid = xmlmap.StringField('@pid')
+    "object pid - `@pid`"
+    datastreams = xmlmap.NodeListField('datastream', ObjectDatastream)
+    "list of :class:`ObjectDatastream`"
 
 class ObjectProfile(xmlmap.XmlObject):
     ":class:`xmlmap.XmlObject` for object profile information returned by Fedora REST API."
@@ -49,7 +74,10 @@ class DatastreamProfile(xmlmap.XmlObject):
 
     
 class DatastreamObject(object):
-    """Object to ease accessing and updating a datastream belonging to a Fedora object.
+    """Object to ease accessing and updating a datastream belonging to a Fedora
+    object.  Handles datastream content as well as datastream profile information.
+    Content and datastream info are only pulled from Fedora when content and info
+    fields are accessed.
 
     Intended to be used with :class:`DigitalObject` and intialized
     via :class:`Datastream`.
@@ -58,17 +86,21 @@ class DatastreamObject(object):
         :param obj: the :class:`DigitalObject` that this datastream belongs to.
         :param id: datastream id
         :param label: default datastream label
-        :param content: contents of the datastream; currently handles text or XmlObject
         :param mimetype: default datastream mimetype
         :param versionable: default configuration for datastream versioning
         :param state: default configuration for datastream state
         :param format: default configuration for datastream format URI
     """
-    def __init__(self, obj, id, label, content=None, mimetype="text/xml",
+    default_mimetype = "text/xml"    # FIXME: reasonable default minetype for non-xml datastream/
+    def __init__(self, obj, id, label, mimetype=None,
                  versionable=False, state="A", format=None):
+                        
         self.obj = obj
         self.id = id
-        self.content = content
+
+        if mimetype is None:
+            mimetype = self.default_mimetype
+
         self.defaults = {
             'label': label,
             'mimetype': mimetype,
@@ -77,10 +109,10 @@ class DatastreamObject(object):
             'format': format,
         }
         self._info = None
+        self._content = None
 
         self.info_modified = False
-        # calculate and store a digest of the current datastream text content
-        self.digest = self._content_digest()
+        self.digest = None
     
     @property
     def info(self):
@@ -88,6 +120,22 @@ class DatastreamObject(object):
         if self._info is None:
             self._info = self.obj.getDatastreamProfile(self.id)
         return self._info
+
+    def _get_content(self):
+        # pull datastream content from Fedora, but only when accessed
+        if self._content is None:
+            self._content = self._convert_content(self.obj.api.getDatastreamDissemination(self.obj.pid, self.id))
+            # calculate and store a digest of the current datastream text content
+            self.digest = self._content_digest()
+        return self._content
+    def _set_content(self, val):
+        self._content = val
+    content = property(_get_content, _set_content, None, "datastream content")
+
+    def _convert_content(self, content):
+        # convert the raw API output of getDatastreamDissemination into the expected content type
+        data, url = content
+        return data
 
     def isModified(self):
         """Check if either the datastream content or profile fields have changed
@@ -98,7 +146,7 @@ class DatastreamObject(object):
         return self.info_modified or self._content_digest() != self.digest
 
     def _content_digest(self):
-        # generate a hash of the content so we can easily check if it has changed and should be changed
+        # generate a hash of the content so we can easily check if it has changed and should be saved
         return hashlib.sha1(self._content_as_text()).hexdigest()
 
     ### access to datastream profile fields; tracks if changes are made for saving to Fedora
@@ -201,38 +249,89 @@ class Datastream(object):
     to a particular :class:`DigitalObject`.
 
     When accessed, will initialize a :class:`DatastreamObject` and cache it on
-    the :class:`DigitalObject` that it belongs to.  If an object type is specified,
-    the datastream contents will be initialized as an
-    :class:`eulcore.xmlmap.core.XmlObject` and made accessible as the content of
-    the :class:`DatastreamObject`.  Otherwise, the content will be available
-    exactly as it was returned to Fedora.
+    the :class:`DigitalObject` that it belongs to.
 
     All other configuration defaults are passed on to the :class:`DatastreamObject`.
     """
-    
-    def __init__(self, id, label, objtype=None, defaults={}):
-        self.datastream = None
+
+    _datastreamClass = DatastreamObject
+
+    def __init__(self, id, label, defaults={}):
         self.id = id
-        self.label = label
-        self.objtype = objtype   # optional, returns content as-is if not specified
-        self.datastream_defaults = defaults
+        self.label = label 
+        self.datastream_args = defaults
+        
+        #self.label = label
+        #self.datastream_defaults = defaults
 
     def __get__(self, obj, objtype): 
         if obj is None:
             return self
         if obj.dscache.get(self.id, None) is None:
-            data, url = obj.api.getDatastreamDissemination(obj.pid, self.id)
-            if self.objtype:
-                ds_content = parse_xml_object(self.objtype, data, url)
-            else:
-                ds_content = data
-            obj.dscache[self.id] = DatastreamObject(obj, self.id, self.label,
-                ds_content, **self.datastream_defaults)
+            obj.dscache[self.id] = self._datastreamClass(obj, self.id, self.label, **self.datastream_args)
         return obj.dscache[self.id]
-    
+
     # set and delete not implemented on datastream descriptor
     # - delete would only make sense for optional datastreams, not yet needed
     # - saving updated content to fedora handled by datastream object
+
+
+class XmlDatastreamObject(DatastreamObject):
+    """Extends :class:`DatastreamObject` in order to initialize datastream content
+    as an :class:`eulcore.xmlmap.XmlObject`.
+
+    See :class:`DigitalObject` for more details.  Has one additional parameter:
+
+    :param objtype: xml object type to use for datastream content; if not specified,
+        defaults to :class:`eulcore.xmlmap.XmlObject`
+    """
+    
+    default_mimetype = "text/xml"
+
+    def __init__(self, obj, id, label, objtype=xmlmap.XmlObject, **kwargs):
+        self.objtype = objtype
+        super(XmlDatastreamObject, self).__init__(obj, id, label, **kwargs)
+
+    # FIXME: override _set_content to handle setting full xml content?
+
+    def _convert_content(self, content):
+        data, url = content
+        return parse_xml_object(self.objtype, data, url)
+
+
+class XmlDatastream(Datastream):
+    """XML-specific version of :class:`Datastream`.
+
+    Datastreams are initialized as instances of :class:`XmlDatastreamObject`.
+    Additional, optional parameter ``objtype`` is passed to the Datastream object
+    configure the type of  :class:`eulcore.xmlmap.XmlObject` that should be returned.
+    """
+    _datastreamClass = XmlDatastreamObject
+    
+    def __init__(self, id, label, objtype=None, defaults={}):        
+        super(XmlDatastream, self).__init__(id, label, defaults)
+        self.datastream_args['objtype'] = objtype
+
+
+class RdfDatastreamObject(DatastreamObject):
+    """Extends :class:`DatastreamObject` in order to initialize datastream content
+    as an RDF graph.
+    """
+    default_mimetype = "application/xml+rdf"
+    # FIXME: override _set_content to handle setting content?
+
+    def _convert_content(self, content):
+        data, url = content
+        return parse_rdf(data, url)
+
+
+class RdfDatastream(Datastream):
+    """RDF-specific version of :class:`Datastream`.
+
+    Datastreams are initialized as instances of :class:`RdfDatastreamObject`.
+    """
+    _datastreamClass = RdfDatastreamObject
+
 
 
 class DigitalObject(object):
@@ -240,11 +339,6 @@ class DigitalObject(object):
     A single digital object in a Fedora respository, with methods for accessing
     the parts of that object.
     """
-
-    dc = Datastream("DC", "Dublin Core", DublinCore)
-    # can rels-ext be treated similarly? maybe create a rels-ext datastream obj?
-    
-
 
     def __init__(self, pid=None, opener=None):
         self.pid = pid
@@ -350,5 +444,71 @@ class DigitalObject(object):
         if self.info_modified:
             if not self.saveProfile(logMessage):
                 raise Exception("Error saving object profile for %s" % self.pid)
+
+    def get_datastreams(self):
+        """
+        Get all datastreams that belong to this object.
+
+        Returns a dictionary; key is datastream id, value is an :class:`ObjectDatastream`
+        for that datastream.
+
+        :rtype: dictionary
+        """
+        # FIXME: add caching? make a property?
+        data, url = self.api.listDatastreams(self.pid)
+        dsobj = parse_xml_object(ObjectDatastreams, data, url)
+        return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
+
+
+    def add_relationship(self, rel_uri, object):
+        """
+        Add a new relationship to the RELS-EXT for this object.
+        Calls :meth:`API_M.addRelationship`.
+
+        Example usage::
+
+            isMemberOfCollection = "info:fedora/fedora-system:def/relations-external#isMemberOfCollection"
+            collection_uri = "info:fedora/foo:456"
+            object.add_relationship(isMemberOfCollection, collection_uri)
+
+        :param rel_uri: URI for the new relationship
+        :param object: related object; can be :class:`DigitalObject` or string; if
+                        string begins with info:fedora/ it will be treated as
+                        a resource, otherwise it will be treated as a literal
+        :rtype: boolean
+        """  
+        obj_is_literal = True
+        if isinstance(object, DigitalObject):
+            object = object.uri
+            obj_is_literal = False
+        elif isinstance(object, str) and object.startswith('info:fedora/'):
+            obj_is_literal = False
+
+        return self.api.addRelationship(self.pid, rel_uri, object, obj_is_literal)
+
+    def has_model(self, model):
+        """
+        Check if this object subscribes to the specified content model.
+
+        :param model: URI for the content model, as a string
+                    (currently only accepted in info:fedora/foo:### format)
+        :rtype: boolean
+        """
+        # TODO:
+        # - accept DigitalObject for model?
+        # - convert model pid to info:fedora/ form if not passed in that way?
+        try:
+            rels = self.rels_ext.content
+        except RequestFailed, e:
+            # if rels-ext can't be retrieved, confirm this object does not have a RELS-EXT
+            # (in which case, it does not subscribe to the specified content model)
+            ds_list = self.get_datastreams()
+            if "RELS-EXT" not in ds_list.keys():
+                return False
+            else:
+                raise Exception(e)            
             
+        st = (rdflib.URIRef(self.uri), rdflib.URIRef(URI_HAS_MODEL), rdflib.URIRef(model))
+        return st in rels
+
 

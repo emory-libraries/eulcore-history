@@ -1,9 +1,9 @@
 from urllib import urlencode
-import rdflib
 from Ft.Xml.XPath.Context import Context
 
 from eulcore import xmlmap
 from eulcore.fedora.api import HTTP_API_Base, ApiFacade
+from eulcore.fedora.models import DigitalObject, URI_HAS_MODEL
 # FIXME: should risearch be moved to apis?
 from eulcore.fedora.util import RelativeOpener, parse_rdf, parse_xml_object
 
@@ -12,8 +12,6 @@ from eulcore.fedora.util import RelativeOpener, parse_rdf, parse_xml_object
 from eulcore.xmlmap.fields import DateField
 
 # a repository object, basically a handy facade for easy api access
-
-URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
 
 class Repository(object):
     "Pythonic interface to a single Fedora Commons repository instance."
@@ -147,23 +145,6 @@ class Repository(object):
 
 # xml objects to wrap around xml returns from fedora
 
-class ObjectDatastream(xmlmap.XmlObject):
-    """:class:`~eulcore.xmlmap.XmlObject` for a single datastream as returned
-        by :meth:`REST_API.listDatastreams` """
-    dsid = xmlmap.StringField('@dsid')
-    "datastream id - `@dsid`"
-    label = xmlmap.StringField('@label')
-    "datastream label - `@label`"
-    mimeType = xmlmap.StringField('@mimeType')
-    "datastream mime type - `@mimeType`"
-
-class ObjectDatastreams(xmlmap.XmlObject):
-    """:class:`~eulcore.xmlmap.XmlObject` for the list of a single object's 
-        datastreams, as returned by  :meth:`REST_API.listDatastreams`"""
-    pid = xmlmap.StringField('@pid')
-    "object pid - `@pid`"
-    datastreams = xmlmap.NodeListField('datastream', ObjectDatastream)
-    "list of :class:`ObjectDatastream`"
 
 class SearchResult(xmlmap.XmlObject):
     """:class:`~eulcore.xmlmap.XmlObject` for a single entry in the results
@@ -190,127 +171,6 @@ class SearchResults(xmlmap.XmlObject):
 
 class NewPids(xmlmap.XmlObject):
     pids = xmlmap.StringListField('pid')
-
-# a single digital object in a repo; basically another facade for api access
-
-class DigitalObject(object):
-    """
-    A single digital object in a Fedora respository, with methods for accessing
-    the parts of that object.
-    """
-    def __init__(self, pid, opener):
-        self.pid = pid
-        self.opener = opener
-
-    def __str__(self):
-        return self.pid
-
-    def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, self.pid)
-
-    @property
-    def uri(self):
-        "Fedora URI for this object (info:fedora form of object pid) "
-        return 'info:fedora/' + self.pid
-
-    @property
-    def api(self):
-        "instance of :class:`ApiFacade`, with the same fedora root url and credentials"
-        return ApiFacade(self.opener)
-
-    def _get_datastream_with_url(self, ds_name):
-        return self.api.getDatastreamDissemination(self.pid, ds_name)
-
-    def get_datastream(self, ds_name):
-        """
-        Retrieve one of this object's datastreams from fedora.
-
-        Calls `API-A-LITE getDatastreamDissemination <http://fedora-commons.org/confluence/display/FCR30/API-A-LITE#API-A-LITE-getDatastreamDissemination>`_
-
-        :param ds_name: name of the datastream to be retrieved
-        :rtype: string
-        """
-        # TODO: fill out info on read param and return type
-        # todo: error handling when attempting to get non-existent datastream
-        data, url = self._get_datastream_with_url(ds_name)
-        return data
-
-    def get_datastream_as_xml(self, ds_name, xml_type):
-        """
-        Retrieve one of this object's datastreams from fedora and initialize it
-        as the specified type of `eulcore.xmlmap.XmlObject`.
-
-        :param ds_name: name of the datastream to be retrieved
-        :param xml_type: :class:`~eulcore.xmlmap.XmlObject` type to be returned
-        """
-        data, url = self._get_datastream_with_url(ds_name)
-        return parse_xml_object(xml_type, data, url)
-
-    def get_datastreams(self):
-        """
-        Get all datastreams that belong to this object.
-
-        Returns a dictionary; key is datastream id, value is an :class:`ObjectDatastream`
-        for that datastream.
-
-        :rtype: dictionary
-        """
-        data, url = self.api.listDatastreams(self.pid)
-        dsobj = parse_xml_object(ObjectDatastreams, data, url)
-        return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
-
-    def get_relationships(self):
-        """
-        Get the relationships for this object from RELS-EXT.
-
-        :rtype: :class:`rdflib.ConjunctiveGraph`
-        """
-        # FIXME: gets a 404 if object does not have RELS-EXT; throw an exception for this?
-        data, url = self._get_datastream_with_url('RELS-EXT')
-        return parse_rdf(data, url)
-
-    def add_relationship(self, rel_uri, object):
-        """
-        Add a new relationship to the RELS-EXT for this object.
-        Calls :meth:`API_M.addRelationship`.
-
-        Example usage::
-        
-            isMemberOfCollection = "info:fedora/fedora-system:def/relations-external#isMemberOfCollection"
-            collection_uri = "info:fedora/foo:456"
-            object.add_relationship(isMemberOfCollection, collection_uri)
-
-        :param rel_uri: URI for the new relationship
-        :param object: related object; can be :class:`DigitalObject` or string; if
-                        string begins with info:fedora/ it will be treated as
-                        a resource, otherwise it will be treated as a literal        
-        """
-        # TODO: add return type when implemented:
-        #:rtype: boolean for success
-        obj_is_literal = True
-        if isinstance(object, DigitalObject):
-            object = object.uri
-            obj_is_literal = False
-        elif isinstance(object, str) and object.startswith('info:fedora/'):            
-            obj_is_literal = False
-
-        # FIXME: currently no value returned; should be boolean on success
-        return self.api.addRelationship(self.pid, rel_uri, object, obj_is_literal)
-
-    def has_model(self, model):
-        """
-        Check if this object subscribes to the specified content model.
-
-        :param model: URI for the content model, as a string
-                    (currently only accepted in info:fedora/foo:### format)
-        :rtype: boolean
-        """
-        # TODO:
-        # - return false if object does not have a RELS-EXT datastream
-        # - accept DigitalObject for model?
-        # - convert model pid to info:fedora/ form if not passed in that way?
-        st = (rdflib.URIRef(self.uri), rdflib.URIRef(URI_HAS_MODEL), rdflib.URIRef(model))
-        return st in self.get_relationships()
 
 
 # make it easy to access a DigitalObject as other types if it has the

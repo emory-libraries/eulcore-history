@@ -1,48 +1,61 @@
 #!/usr/bin/env python
-import tempfile
 from datetime import date
+import rdflib
+from rdflib.Graph import Graph as RdfGraph
+import tempfile
 
 from eulcore.fedora.util import RelativeOpener
-from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject
+from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject, \
+        XmlDatastream, XmlDatastreamObject, RdfDatastream, RdfDatastreamObject, \
+        ObjectDatastream
+from eulcore.fedora.server import URI_HAS_MODEL
 from eulcore.xmlmap.dc import DublinCore
 
-from test_fedora.base import FedoraTestCase, TEST_PIDSPACE, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS
+from test_fedora.base import FedoraTestCase, TEST_PIDSPACE, REPO_ROOT, REPO_USER, REPO_PASS
 from testcore import main
 
 class MyDigitalObject(DigitalObject):
-    # extend digital object to add a non-xml content datastream for testing
-    # inherits default DC datastream
+    # extend digital object with datastreams for testing
+    dc = XmlDatastream("DC", "Dublin Core", DublinCore)
     text = Datastream("TEXT", "Text datastream", defaults={'mimetype': 'text/plain'})
+    rels_ext = RdfDatastream("RELS-EXT", "External Relations")
 
-class TestModels(FedoraTestCase):
+def _add_text_datastream(obj):
+    TEXT_CONTENT = "Here is some text content for a non-xml datastream."
+    # add a text datastream to the current test object
+    FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
+    FILE.write(TEXT_CONTENT)
+    FILE.flush()
+    # info for calling addDatastream, and return
+    ds = {  'id' : 'TEXT', 'label' : 'text datastream', 'mimeType' : 'text/plain',
+        'controlGroup' : 'M', 'logMessage' : "creating new datastream", 'versionable': False,
+        'checksumType' : 'MD5'}
+    obj.api.addDatastream(obj.pid, ds['id'], ds['label'],
+        ds['mimeType'], ds['logMessage'], ds['controlGroup'], filename=FILE.name,
+        checksumType=ds['checksumType'])
+    FILE.close()
+
+
+class TestDatastreams(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
     pidspace = TEST_PIDSPACE
     
     TEXT_CONTENT = "Here is some text content for a non-xml datastream."
 
     def setUp(self):
-        super(TestModels, self).setUp()
+        super(TestDatastreams, self).setUp()
         self.pid = self.fedora_fixtures_ingested[-1] # get the pid for the last object
-        self.opener = RelativeOpener(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+        self.opener = RelativeOpener(REPO_ROOT, REPO_USER, REPO_PASS)
         self.obj = MyDigitalObject(self.pid, opener=self.opener)
 
         # add a text datastream to the current test object
-        FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
-        FILE.write(self.TEXT_CONTENT)
-        FILE.flush()
-        # info for calling addDatastream, and return
-        ds = {  'id' : 'TEXT', 'label' : 'text datastream', 'mimeType' : 'text/plain',
-            'controlGroup' : 'M', 'logMessage' : "creating new datastream", 'versionable': False,
-            'checksumType' : 'MD5'}
-        self.obj.api.addDatastream(self.pid, ds['id'], ds['label'],
-            ds['mimeType'], ds['logMessage'], ds['controlGroup'], filename=FILE.name,
-            checksumType=ds['checksumType'])
-        FILE.close()
+        _add_text_datastream(self.obj)
+
         self.today = str(date.today())
 
     def test_get_ds_content(self):
         dc = self.obj.dc.content
-        self.assert_(isinstance(self.obj.dc, DatastreamObject))
+        self.assert_(isinstance(self.obj.dc, XmlDatastreamObject))
         self.assert_(isinstance(dc, DublinCore))
         self.assertEqual(dc.title, "A partially-prepared test object")
         self.assertEqual(dc.identifier, self.pid)
@@ -108,6 +121,34 @@ class TestModels(FedoraTestCase):
         self.assertFalse(self.obj.text.isModified(), "isModified should return False after text datastream has been saved")
         self.assertFalse(self.obj.dc.isModified(), "isModified should return False after DC datastream has been saved")
 
+    def test_rdf_datastream(self):
+        # add a relationship to test RELS-EXT/rdf datastreams        
+        isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
+        self.obj.add_relationship(isMemberOf, "info:fedora/foo:123")
+        
+        self.assert_(isinstance(self.obj.rels_ext, RdfDatastreamObject))
+        self.assert_(isinstance(self.obj.rels_ext.content, RdfGraph))
+        self.assert_("isMemberOf" in self.obj.rels_ext.content.serialize())
+        
+
+
+class TestDigitalObject(FedoraTestCase):
+    fixtures = ['object-with-pid.foxml']
+    pidspace = TEST_PIDSPACE
+
+    def setUp(self):
+        super(TestDigitalObject, self).setUp()
+        self.pid = self.fedora_fixtures_ingested[-1] # get the pid for the last object
+        self.opener = RelativeOpener(REPO_ROOT, REPO_USER, REPO_PASS)
+        self.obj = MyDigitalObject(self.pid, opener=self.opener)
+        _add_text_datastream(self.obj)
+        self.today = str(date.today())
+
+    def test_properties(self):
+        self.assertEqual(self.pid, self.obj.pid)
+        self.assertTrue(self.obj.uri.startswith("info:fedora/"))
+        self.assertTrue(self.obj.uri.endswith(self.pid))
+
     def test_get_object_info(self):
         self.assertEqual(self.obj.label, "A partially-prepared test object")
         self.assertEqual(self.obj.owner, "tester")
@@ -146,8 +187,64 @@ class TestModels(FedoraTestCase):
         text_info = self.obj.getDatastreamProfile(self.obj.text.id)
         self.assertEqual(text_info.label, "text content")
 
-        # TODO: how to simulate error saving?
-        
+        # TODO: how to simulate errors saving?
+        self.obj.dc.content = "this is not dublin core!"    # NOTE: setting xml content like this could change...
+        self.assertRaises(Exception, self.obj.save)
+
+    def test_get_datastreams(self):
+        ds_list = self.obj.get_datastreams()
+        self.assert_("DC" in ds_list.keys())
+        self.assert_(isinstance(ds_list["DC"], ObjectDatastream))
+        dc = ds_list["DC"]
+        self.assertEqual("DC", dc.dsid)
+        self.assertEqual("Dublin Core", dc.label)
+        self.assertEqual("text/xml", dc.mimeType)
+
+        self.assert_("TEXT" in ds_list.keys())
+        text = ds_list["TEXT"]
+        self.assertEqual("text datastream", text.label)
+        self.assertEqual("text/plain", text.mimeType)
+
+    def test_has_model(self):
+        cmodel_uri = "info:fedora/control:ContentType"
+        # FIXME: checking when rels-ext datastream does not exist causes an error
+        self.assertFalse(self.obj.has_model(cmodel_uri))
+        self.obj.add_relationship(URI_HAS_MODEL, cmodel_uri)
+        self.assertTrue(self.obj.has_model(cmodel_uri))
+        self.assertFalse(self.obj.has_model(self.obj.uri))
+
+    def test_add_relationships(self):
+        # add relation to a resource, by digital object
+        related = DigitalObject("foo:123", self.opener)
+        isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
+        added = self.obj.add_relationship(isMemberOf, related)
+        self.assertTrue(added, "add relationship should return True on success, got %s" % added)
+        rels_ext, url = self.obj.api.getDatastreamDissemination(self.pid, "RELS-EXT")
+        self.assert_("isMemberOf" in rels_ext)
+        self.assert_(related.uri in rels_ext) # should be full uri, not just pid
+
+        # add relation to a resource, by string
+        isMemberOfCollection = "info:fedora/fedora-system:def/relations-external#isMemberOfCollection"
+        collection_uri = "info:fedora/foo:456"
+        self.obj.add_relationship(isMemberOfCollection, collection_uri)
+        rels_ext, url = self.obj.api.getDatastreamDissemination(self.pid, "RELS-EXT")
+        self.assert_("isMemberOfCollection" in rels_ext)
+        self.assert_(collection_uri in rels_ext)
+
+        # add relation to a literal
+        self.obj.add_relationship("info:fedora/fedora-system:def/relations-external#owner", "testuser")
+        rels_ext, url = self.obj.api.getDatastreamDissemination(self.pid, "RELS-EXT")
+        self.assert_("owner" in rels_ext)
+        self.assert_("testuser" in rels_ext)
+
+        rels = self.obj.rels_ext.content
+        # convert first added relationship to rdflib statement to check that it is in the rdf graph
+        st = (rdflib.URIRef(self.obj.uri), rdflib.URIRef(isMemberOf), rdflib.URIRef(related.uri))
+        self.assertTrue(st in rels)
+
+    #def testGetRelationships(self):
+        # TODO: should do something besides HTTPError/404 when object does not have RELS-EXT
+
 
 if __name__ == '__main__':
     main()
