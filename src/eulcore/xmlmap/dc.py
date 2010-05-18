@@ -9,8 +9,9 @@ class DublinCore(xmlmap.XmlObject):
     XmlObject will be created.
     """    
 
-    dc_ns = "http://purl.org/dc/elements/1.1/"
-    oaidc_ns = "http://www.openarchives.org/OAI/2.0/oai_dc/"
+    ROOT_NS = 'http://www.openarchives.org/OAI/2.0/oai_dc/'
+    ROOT_NAME = 'oai_dc:dc'
+    EXTRA_ROOT_NAMESPACES = { 'dc': 'http://purl.org/dc/elements/1.1/'}
     
     # schema not used yet...
     schema = "http://dublincore.org/schemas/xmls/simpledc20021212.xsd"
@@ -59,25 +60,3 @@ class DublinCore(xmlmap.XmlObject):
 
     type = xmlmap.StringField("dc:type")
     type_list = xmlmap.StringListField("dc:type")
-
-    def __init__(self, dom_node=None, context=None):
-        # dom_node is now optional; if none is passed in, construct an empty oai_dc:dc
-        if dom_node is None:
-            dom = domlette.implementation
-            doc = dom.createDocument(self.oaidc_ns, "oai_dc:dc", None)
-            doc.documentElement.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:dc", self.dc_ns)
-            dom_node = doc.documentElement
-        super(DublinCore, self).__init__(dom_node, context)
-
-
-
-    
-
-
-
-
-
-
-
-
-

@@ -87,8 +87,8 @@ class TestDc(unittest.TestCase):
         dc = DublinCore()
         dc_xml = dc.serialize()
         self.assert_('<oai_dc:dc ' in dc_xml)
-        self.assert_('xmlns:dc="%s"' % dc.dc_ns in dc_xml)
-        self.assert_('xmlns:oai_dc="%s"' % dc.oaidc_ns in dc_xml)
+        self.assert_('xmlns:dc="http://purl.org/dc/elements/1.1/"' in dc_xml)
+        self.assert_('xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"' in dc_xml)
 
 if __name__ == '__main__':
     main()

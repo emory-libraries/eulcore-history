@@ -1,5 +1,7 @@
 from Ft.Lib import Uri
-from Ft.Xml.Domlette import NonvalidatingReader, CanonicalPrint, ValidatingReader
+from Ft.Xml.Domlette import NonvalidatingReader, CanonicalPrint, \
+                            ValidatingReader, \
+                            implementation as DomImplementation
 from Ft.Xml.XPath.Context import Context
 from Ft.Xml.Xslt import Processor
 import cStringIO
@@ -117,10 +119,25 @@ class XmlObject(object):
 
     __metaclass__ = XmlObjectType
 
-    def __init__(self, dom_node, context=None):
+    # used by default _build_root_element()
+    ROOT_NAME = None
+    ROOT_NS = None
+    EXTRA_ROOT_NAMESPACES = {}
+
+    def __init__(self, dom_node=None, context=None):
+        if dom_node is None:
+            dom_node = self._build_root_element()
+
         self.dom_node = dom_node
         self.context = context or Context(dom_node, 
             processorNss=dict([(n.localName, n.value) for n in dom_node.xpathNamespaces]))
+
+    def _build_root_element(self):
+        doc = DomImplementation.createDocument(self.ROOT_NS, self.ROOT_NAME, None)
+        for prefix, ns in self.EXTRA_ROOT_NAMESPACES.items():
+            doc.documentElement.setAttributeNS('http://www.w3.org/2000/xmlns/',
+                'xmlns:' + prefix, ns)
+        return doc.documentElement
 
     def xslTransform(self, filename=None, xsl=None, params={}):
         """Run an xslt transform on the contents of the XmlObject.
