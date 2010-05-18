@@ -1,7 +1,24 @@
 import hashlib
 from eulcore import xmlmap
-from eulcore.xmlmap.core import XmlObject
+from eulcore.xmlmap.dc import DublinCore
+from eulcore.fedora.api import ApiFacade
 from eulcore.fedora.util import parse_xml_object
+
+class ObjectProfile(xmlmap.XmlObject):
+    ":class:`xmlmap.XmlObject` for object profile information returned by Fedora REST API."
+    label = xmlmap.StringField('objLabel')
+    "object label"
+    owner = xmlmap.StringField('objOwnerId')
+    "object owner"
+    created = xmlmap.StringField('objCreateDate')        # date?
+    "date the object was created"
+    modified = xmlmap.StringField('objLastModDate')        # date?
+    "date the object was last modified"
+    # do we care about these? probably not useful in this context...
+    # - disseminator index view url
+    # - object item index view url
+    state = xmlmap.StringField('objState')
+    "object state (A/I/D - Active, Inactive, Deleted)"
 
 class DatastreamProfile(xmlmap.XmlObject):
     ":class:`xmlmap.XmlObject` for datastream profile information returned by Fedora REST API."
@@ -30,22 +47,7 @@ class DatastreamProfile(xmlmap.XmlObject):
     checksum_type = xmlmap.StringField('dsChecksumType')
     "type of checksum"
 
-
-class DigitalObject(object):
-    # NOTE: to be consolidated with other version of  Digital Object
     
-    def __init__(self):
-        self.dscache = {}       # accessed by DatastreamDescriptor to store and cache datastreams
-
-    def getDatastreamProfile(self, dsid):
-        """Get information about a particular datastream on this object.
-        
-        :rtype: :class:`DatastreamProfile`
-        """
-        data, url = self.api.getDatastream(self.pid, dsid)
-        return parse_xml_object(DatastreamProfile, data, url)
-    
-
 class DatastreamObject(object):
     """Object to ease accessing and updating a datastream belonging to a Fedora object.
 
@@ -136,9 +138,19 @@ class DatastreamObject(object):
         self.info.modified = True
     format = property(_get_format, _set_format, "datastream format URI")
 
-    @property       # read-only info property
+    # read-only info properties
+
+    @property 
     def control_group(self):
         return self.info.control_group
+
+    @property
+    def created(self):
+        return self.info.created
+
+    @property
+    def modified(self):
+        return self.info.modified
 
     def _content_as_text(self):
         # return datastream content as text
@@ -221,3 +233,122 @@ class Datastream(object):
     # set and delete not implemented on datastream descriptor
     # - delete would only make sense for optional datastreams, not yet needed
     # - saving updated content to fedora handled by datastream object
+
+
+class DigitalObject(object):
+    """
+    A single digital object in a Fedora respository, with methods for accessing
+    the parts of that object.
+    """
+
+    dc = Datastream("DC", "Dublin Core", DublinCore)
+    # can rels-ext be treated similarly? maybe create a rels-ext datastream obj?
+    
+
+
+    def __init__(self, pid=None, opener=None):
+        self.pid = pid
+        self.opener = opener
+        self.dscache = {}       # accessed by DatastreamDescriptor to store and cache datastreams
+
+        # cache object profile, track if it is modified and needs to be saved
+        self._info = None
+        self.info_modified = False
+
+    def __str__(self):
+        return self.pid
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, self.pid)
+
+    @property
+    def uri(self):
+        "Fedora URI for this object (info:fedora form of object pid) "
+        return 'info:fedora/' + self.pid
+
+    @property
+    def api(self):
+        "instance of :class:`ApiFacade`, with the same fedora root url and credentials"
+        return ApiFacade(self.opener)
+
+    @property
+    def info(self):
+        # pull object profile information from Fedora, but only when accessed
+        if self._info is None:
+            self._info = self.getProfile()
+        return self._info
+    
+    # object info properties
+
+    def _get_label(self):
+        return self.info.label
+    def _set_label(self, val):
+        self.info.label = val
+        self.info_modified = True
+    label = property(_get_label, _set_label, None, "object label")
+
+    def _get_owner(self):
+        return self.info.owner
+    def _set_owner(self, val):
+        self.info.owner = val
+        self.info_modified = True
+    owner = property(_get_owner, _set_owner, None, "object owner")
+
+    def _get_state(self):
+        return self.info.state
+    def _set_state(self, val):
+        self.info.state = val
+        self.info_modified = True
+    state = property(_get_state, _set_state, None, "object state (A/I/D)")
+
+    # read-only info properties
+    @property       
+    def created(self):
+        return self.info.created
+
+    @property
+    def modified(self):
+        return self.info.modified
+
+    def getDatastreamProfile(self, dsid):
+        """Get information about a particular datastream on this object.
+
+        :param dsid: datastream id
+        :rtype: :class:`DatastreamProfile`
+        """
+        data, url = self.api.getDatastream(self.pid, dsid)
+        return parse_xml_object(DatastreamProfile, data, url)
+
+    def getProfile(self):
+        """Get information about this object (label, owner, created, etc.).
+
+        :rtype: :class:`ObjectProfile`
+        """
+        data, url = self.api.getObjectProfile(self.pid)
+        return parse_xml_object(ObjectProfile, data, url)
+
+    def saveProfile(self, logMessage=None):
+        saved = self.api.modifyObject(self.pid, self.label, self.owner, self.state, logMessage)
+        if saved:
+            # profile info is no longer different than what is in Fedora
+            self.info_modified = False
+        return saved
+    
+    def save(self, logMessage=None):
+        """Save to Fedora any parts of this object that have been modified (object
+        profile or any datastream content or info).        
+        """
+        # TODO: add logic to back out changes if a failure occurs part-way through saving
+
+        # loop through any datastreams that have been accessed, saving any that have been modified
+        for dsobj in self.dscache.itervalues():
+            if dsobj.isModified():
+                if not dsobj.save(logMessage):
+                    raise Exception("Error saving %s/%s" % (self.pid, dsobj.id))
+
+        # only save object profile after all modified datastreams have been successfully saved
+        if self.info_modified:
+            if not self.saveProfile(logMessage):
+                raise Exception("Error saving object profile for %s" % self.pid)
+            
+
