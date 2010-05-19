@@ -1,9 +1,8 @@
 import os
 import unittest
+from eulcore import xmlmap
 from eulcore.fedora.api import ApiFacade
 from eulcore.fedora.server import Repository
-from eulcore.fedora.xml import DigitalObject as XmlDigitalObject
-from eulcore.xmlmap.core import load_xmlobject_from_string
 
 REPO_ROOT = 'https://dev11.library.emory.edu:8643/fedora/'
 REPO_ROOT_NONSSL = 'http://dev11.library.emory.edu:8280/fedora/'
@@ -18,6 +17,9 @@ def fixture_path(fname):
 def load_fixture_data(fname):
     with open(fixture_path(fname)) as f:
         return f.read()
+
+class _MinimalFoxml(xmlmap.XmlObject):
+    pid = xmlmap.StringField('@PID')
 
 class FedoraTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -44,7 +46,7 @@ class FedoraTestCase(unittest.TestCase):
         data = load_fixture_data(fname)
         # if pidspace is specified, get a new pid from fedora and set it as the pid in the xml 
         if hasattr(self, 'pidspace'):
-            xml = load_xmlobject_from_string(data, XmlDigitalObject)            
+            xml = xmlmap.load_xmlobject_from_string(data, _MinimalFoxml)            
             xml.pid = self.getNextPid()
             return xml.serialize()
         else:

@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 from datetime import date
-import rdflib
 from rdflib.Graph import Graph as RdfGraph
+import rdflib
 import tempfile
 
 from eulcore.fedora.api import ApiFacade
-from eulcore.fedora.util import RelativeOpener
 from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject, \
-        XmlDatastream, XmlDatastreamObject, RdfDatastream, RdfDatastreamObject, \
-        ObjectDatastream
+        XmlDatastream, XmlDatastreamObject, RdfDatastream, RdfDatastreamObject
 from eulcore.fedora.server import URI_HAS_MODEL
+from eulcore.fedora.util import RelativeOpener
+from eulcore.fedora.xml import ObjectDatastream
 from eulcore.xmlmap.dc import DublinCore
 
 from test_fedora.base import FedoraTestCase, TEST_PIDSPACE, REPO_ROOT, REPO_USER, REPO_PASS
