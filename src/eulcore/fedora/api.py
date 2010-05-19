@@ -437,6 +437,31 @@ class RelationshipTuple(ClassSerializer):
         object = soap_types.String
         isLiteral = soap_types.Boolean
         datatype = soap_types.String
+
+class GetDatastreamHistoryResponse:
+    def from_xml(self, *elements):
+        self.datastreams = []
+        for el in elements:
+            self.datastreams.append(Datastream.from_xml(el))
+        return self
+
+class Datastream(ClassSerializer):
+    # soap datastream response used by getDatastreamHistory and getDatastream
+    class types:
+        controlGroup = soap_types.String
+        ID = soap_types.String
+        versionID = soap_types.String
+        altIDs = soap_types.String   # according to Fedora docs this should be array, but that doesn't work
+        label = soap_types.String
+        versionable = soap_types.Boolean
+        MIMEType = soap_types.String
+        formatURI = soap_types.String
+        createDate = soap_types.String
+        size = soap_types.Integer   # Long ?
+        state = soap_types.String
+        location = soap_types.String
+        checksumType = soap_types.String
+        checksum = soap_types.String
     
 # service class stub for soap method definitions
 class API_M_Service(SimpleWSGISoapApp):
@@ -480,6 +505,14 @@ class API_M_Service(SimpleWSGISoapApp):
             _returns = soap_types.Boolean,
             _outVariableName='purged',)
     def purgeRelationship(self, pid, relationship=None, object=None, isLiteral=False):
+        pass
+
+    @soapmethod(
+            soap_types.String,  #pid
+            soap_types.String,  #dsID
+            _returns = GetDatastreamHistoryResponse(),
+            _outVariableName="datastream")
+    def getDatastreamHistory(self, pid, dsID):
         pass
 
 

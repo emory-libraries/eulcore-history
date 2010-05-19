@@ -474,6 +474,8 @@ class TestAPI_M(FedoraTestCase):
         self.opener = RelativeOpener(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
         self.rest_api = REST_API(self.opener)
 
+        self.today = str(date.today())
+
     def test_addRelationship(self):
         # rel to resource
         added = self.api_m.addRelationship(self.pid, URI_HAS_MODEL, "info:fedora/pid:123", False)
@@ -530,6 +532,42 @@ class TestAPI_M(FedoraTestCase):
         self.assertRaises(Exception, self.api_m.purgeRelationship, "bogus:pid",
             self.rel_owner, "johndoe", True)        
 
+    def test_getDatastreamHistory(self):
+        history = self.api_m.getDatastreamHistory(self.pid, "DC")
+        self.assertEqual(1, len(history.datastreams))
+        dc_info = history.datastreams[0]
+        self.assertEqual('X', dc_info.controlGroup)
+        self.assertEqual('DC', dc_info.ID)
+        self.assertEqual('DC.0', dc_info.versionID)
+         # altIDs unused
+        self.assertEqual('Dublin Core', dc_info.label)
+        self.assertTrue(dc_info.versionable)
+        self.assertEqual("text/xml", dc_info.MIMEType)
+        # formatURI not set in test fixture
+        self.assert_(self.today in dc_info.createDate)
+        self.assertEqual(490, dc_info.size)     # NOTE: based on current fixture size; is this a useful test?
+        self.assertEqual('A', dc_info.state) 
+        # location, checksumType, and checksum not set in current fixture
+
+        
+        # modify DC so there are multiple versions        
+        new_dc = """<oai_dc:dc
+            xmlns:dc='http://purl.org/dc/elements/1.1/'
+            xmlns:oai_dc='http://www.openarchives.org/OAI/2.0/oai_dc/'>
+          <dc:title>Test-Object</dc:title>
+          <dc:description>modified!</dc:description>
+        </oai_dc:dc>"""
+        self.rest_api.modifyDatastream(self.pid, "DC", "DCv2Dublin Core",
+            mimeType="text/xml", logMessage="updating DC", content=new_dc)
+        history = self.api_m.getDatastreamHistory(self.pid, "DC")
+        self.assertEqual(2, len(history.datastreams))
+        self.assertEqual('DC.1', history.datastreams[0].versionID)      # newest version is first
+
+        # bogus datastream
+        self.assertEqual(None, self.api_m.getDatastreamHistory(self.pid, "BOGUS"))
+
+        # bogus pid
+        self.assertRaises(Exception, self.api_m.getDatastreamHistory, "bogus:pid", "DC")
 
 if __name__ == '__main__':
     main()
