@@ -187,13 +187,12 @@ class TestNewObject(FedoraTestCase):
 
         # skip text for now: it's meaningless unless we give it content
 
-        #FIXME: auto-ingest rels-ext
-#        self.assertEqual(fetched.rels_ext.label, 'External Relations')
-#        self.assertEqual(fetched.rels_ext.mimetype, 'application/rdf+xml')
-#        self.assertEqual(fetched.rels_ext.versionable, False)
-#        self.assertEqual(fetched.rels_ext.state, 'A')
-#        self.assertEqual(fetched.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
-#        self.assertEqual(fetched.rels_ext.control_group, 'X')
+        self.assertEqual(fetched.rels_ext.label, 'External Relations')
+        self.assertEqual(fetched.rels_ext.mimetype, 'application/rdf+xml')
+        self.assertEqual(fetched.rels_ext.versionable, False)
+        self.assertEqual(fetched.rels_ext.state, 'A')
+        self.assertEqual(fetched.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
+        self.assertEqual(fetched.rels_ext.control_group, 'X')
         
 
 

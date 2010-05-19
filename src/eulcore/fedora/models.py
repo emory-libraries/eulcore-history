@@ -101,6 +101,10 @@ class DatastreamObject(object):
     def _bootstrap_content(self):
         return None
 
+    def _content_as_dom(self):
+        # used for serializing inline xml datastreams at ingest
+        return None
+
     def isModified(self):
         """Check if either the datastream content or profile fields have changed
         and should be saved to Fedora.
@@ -265,6 +269,9 @@ class XmlDatastreamObject(DatastreamObject):
     def _bootstrap_content(self):
         return self.objtype()
 
+    def _content_as_dom(self):
+        return self.content.dom_node
+
 
 class XmlDatastream(Datastream):
     """XML-specific version of :class:`Datastream`.
@@ -284,7 +291,7 @@ class RdfDatastreamObject(DatastreamObject):
     """Extends :class:`DatastreamObject` in order to initialize datastream content
     as an RDF graph.
     """
-    default_mimetype = "application/xml+rdf"
+    default_mimetype = "application/rdf+xml"
     # FIXME: override _set_content to handle setting content?
 
     def _convert_content(self, content):
@@ -293,6 +300,12 @@ class RdfDatastreamObject(DatastreamObject):
 
     def _bootstrap_content(self):
         return RdfGraph()
+
+    def _content_as_dom(self):
+        graph = self.content
+        data = graph.serialize()
+        obj = xmlmap.load_xmlobject_from_string(data)
+        return obj.dom_node
 
 
 class RdfDatastream(Datastream):
@@ -497,13 +510,17 @@ class DigitalObject(object):
         # FIXME: this method of identifying datastreams doesn't address
         # inheritance.
         for fname, fval in self.__class__.__dict__.iteritems():
-            if not isinstance(fval, XmlDatastream):
+            if not isinstance(fval, Datastream):
                 continue
             ds = fval
 
             dsobj = getattr(self, fname) # get it again to go through __get__
             if dsobj.control_group != 'X':
                 continue # FIXME: only inline xml for now
+
+            orig_content_dom = dsobj._content_as_dom()
+            if not orig_content_dom:
+                continue # can't include a ds that doesn't know how to dom itself
 
             ds_xml = doc.createElementNS(FOXML_NS, 'foxml:datastream')
             ds_xml.setAttributeNS(None, 'ID', ds.id)
@@ -525,8 +542,7 @@ class DigitalObject(object):
             content_container_xml = doc.createElementNS(FOXML_NS, 'foxml:xmlContent')
             ver_xml.appendChild(content_container_xml)
 
-            orig_content_xml = dsobj.content.dom_node
-            content_xml = doc.importNode(orig_content_xml, True)
+            content_xml = doc.importNode(orig_content_dom, True)
             content_container_xml.appendChild(content_xml)
 
         sio = StringIO()
