@@ -17,9 +17,17 @@ from testcore import main
 
 class MyDigitalObject(DigitalObject):
     # extend digital object with datastreams for testing
-    dc = XmlDatastream("DC", "Dublin Core", DublinCore)
-    text = Datastream("TEXT", "Text datastream", defaults={'mimetype': 'text/plain'})
-    rels_ext = RdfDatastream("RELS-EXT", "External Relations")
+    dc = XmlDatastream("DC", "Dublin Core", DublinCore, defaults={
+            'control_group': 'X',
+            'format': 'http://www.openarchives.org/OAI/2.0/oai_dc/',
+        })
+    text = Datastream("TEXT", "Text datastream", defaults={
+            'mimetype': 'text/plain',
+        })
+    rels_ext = RdfDatastream("RELS-EXT", "External Relations", defaults={
+            'control_group': 'X',
+            'format': 'info:fedora/fedora-system:FedoraRELSExt-1.0',
+        })
 
 def _add_text_datastream(obj):
     TEXT_CONTENT = "Here is some text content for a non-xml datastream."
@@ -161,6 +169,32 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(fetched.label, 'test label')
         self.assertEqual(fetched.owner, 'tester')
         self.assertEqual(fetched.state, 'I')
+
+    def test_default_datastreams(self):
+        obj = MyDigitalObject(self.api, pid=self.getNextPid)
+        obj.save()
+        self.append_test_pid(obj.pid)
+
+        fetched = MyDigitalObject(self.api, obj.pid)
+
+        self.assertEqual(fetched.dc.label, 'Dublin Core')
+        self.assertEqual(fetched.dc.mimetype, 'text/xml')
+        self.assertEqual(fetched.dc.versionable, False)
+        self.assertEqual(fetched.dc.state, 'A')
+        self.assertEqual(fetched.dc.format, 'http://www.openarchives.org/OAI/2.0/oai_dc/')
+        self.assertEqual(fetched.dc.control_group, 'X')
+        self.assertEqual(fetched.dc.content.identifier, fetched.pid)
+
+        # skip text for now: it's meaningless unless we give it content
+
+        #FIXME: auto-ingest rels-ext
+#        self.assertEqual(fetched.rels_ext.label, 'External Relations')
+#        self.assertEqual(fetched.rels_ext.mimetype, 'application/rdf+xml')
+#        self.assertEqual(fetched.rels_ext.versionable, False)
+#        self.assertEqual(fetched.rels_ext.state, 'A')
+#        self.assertEqual(fetched.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
+#        self.assertEqual(fetched.rels_ext.control_group, 'X')
+        
 
 
 class TestDigitalObject(FedoraTestCase):

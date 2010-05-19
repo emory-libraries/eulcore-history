@@ -1,8 +1,10 @@
 import hashlib
 import rdflib
 from cStringIO import StringIO
+from rdflib.Graph import Graph as RdfGraph
 
-from Ft.Xml.Domlette import CanonicalPrint, implementation as DomImplementation
+from Ft.Xml.Domlette import CanonicalPrint, PrettyPrint, \
+        implementation as DomImplementation
 
 from eulcore import xmlmap
 from eulcore.fedora.api import ApiFacade
@@ -31,9 +33,9 @@ class DatastreamObject(object):
         :param state: default configuration for datastream state
         :param format: default configuration for datastream format URI
     """
-    default_mimetype = "text/xml"    # FIXME: reasonable default minetype for non-xml datastream/
-    def __init__(self, obj, id, label, mimetype=None,
-                 versionable=False, state="A", format=None):
+    default_mimetype = "application/octet-stream"
+    def __init__(self, obj, id, label, mimetype=None, versionable=False,
+            state='A', format=None, control_group='M'):
                         
         self.obj = obj
         self.id = id
@@ -47,6 +49,7 @@ class DatastreamObject(object):
             'versionable': versionable,
             'state' : state,
             'format': format,
+            'control_group': control_group,
         }
         self._info = None
         self._content = None
@@ -58,15 +61,33 @@ class DatastreamObject(object):
     def info(self):
         # pull datastream profile information from Fedora, but only when accessed
         if self._info is None:
-            self._info = self.obj.getDatastreamProfile(self.id)
+            if self.obj._ingested:
+                self._info = self.obj.getDatastreamProfile(self.id)
+            else:
+                self._info = self._bootstrap_info()
         return self._info
+
+    def _bootstrap_info(self):
+        profile = DatastreamProfile()
+        profile.state = self.defaults['state']
+        profile.mimetype = self.defaults['mimetype']
+        profile.control_group = self.defaults['control_group']
+        profile.versionable = self.defaults['versionable']
+        if self.defaults.get('label', None):
+            profile.label = self.defaults['label']
+        if self.defaults.get('format', None):
+            profile.format = self.defaults['format']
+        return profile
 
     def _get_content(self):
         # pull datastream content from Fedora, but only when accessed
         if self._content is None:
-            self._content = self._convert_content(self.obj.api.getDatastreamDissemination(self.obj.pid, self.id))
-            # calculate and store a digest of the current datastream text content
-            self.digest = self._content_digest()
+            if self.obj._ingested:
+                self._content = self._convert_content(self.obj.api.getDatastreamDissemination(self.obj.pid, self.id))
+                # calculate and store a digest of the current datastream text content
+                self.digest = self._content_digest()
+            else:
+                self._content = self._bootstrap_content()
         return self._content
     def _set_content(self, val):
         self._content = val
@@ -76,6 +97,9 @@ class DatastreamObject(object):
         # convert the raw API output of getDatastreamDissemination into the expected content type
         data, url = content
         return data
+
+    def _bootstrap_content(self):
+        return None
 
     def isModified(self):
         """Check if either the datastream content or profile fields have changed
@@ -207,9 +231,6 @@ class Datastream(object):
     def __get__(self, obj, objtype): 
         if obj is None:
             return self
-        if not obj._ingested:
-            # FIXME: make this work for new objects
-            return None
         if obj.dscache.get(self.id, None) is None:
             obj.dscache[self.id] = self._datastreamClass(obj, self.id, self.label, **self.datastream_args)
         return obj.dscache[self.id]
@@ -241,6 +262,9 @@ class XmlDatastreamObject(DatastreamObject):
         data, url = content
         return parse_xml_object(self.objtype, data, url)
 
+    def _bootstrap_content(self):
+        return self.objtype()
+
 
 class XmlDatastream(Datastream):
     """XML-specific version of :class:`Datastream`.
@@ -267,6 +291,9 @@ class RdfDatastreamObject(DatastreamObject):
         data, url = content
         return parse_rdf(data, url)
 
+    def _bootstrap_content(self):
+        return RdfGraph()
+
 
 class RdfDatastream(Datastream):
     """RDF-specific version of :class:`Datastream`.
@@ -274,7 +301,6 @@ class RdfDatastream(Datastream):
     Datastreams are initialized as instances of :class:`RdfDatastreamObject`.
     """
     _datastreamClass = RdfDatastreamObject
-
 
 
 class DigitalObject(object):
@@ -437,9 +463,10 @@ class DigitalObject(object):
         # with an ingested object now
         self.pid = returned_pid
         self._info = None
+        self.info_modified = False
         self.dscache = {}
 
-    def _build_foxml_for_ingest(self, pid):
+    def _build_foxml_for_ingest(self, pid, pretty=False):
         FOXML_NS = "info:fedora/fedora-system:def/foxml#"
         doc = DomImplementation.createDocument(FOXML_NS, 'foxml:digitalObject', None)
         obj = doc.documentElement
@@ -466,8 +493,47 @@ class DigitalObject(object):
             owner.setAttributeNS(None, 'VALUE', self.owner)
             props.appendChild(owner)
 
+        # collect datastream definitions for ingest.
+        # FIXME: this method of identifying datastreams doesn't address
+        # inheritance.
+        for fname, fval in self.__class__.__dict__.iteritems():
+            if not isinstance(fval, XmlDatastream):
+                continue
+            ds = fval
+
+            dsobj = getattr(self, fname) # get it again to go through __get__
+            if dsobj.control_group != 'X':
+                continue # FIXME: only inline xml for now
+
+            ds_xml = doc.createElementNS(FOXML_NS, 'foxml:datastream')
+            ds_xml.setAttributeNS(None, 'ID', ds.id)
+            ds_xml.setAttributeNS(None, 'CONTROL_GROUP', dsobj.control_group)
+            ds_xml.setAttributeNS(None, 'STATE', dsobj.state)
+            ds_xml.setAttributeNS(None, 'VERSIONABLE',
+                    str(dsobj.versionable).lower())
+            obj.appendChild(ds_xml)
+
+            ver_xml = doc.createElementNS(FOXML_NS, 'foxml:datastreamVersion')
+            ver_xml.setAttributeNS(None, 'ID', ds.id + '.0')
+            ver_xml.setAttributeNS(None, 'MIMETYPE', dsobj.mimetype)
+            if dsobj.format:
+                ver_xml.setAttributeNS(None, 'FORMAT_URI', dsobj.format)
+            if dsobj.label:
+                ver_xml.setAttributeNS(None, 'LABEL', dsobj.label)
+            ds_xml.appendChild(ver_xml)
+
+            content_container_xml = doc.createElementNS(FOXML_NS, 'foxml:xmlContent')
+            ver_xml.appendChild(content_container_xml)
+
+            orig_content_xml = dsobj.content.dom_node
+            content_xml = doc.importNode(orig_content_xml, True)
+            content_container_xml.appendChild(content_xml)
+
         sio = StringIO()
-        CanonicalPrint(doc, stream=sio)
+        if pretty: # for easier debug
+            PrettyPrint(doc, stream=sio)
+        else:
+            CanonicalPrint(doc, stream=sio)
 
         return sio.getvalue()
 

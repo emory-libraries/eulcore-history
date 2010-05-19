@@ -19,9 +19,10 @@ class ObjectDatastreams(xmlmap.XmlObject):
     "list of :class:`ObjectDatastream`"
 
 class ObjectProfile(xmlmap.XmlObject):
+    ":class:`xmlmap.XmlObject` for object profile information returned by Fedora REST API."
+
     ROOT_NAME = 'objectProfile'
 
-    ":class:`xmlmap.XmlObject` for object profile information returned by Fedora REST API."
     label = xmlmap.StringField('objLabel')
     "object label"
     owner = xmlmap.StringField('objOwnerId')
@@ -38,6 +39,9 @@ class ObjectProfile(xmlmap.XmlObject):
 
 class DatastreamProfile(xmlmap.XmlObject):
     ":class:`xmlmap.XmlObject` for datastream profile information returned by Fedora REST API."
+
+    ROOT_NAME = 'datastreamProfile'
+
     label = xmlmap.StringField('dsLabel')
     "datastream label"
     version_id = xmlmap.StringField('dsVersionID')
