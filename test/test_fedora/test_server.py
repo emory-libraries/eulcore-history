@@ -86,7 +86,7 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         pid = self.fedora_fixtures_ingested[0]
         obj = self.repo.get_object(pid)
         # add a cmodel to test object so we can find our test object by cmodel
-        cmodel = DigitalObject("control:TestObject", self.opener)
+        cmodel = DigitalObject(self.api, "control:TestObject")
         obj.add_relationship(URI_HAS_MODEL, cmodel)
         # query by test cmodel
         objs_by_cmodel = self.repo.get_objects_with_cmodel(cmodel.uri)
@@ -129,9 +129,9 @@ class TestResourceIndex(FedoraTestCase):
         pid = self.fedora_fixtures_ingested[0]
         self.object = self.repo.get_object(pid)
         # add some rels to query
-        self.cmodel = DigitalObject("control:TestObject", self.opener)
+        self.cmodel = DigitalObject(self.api, "control:TestObject")
         self.object.add_relationship(URI_HAS_MODEL, self.cmodel)
-        self.related = DigitalObject("foo:123", self.opener)
+        self.related = DigitalObject(self.api, "foo:123")
         self.object.add_relationship(self.rel_isMemberOf, self.related)
         self.object.add_relationship(self.rel_owner, "testuser")
 

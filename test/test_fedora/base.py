@@ -1,5 +1,6 @@
 import os
 import unittest
+from eulcore.fedora.api import ApiFacade
 from eulcore.fedora.server import Repository
 from eulcore.fedora.xml import DigitalObject as XmlDigitalObject
 from eulcore.xmlmap.core import load_xmlobject_from_string
@@ -26,6 +27,7 @@ class FedoraTestCase(unittest.TestCase):
     def setUp(self):
         self.repo = Repository(REPO_ROOT, REPO_USER, REPO_PASS)
         self.opener = self.repo.opener
+        self.api = ApiFacade(self.opener)
         fixtures = getattr(self, 'fixtures', [])
         for fixture in fixtures:
             self.ingestFixture(fixture)
@@ -34,13 +36,16 @@ class FedoraTestCase(unittest.TestCase):
         for pid in self.fedora_fixtures_ingested:
             self.repo.purge_object(pid)
 
+    def getNextPid(self):
+        pidspace = getattr(self, 'pidspace', None)
+        return self.repo.get_next_pid(namespace=pidspace)
+
     def loadFixtureData(self, fname):
         data = load_fixture_data(fname)
-        pidspace = getattr(self, 'pidspace', None)
         # if pidspace is specified, get a new pid from fedora and set it as the pid in the xml 
-        if pidspace: 
+        if hasattr(self, 'pidspace'):
             xml = load_xmlobject_from_string(data, XmlDigitalObject)            
-            xml.pid = self.repo.get_next_pid(namespace=pidspace)
+            xml.pid = self.getNextPid()
             return xml.serialize()
         else:
             return data
@@ -52,4 +57,7 @@ class FedoraTestCase(unittest.TestCase):
             # we'd like this always to be true. if ingest fails we should
             # throw an exception. that probably hasn't been thoroughly
             # tested yet, though, so we'll check it until it has been.
+            self.append_test_pid(pid)
+
+    def append_test_pid(self, pid):
             self.fedora_fixtures_ingested.append(pid)

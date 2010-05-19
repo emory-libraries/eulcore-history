@@ -1,4 +1,3 @@
-import Ft.Xml.Domlette as domlette
 from eulcore import xmlmap
 
 class DublinCore(xmlmap.XmlObject):

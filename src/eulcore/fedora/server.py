@@ -18,6 +18,7 @@ class Repository(object):
     
     def __init__(self, root, username=None, password=None):
         self.opener = RelativeOpener(root, username, password)
+        self.api = ApiFacade(self.opener)
         self.fedora_root = root
         self.username = username
         self.password = password
@@ -26,11 +27,6 @@ class Repository(object):
     def risearch(self):
         "instance of :class:`ResourceIndex`, with the same root url and credentials"
         return ResourceIndex(self.opener)
-
-    @property
-    def api(self):
-        "instance of :class:`ApiFacade`, with the same root url and credentials"
-        return ApiFacade(self.opener)
 
     def get_next_pid(self, namespace=None, count=None):
         """
@@ -110,7 +106,7 @@ class Repository(object):
             type = DigitalObject
         if pid.startswith('info:fedora/'): # passed a uri
             pid = pid[len('info:fedora/'):]
-        return type(pid, self.opener)
+        return type(self.api, pid)
 
     def find_objects(self, type=None, chunksize=None, **kwargs):
         """
@@ -134,7 +130,7 @@ class Repository(object):
         chunk = parse_xml_object(SearchResults, data, url)
         while True:
             for result in chunk.results:
-                yield type(result.pid, self.opener)
+                yield type(self.api, result.pid)
 
             if chunk.session_token:
                 data, url = self.api.findObjects(query, session_token=chunk.session_token, chunksize=chunksize)
@@ -184,7 +180,7 @@ class ObjectTypeDescriptor(object):
     def __get__(self, obj, objtype):
         try:
             if obj.has_model(self.model):
-                return self.objtype(obj.pid, self.opener)
+                return self.objtype(self.api, obj.pid)
         except:
             return None
 

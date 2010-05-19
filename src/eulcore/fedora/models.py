@@ -1,5 +1,8 @@
 import hashlib
 import rdflib
+from cStringIO import StringIO
+
+from Ft.Xml.Domlette import CanonicalPrint, implementation as DomImplementation
 
 from eulcore import xmlmap
 from eulcore.fedora.api import ApiFacade
@@ -30,6 +33,8 @@ class ObjectDatastreams(xmlmap.XmlObject):
     "list of :class:`ObjectDatastream`"
 
 class ObjectProfile(xmlmap.XmlObject):
+    ROOT_NAME = 'objectProfile'
+
     ":class:`xmlmap.XmlObject` for object profile information returned by Fedora REST API."
     label = xmlmap.StringField('objLabel')
     "object label"
@@ -72,7 +77,10 @@ class DatastreamProfile(xmlmap.XmlObject):
     checksum_type = xmlmap.StringField('dsChecksumType')
     "type of checksum"
 
-    
+class NewPids(xmlmap.XmlObject):
+    pids = xmlmap.StringListField('pid')
+
+
 class DatastreamObject(object):
     """Object to ease accessing and updating a datastream belonging to a Fedora
     object.  Handles datastream content as well as datastream profile information.
@@ -267,6 +275,9 @@ class Datastream(object):
     def __get__(self, obj, objtype): 
         if obj is None:
             return self
+        if not obj._ingested:
+            # FIXME: make this work for new objects
+            return None
         if obj.dscache.get(self.id, None) is None:
             obj.dscache[self.id] = self._datastreamClass(obj, self.id, self.label, **self.datastream_args)
         return obj.dscache[self.id]
@@ -340,14 +351,24 @@ class DigitalObject(object):
     the parts of that object.
     """
 
-    def __init__(self, pid=None, opener=None):
-        self.pid = pid
-        self.opener = opener
+    # TODO: add once we fully support inheriting datastreams:
+    #dc = XmlDatastream("DC", "Dublin Core", DublinCore)
+    #rels_ext = RdfDatastream("RELS-EXT", "External Relations")
+
+    def __init__(self, api, pid=None):
+        self.api = api
         self.dscache = {}       # accessed by DatastreamDescriptor to store and cache datastreams
 
         # cache object profile, track if it is modified and needs to be saved
         self._info = None
         self.info_modified = False
+
+        # a string pid is a live object in the repository. a callable pid
+        # means a new object: we call that function to get our initial pid.
+        # None is a new object, and use a default pid generation function.
+        if pid is None:
+            pid = self._getDefaultPid
+        self.pid = pid
 
     def __str__(self):
         return self.pid
@@ -356,14 +377,26 @@ class DigitalObject(object):
         return '<%s %s>' % (self.__class__.__name__, self.pid)
 
     @property
-    def uri(self):
-        "Fedora URI for this object (info:fedora form of object pid) "
-        return 'info:fedora/' + self.pid
+    def _ingested(self):
+        # as mentioned in __init__, a string pid is pulled from the repo. a
+        # callable pid is not yet ingested: we'll call that function to get
+        # the pid at ingest
+        return not callable(self.pid)
+
+    def _getDefaultPid(self, namespace=None):
+        kwargs = {}
+        if namespace is not None:
+            kwargs['namespace'] = namespace
+        data, url = self.api.getNextPID(**kwargs)
+        nextpids = parse_xml_object(NewPids, data, url)
+        return nextpids.pids[0]
 
     @property
-    def api(self):
-        "instance of :class:`ApiFacade`, with the same fedora root url and credentials"
-        return ApiFacade(self.opener)
+    def uri(self):
+        "Fedora URI for this object (info:fedora form of object pid) "
+        if self._ingested:
+            return 'info:fedora/' + self.pid
+        # otherwise we don't have a uri yet
 
     @property
     def info(self):
@@ -418,10 +451,16 @@ class DigitalObject(object):
 
         :rtype: :class:`ObjectProfile`
         """
-        data, url = self.api.getObjectProfile(self.pid)
-        return parse_xml_object(ObjectProfile, data, url)
+        if self._ingested:
+            data, url = self.api.getObjectProfile(self.pid)
+            return parse_xml_object(ObjectProfile, data, url)
+        else:
+            return ObjectProfile()
 
     def saveProfile(self, logMessage=None):
+        if not self._ingested:
+            raise Exception("can't save profile information for a new object before it's ingested.")
+
         saved = self.api.modifyObject(self.pid, self.label, self.owner, self.state, logMessage)
         if saved:
             # profile info is no longer different than what is in Fedora
@@ -432,6 +471,12 @@ class DigitalObject(object):
         """Save to Fedora any parts of this object that have been modified (object
         profile or any datastream content or info).        
         """
+        if callable(self.pid):
+            self._ingest(logMessage)
+        else:
+            self._save_existing(logMessage)
+
+    def _save_existing(self, logMessage):
         # TODO: add logic to back out changes if a failure occurs part-way through saving
 
         # loop through any datastreams that have been accessed, saving any that have been modified
@@ -445,6 +490,55 @@ class DigitalObject(object):
             if not self.saveProfile(logMessage):
                 raise Exception("Error saving object profile for %s" % self.pid)
 
+    def _ingest(self, logMessage):
+        requested_pid = self.pid()
+        foxml = self._build_foxml_for_ingest(requested_pid)
+        returned_pid = self.api.ingest(foxml, logMessage)
+
+        if returned_pid != requested_pid:
+            msg = ('fedora returned unexpected pid "%s" when trying to ' + 
+                   'ingest object with pid "%s"') % \
+                  (returned_pid, requested_pid)
+            raise Exception(msg)
+
+        # then clean up the local object so that self knows it's dealing
+        # with an ingested object now
+        self.pid = returned_pid
+        self._info = None
+        self.dscache = {}
+
+    def _build_foxml_for_ingest(self, pid):
+        FOXML_NS = "info:fedora/fedora-system:def/foxml#"
+        doc = DomImplementation.createDocument(FOXML_NS, 'foxml:digitalObject', None)
+        obj = doc.documentElement
+        obj.setAttributeNS(None, 'VERSION', '1.1')
+        obj.setAttributeNS(None, 'PID', pid)
+
+        props = doc.createElementNS(FOXML_NS, 'foxml:objectProperties')
+        obj.appendChild(props)
+
+        state = doc.createElementNS(FOXML_NS, 'foxml:property')
+        state.setAttributeNS(None, 'NAME', 'info:fedora/fedora-system:def/model#state')
+        state.setAttributeNS(None, 'VALUE', self.state or 'A')
+        props.appendChild(state)
+
+        if self.label:
+            label = doc.createElementNS(FOXML_NS, 'foxml:property')
+            label.setAttributeNS(None, 'NAME', 'info:fedora/fedora-system:def/model#label')
+            label.setAttributeNS(None, 'VALUE', self.label)
+            props.appendChild(label)
+
+        if self.owner:
+            owner = doc.createElementNS(FOXML_NS, 'foxml:property')
+            owner.setAttributeNS(None, 'NAME', 'info:fedora/fedora-system:def/model#ownerId')
+            owner.setAttributeNS(None, 'VALUE', self.owner)
+            props.appendChild(owner)
+
+        sio = StringIO()
+        CanonicalPrint(doc, stream=sio)
+
+        return sio.getvalue()
+
     def get_datastreams(self):
         """
         Get all datastreams that belong to this object.
@@ -454,10 +548,14 @@ class DigitalObject(object):
 
         :rtype: dictionary
         """
-        # FIXME: add caching? make a property?
-        data, url = self.api.listDatastreams(self.pid)
-        dsobj = parse_xml_object(ObjectDatastreams, data, url)
-        return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
+        if self._ingested:
+            # FIXME: add caching? make a property?
+            data, url = self.api.listDatastreams(self.pid)
+            dsobj = parse_xml_object(ObjectDatastreams, data, url)
+            return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
+        else:
+            # FIXME: should we default to the datastreams defined in code?
+            return {}
 
 
     def add_relationship(self, rel_uri, object):
@@ -477,6 +575,7 @@ class DigitalObject(object):
                         a resource, otherwise it will be treated as a literal
         :rtype: boolean
         """  
+        # FIXME: make this work for new objects
         obj_is_literal = True
         if isinstance(object, DigitalObject):
             object = object.uri
@@ -510,5 +609,3 @@ class DigitalObject(object):
             
         st = (rdflib.URIRef(self.uri), rdflib.URIRef(URI_HAS_MODEL), rdflib.URIRef(model))
         return st in rels
-
-

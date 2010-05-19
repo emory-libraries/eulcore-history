@@ -4,6 +4,7 @@ import rdflib
 from rdflib.Graph import Graph as RdfGraph
 import tempfile
 
+from eulcore.fedora.api import ApiFacade
 from eulcore.fedora.util import RelativeOpener
 from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject, \
         XmlDatastream, XmlDatastreamObject, RdfDatastream, RdfDatastreamObject, \
@@ -45,8 +46,7 @@ class TestDatastreams(FedoraTestCase):
     def setUp(self):
         super(TestDatastreams, self).setUp()
         self.pid = self.fedora_fixtures_ingested[-1] # get the pid for the last object
-        self.opener = RelativeOpener(REPO_ROOT, REPO_USER, REPO_PASS)
-        self.obj = MyDigitalObject(self.pid, opener=self.opener)
+        self.obj = MyDigitalObject(self.api, self.pid)
 
         # add a text datastream to the current test object
         _add_text_datastream(self.obj)
@@ -131,6 +131,37 @@ class TestDatastreams(FedoraTestCase):
         self.assert_("isMemberOf" in self.obj.rels_ext.content.serialize())
         
 
+class TestNewObject(FedoraTestCase):
+    pidspace = TEST_PIDSPACE
+
+    def test_basic_ingest(self):
+        obj = MyDigitalObject(self.api, pid=self.getNextPid)
+        obj.save()
+
+        self.assertTrue(isinstance(obj.pid, basestring))
+        self.append_test_pid(obj.pid)
+        self.assertTrue(obj.pid.startswith(self.pidspace))
+
+        fetched = MyDigitalObject(self.api, obj.pid)
+        self.assertEqual(fetched.dc.content.identifier, obj.pid)
+
+    def test_profile(self):
+        obj = MyDigitalObject(self.api, pid=self.getNextPid)
+        obj.label = 'test label'
+        obj.owner = 'tester'
+        obj.state = 'I'
+        obj.save()
+        self.append_test_pid(obj.pid)
+
+        self.assertEqual(obj.label, 'test label')
+        self.assertEqual(obj.owner, 'tester')
+        self.assertEqual(obj.state, 'I')
+
+        fetched = MyDigitalObject(self.api, obj.pid)
+        self.assertEqual(fetched.label, 'test label')
+        self.assertEqual(fetched.owner, 'tester')
+        self.assertEqual(fetched.state, 'I')
+
 
 class TestDigitalObject(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
@@ -139,8 +170,7 @@ class TestDigitalObject(FedoraTestCase):
     def setUp(self):
         super(TestDigitalObject, self).setUp()
         self.pid = self.fedora_fixtures_ingested[-1] # get the pid for the last object
-        self.opener = RelativeOpener(REPO_ROOT, REPO_USER, REPO_PASS)
-        self.obj = MyDigitalObject(self.pid, opener=self.opener)
+        self.obj = MyDigitalObject(self.api, self.pid)
         _add_text_datastream(self.obj)
         self.today = str(date.today())
 
@@ -215,7 +245,7 @@ class TestDigitalObject(FedoraTestCase):
 
     def test_add_relationships(self):
         # add relation to a resource, by digital object
-        related = DigitalObject("foo:123", self.opener)
+        related = DigitalObject(self.api, "foo:123")
         isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
         added = self.obj.add_relationship(isMemberOf, related)
         self.assertTrue(added, "add relationship should return True on success, got %s" % added)
