@@ -468,9 +468,11 @@ class TestAPI_M(FedoraTestCase):
     rel_isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
     rel_owner = "info:fedora/fedora-system:def/relations-external#owner"
 
+    # save date-time before fixtures are created in fedora
+    # getting time here instead of setUp should give a little more leeway if server times are not synced
+    now = datetime.now(tzutc())   
+
     def setUp(self):
-        self.now = datetime.now(tzutc())   # need a timezone-aware time for comparing
-        
         super(TestAPI_M, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
         self.api_m = API_M(self.opener)
