@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from datetime import date
+
 from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL, TEST_PIDSPACE
 from eulcore.fedora.models import DigitalObject, URI_HAS_MODEL
 from eulcore.fedora.server import Repository
@@ -99,6 +101,16 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
             self.assert_(pid in found_pids)
 
         self.assertRaises(Exception, list, self.repo.find_objects(bogus_field="foo"))
+
+        # django-style field filters
+        objects = list(self.repo.find_objects(pid__exact=pid))
+        self.assertEqual(objects[0].pid, pid)
+        self.assertEqual(1, len(objects))
+        objects = list(self.repo.find_objects(created__gt=str(date.today())))
+        self.assert_(len(objects) > 0)
+        # invalid filter
+        self.assertRaises(Exception, list, self.repo.find_objects(created__bogusfilter='foo'))
+        
 
     def test_get_objects_by_cmodel(self):
         self.ingestFixture("object-with-pid.foxml")

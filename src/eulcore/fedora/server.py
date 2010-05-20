@@ -138,17 +138,33 @@ class Repository(object):
         :param chunksize: number of objects to return at a time
         :rtype: generator for list of objects
         """
+        # TODO: document django-style field filters
         type = type or self.default_object_type
 
         find_opts = {'chunksize' : chunksize}
-        
+
+        search_operators = {
+            'exact': '=',
+            'gt': '>',
+            'gte': '>=',
+            'lt': '<',
+            'lte': '<=',
+            'contains': '~'
+        }
+
         if terms is not None:
             find_opts['terms'] = terms
         else:
             conditions = []
-            # TODO: currently using contains operator (~) for all terms; add django-style filters
-            # exact : =, gt : >, gte : >=, lt : <, lte : <= (default to contains)
             for field, value in kwargs.iteritems():
+                if '__' in field:
+                    field, filter = field.split('__')
+                    if filter not in search_operators:
+                        raise Exception("Unsupported search filter '%s'" % filter)
+                    op = search_operators[filter]
+                else:
+                    op = search_operators['contains']   # default search mode
+
                 if field in self.search_fields_aliases:
                     field = self.search_fields_aliases[field]
                 if field not in self.search_fields:
@@ -157,7 +173,7 @@ class Repository(object):
                 if ' ' in value:
                     # if value contains whitespace, it must be delimited with single quotes
                     value = "'%s'" % value
-                conditions.append("%s~%s" % (field, value))
+                conditions.append("%s%s%s" % (field, op, value))
                 
             query = ' '.join(conditions)
             find_opts['query'] = query
