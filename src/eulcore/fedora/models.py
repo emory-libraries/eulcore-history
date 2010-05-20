@@ -22,7 +22,7 @@ class DatastreamObject(object):
     fields are accessed.
 
     Intended to be used with :class:`DigitalObject` and intialized
-    via :class:`Datastream`.
+    via :class:`Datastream`.  
 
     Initialization parameters:
         :param obj: the :class:`DigitalObject` that this datastream belongs to.
@@ -108,7 +108,8 @@ class DatastreamObject(object):
         if not self.versionable:
             self._get_content()
         self._content = val
-    content = property(_get_content, _set_content, None, "datastream content")
+    content = property(_get_content, _set_content, None,
+        "contents of the datastream; only pulled from Fedora when accessed, cached after first access")
 
     def _convert_content(self, data, url):
         # convert output of getDatastreamDissemination into the expected content type
@@ -147,21 +148,22 @@ class DatastreamObject(object):
     def _set_mimetype(self, val):
         self.info.mimetype = val
         self.info_modified = True
-    mimetype = property(_get_mimetype, _set_mimetype, None, "mimetype for the datastream")
+    mimetype = property(_get_mimetype, _set_mimetype, None, "datastream mimetype")
 
     def _get_versionable(self):
         return self.info.versionable
     def _set_versionable(self, val):
         self.info.versionable = val
         self.info_modified = True
-    versionable = property(_get_versionable, _set_versionable, None, "boolean; is the datastream versioned")
+    versionable = property(_get_versionable, _set_versionable, None,
+        "boolean; indicates if Fedora is configured to version the datastream")
 
     def _get_state(self):
         return self.info.state
     def _set_state(self, val):
         self.info.state = val
         self.info_modified = True
-    state = property(_get_state, _set_state, None, "datastream state (A/I/D)")
+    state = property(_get_state, _set_state, None, "datastream state (Active/Inactive/Deleted)")
 
     def _get_format(self):
         return self.info.format
@@ -261,11 +263,16 @@ class DatastreamObject(object):
             return success                   
 
 class Datastream(object):
-    """Datastream descriptor to make it easy to configure datastreams that belong
-    to a particular :class:`DigitalObject`.
+    """Datastream descriptor to simplify configuration and access to datastreams
+    that belong to a particular :class:`DigitalObject`.
 
     When accessed, will initialize a :class:`DatastreamObject` and cache it on
     the :class:`DigitalObject` that it belongs to.
+
+    Example usage::
+
+        class MyDigitalObject(DigitalObject):
+            text = Datastream("TEXT", "Text content", defaults={'mimetype': 'text/plain'})
 
     All other configuration defaults are passed on to the :class:`DatastreamObject`.
     """
@@ -294,12 +301,12 @@ class Datastream(object):
 
 class XmlDatastreamObject(DatastreamObject):
     """Extends :class:`DatastreamObject` in order to initialize datastream content
-    as an :class:`eulcore.xmlmap.XmlObject`.
+    as an instance of a specified :class:`~eulcore.xmlmap.XmlObject`.
 
-    See :class:`DigitalObject` for more details.  Has one additional parameter:
+    See :class:`DatastreamObject` for more details.  Has one additional parameter:
 
     :param objtype: xml object type to use for datastream content; if not specified,
-        defaults to :class:`eulcore.xmlmap.XmlObject`
+        defaults to :class:`~eulcore.xmlmap.XmlObject`
     """
     
     default_mimetype = "text/xml"
@@ -321,12 +328,20 @@ class XmlDatastreamObject(DatastreamObject):
 
 
 class XmlDatastream(Datastream):
-    """XML-specific version of :class:`Datastream`.
+    """XML-specific version of :class:`Datastream`.  Datastreams are initialized
+    as instances of :class:`XmlDatastreamObject`.  An additional, optional
+    parameter ``objtype`` is passed to the Datastream object to configure the
+    type of :class:`eulcore.xmlmap.XmlObject` that should be used for datastream
+    content.
 
-    Datastreams are initialized as instances of :class:`XmlDatastreamObject`.
-    An dditional, optional parameter ``objtype`` is passed to the Datastream object
-    to configure the type of  :class:`eulcore.xmlmap.XmlObject` that should be
-    used for datastream content.
+    Example usage::
+
+        from eulcore.xmlmap.dc import DublinCore
+        
+        class MyDigitalObject(DigitalObject):
+            dc = XmlDatastream("DC", "Dublin Core", DublinCore)
+
+
     """
     _datastreamClass = XmlDatastreamObject
     
@@ -356,17 +371,22 @@ class RdfDatastreamObject(DatastreamObject):
 
 
 class RdfDatastream(Datastream):
-    """RDF-specific version of :class:`Datastream`.
+    """RDF-specific version of :class:`Datastream`.  Datastreams are initialized
+    as instances of :class:`RdfDatastreamObject`.
 
-    Datastreams are initialized as instances of :class:`RdfDatastreamObject`.
+    Example usage::
+
+        class MyDigitalObject(DigitalObject):
+            rels_ext = RdfDatastream("RELS-EXT", "External Relations")
     """
     _datastreamClass = RdfDatastreamObject
 
 
 class DigitalObject(object):
     """
-    A single digital object in a Fedora respository, with methods for accessing
-    the parts of that object.
+    A single digital object in a Fedora respository, with methods and properties
+    to easy creating, accessing, and updating a Fedora object or any of its component
+    parts.
     """
 
     # TODO: add once we fully support inheriting datastreams:
@@ -414,7 +434,7 @@ class DigitalObject(object):
 
     @property
     def uri(self):
-        "Fedora URI for this object (info:fedora form of object pid) "
+        "Fedora URI for this object (info:fedora/foo:### form of object pid) "
         if self._ingested:
             return 'info:fedora/' + self.pid
         # otherwise we don't have a uri yet
@@ -447,7 +467,7 @@ class DigitalObject(object):
     def _set_state(self, val):
         self.info.state = val
         self.info_modified = True
-    state = property(_get_state, _set_state, None, "object state (A/I/D)")
+    state = property(_get_state, _set_state, None, "object state (Active/Inactive/Deleted)")
 
     # read-only info properties
     @property       
@@ -459,16 +479,17 @@ class DigitalObject(object):
         return self.info.modified
 
     def getDatastreamProfile(self, dsid):
-        """Get information about a particular datastream on this object.
+        """Get information about a particular datastream belonging to this object.
 
         :param dsid: datastream id
         :rtype: :class:`DatastreamProfile`
         """
+        # NOTE: used by DatastreamObject
         data, url = self.api.getDatastream(self.pid, dsid)
         return parse_xml_object(DatastreamProfile, data, url)
 
-    def getProfile(self):
-        """Get information about this object (label, owner, created, etc.).
+    def getProfile(self):    
+        """Get information about this object (label, owner, date created, etc.).
 
         :rtype: :class:`ObjectProfile`
         """
@@ -478,7 +499,7 @@ class DigitalObject(object):
         else:
             return ObjectProfile()
 
-    def saveProfile(self, logMessage=None):
+    def _saveProfile(self, logMessage=None):
         if not self._ingested:
             raise Exception("can't save profile information for a new object before it's ingested.")
 
@@ -528,7 +549,7 @@ class DigitalObject(object):
 
         # save object profile (if needed) after all modified datastreams have been successfully saved
         if self.info_modified:
-            if not self.saveProfile(logMessage):
+            if not self._saveProfile(logMessage):
                 cleaned = self._undo_save(saved, save_start)
                 raise DigitalObjectSaveFailure(self.pid, "object profile", to_save, saved, cleaned)
 
@@ -657,6 +678,8 @@ class DigitalObject(object):
         Dictionary of all datastreams that belong to this object in Fedora.
         Key is datastream id, value is an :class:`ObjectDatastream` for that
         datastream.
+
+        Only retrieved when requested; cached after first retrieval.
         """
         if self._ds_list is None:
             self._ds_list = self._get_datastreams()
@@ -722,7 +745,7 @@ class DigitalObjectSaveFailure(StandardError):
 
     These properties are available:
      * obj_pid - pid of the :class:`DigitalObject` instance that failed to save
-     * failure - where the failure occurred (either a datastream ID or 'object profile')
+     * failure - string indicating where the failure occurred (either a datastream ID or 'object profile')
      * to_be_saved - list of datastreams that were modified and should have been saved
      * saved - list of datastreams that were successfully saved before failure occurred
      * cleaned - list of saved datastreams that were successfully rolled back

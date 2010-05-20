@@ -1,4 +1,12 @@
+from Ft.Xml.XPath.Context import Context
+
 from eulcore import xmlmap
+
+# FIXME: DateField still needs significant improvements before we can make
+# it part of the real xmlmap interface.
+from eulcore.xmlmap.fields import DateField
+
+# xml objects to wrap around xml returns from fedora
 
 class ObjectDatastream(xmlmap.XmlObject):
     """:class:`~eulcore.xmlmap.XmlObject` for a single datastream as returned
@@ -19,7 +27,8 @@ class ObjectDatastreams(xmlmap.XmlObject):
     "list of :class:`ObjectDatastream`"
 
 class ObjectProfile(xmlmap.XmlObject):
-    ":class:`xmlmap.XmlObject` for object profile information returned by Fedora REST API."
+    """:class:`~eulcore.xmlmap.XmlObject` for object profile information
+        returned by :meth:`REST_API.getObjectProfile`."""
 
     ROOT_NAME = 'objectProfile'
 
@@ -38,7 +47,8 @@ class ObjectProfile(xmlmap.XmlObject):
     "object state (A/I/D - Active, Inactive, Deleted)"
 
 class DatastreamProfile(xmlmap.XmlObject):
-    ":class:`xmlmap.XmlObject` for datastream profile information returned by Fedora REST API."
+    """:class:`~eulcore.xmlmap.XmlObject` for datastream profile information
+    returned by  :meth:`REST_API.getDatastream`."""
 
     ROOT_NAME = 'datastreamProfile'
 
@@ -69,6 +79,77 @@ class DatastreamProfile(xmlmap.XmlObject):
 
 class NewPids(xmlmap.XmlObject):
     """:class:`~eulcore.xmlmap.XmlObject` for a list of pids as returned by
-    Fedora REST API."""
+    :meth:`REST_API.getNextPID`."""
 
     pids = xmlmap.StringListField('pid')
+
+
+class RepositoryDescriptionPid(xmlmap.XmlObject):
+    """:class:`~eulcore.xmlmap.XmlObject` for PID section of :class:`RepositoryDescription`"""
+    namespace = xmlmap.StringField('PID-namespaceIdentifier')
+    "PID namespace"
+    delimiter = xmlmap.StringField('PID-delimiter')
+    "PID delimiter"
+    sample = xmlmap.StringField('PID-sample')
+    "sample PID"
+    retain_pids = xmlmap.StringField('retainPID')
+    "list of pid namespaces configured to be retained"
+
+class RepositoryDescriptionOAI(xmlmap.XmlObject):
+    """:class:`~eulcore.xmlmap.XmlObject` for OAI section of :class:`RepositoryDescription`"""
+    namespace = xmlmap.StringField('OAI-namespaceIdentifier')
+    "OAI namespace"
+    delimiter = xmlmap.StringField('OAI-delimiter')
+    "OAI delimiter"
+    sample = xmlmap.StringField('OAI-sample')
+    "sample OAI id"
+
+class RepositoryDescription(xmlmap.XmlObject):
+    """:class:`~eulcore.xmlmap.XmlObject` for a repository description as returned
+        by :meth:`API_A_LITE.describeRepository` """
+    name = xmlmap.StringField('repositoryName')
+    "repository name"
+    base_url = xmlmap.StringField('repositoryBaseURL')
+    "base url"
+    version = xmlmap.StringField('repositoryVersion')
+    "version of Fedora being run"
+    pid_info = xmlmap.NodeField('repositoryPID', RepositoryDescriptionPid)
+    ":class:`RepositoryDescriptionPid` - configuration info for pids"
+    oai_info = xmlmap.NodeField('repositoryPID', RepositoryDescriptionOAI)
+    ":class:`RepositoryDescriptionOAI` - configuration info for OAI"
+    search_url = xmlmap.StringField('sampleSearch-URL')
+    "sample search url"
+    access_url = xmlmap.StringField('sampleAccess-URL')
+    "sample access url"
+    oai_url = xmlmap.StringField('sampleOAI-URL')
+    "sample OAI url"
+    admin_email = xmlmap.StringListField("adminEmail")
+    "administrator emails"
+
+class SearchResult(xmlmap.XmlObject):
+    """:class:`~eulcore.xmlmap.XmlObject` for a single entry in the results
+        returned by :meth:`REST_API.findObjects`"""
+    def __init__(self, dom_node, context=None):
+        if context is None:
+            context = Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
+        xmlmap.XmlObject.__init__(self, dom_node, context)
+
+    pid = xmlmap.StringField('res:pid')
+    "pid"
+
+class SearchResults(xmlmap.XmlObject):
+    """:class:`~eulcore.xmlmap.XmlObject` for the results returned by
+        :meth:`REST_API.findObjects`"""
+    def __init__(self, dom_node, context=None):
+        if context is None:
+            context = Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
+        xmlmap.XmlObject.__init__(self, dom_node, context)
+
+    session_token = xmlmap.StringField('res:listSession/res:token')
+    "session token"
+    cursor = xmlmap.IntegerField('res:listSession/res:cursor')
+    "session cursor"
+    expiration_date = DateField('res:listSession/res:expirationDate')
+    "session experation date"
+    results = xmlmap.NodeListField('res:resultList/res:objectFields', SearchResult)
+    "search results - list of :class:`SearchResult`"

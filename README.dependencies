@@ -18,7 +18,7 @@ dependencies are as follows:
  * :mod:`eulcore.fedora` depends on Python rdflib_ for RELS-EXT and
    RISearch RDF logic. Debian/Ubuntu users can ``apt-get install
    python-rdflib``. Other users can ``easy_install rdflib``
- * :mod:`eulcore.fedora` depends on dateutil for timezone-aware datetimes.
+ * :mod:`eulcore.fedora` depends on dateutil_ for timezone-aware datetimes.
    Debian/Ubuntu users can ``apt-get install python-dateutil``. Other users
    can ``easy_install dateutil``
  * :mod:`eulcore.fedora` and :mod:`eulcore.django.soap` depend on soaplib_.
@@ -27,5 +27,6 @@ dependencies are as follows:
    can ``apt-get install python-ldap``.
 
 .. _rdflib: http://www.rdflib.net/
+.. _dateutil: http://labix.org/python-dateutil
 .. _soaplib: http://trac.optio.webfactional.com/
 .. _python-ldap: http://www.python-ldap.org/

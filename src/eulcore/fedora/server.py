@@ -1,15 +1,10 @@
 from urllib import urlencode
-from Ft.Xml.XPath.Context import Context
 
-from eulcore import xmlmap
 from eulcore.fedora.api import HTTP_API_Base, ApiFacade
 from eulcore.fedora.models import DigitalObject, URI_HAS_MODEL
 # FIXME: should risearch be moved to apis?
 from eulcore.fedora.util import RelativeOpener, parse_rdf, parse_xml_object
-
-# FIXME: DateField still needs significant improvements before we can make
-# it part of the real xmlmap interface.
-from eulcore.xmlmap.fields import DateField
+from eulcore.fedora.xml import SearchResults, NewPids
 
 # a repository object, basically a handy facade for easy api access
 
@@ -139,36 +134,6 @@ class Repository(object):
                 break
 
 
-# xml objects to wrap around xml returns from fedora
-
-
-class SearchResult(xmlmap.XmlObject):
-    """:class:`~eulcore.xmlmap.XmlObject` for a single entry in the results
-        returned by :meth:`REST_API.findObjects`"""
-    def __init__(self, dom_node, context=None):
-        if context is None:
-            context = Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
-        xmlmap.XmlObject.__init__(self, dom_node, context)
-
-    pid = xmlmap.StringField('res:pid')
-
-class SearchResults(xmlmap.XmlObject):
-    """:class:`~eulcore.xmlmap.XmlObject` for the results returned by
-        :meth:`REST_API.findObjects`"""
-    def __init__(self, dom_node, context=None):
-        if context is None:
-            context = Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
-        xmlmap.XmlObject.__init__(self, dom_node, context)
-
-    session_token = xmlmap.StringField('res:listSession/res:token')
-    cursor = xmlmap.IntegerField('res:listSession/res:cursor')
-    expiration_date = DateField('res:listSession/res:expirationDate')
-    results = xmlmap.NodeListField('res:resultList/res:objectFields', SearchResult)
-
-class NewPids(xmlmap.XmlObject):
-    pids = xmlmap.StringListField('pid')
-
-
 # make it easy to access a DigitalObject as other types if it has the
 # appropriate cmodel info.
 # currently unused - not officially released
@@ -184,41 +149,6 @@ class ObjectTypeDescriptor(object):
         except:
             return None
 
-
-class RepositoryDescriptionPid(xmlmap.XmlObject):
-    """:class:`~eulcore.xmlmap.XmlObject` for PID section of :class:`RepositoryDescription`"""
-    namespace = xmlmap.StringField('PID-namespaceIdentifier')
-    delimiter = xmlmap.StringField('PID-delimiter')
-    sample = xmlmap.StringField('PID-sample')
-    retain_pids = xmlmap.StringField('retainPID')
-
-class RepositoryDescriptionOAI(xmlmap.XmlObject):
-    """:class:`~eulcore.xmlmap.XmlObject` for OAI section of :class:`RepositoryDescription`"""
-    namespace = xmlmap.StringField('OAI-namespaceIdentifier')
-    delimiter = xmlmap.StringField('OAI-delimiter')
-    sample = xmlmap.StringField('OAI-sample')
-
-class RepositoryDescription(xmlmap.XmlObject):
-    """:class:`~eulcore.xmlmap.XmlObject` for a repository description as returned
-        by :meth:`API_A_LITE.describeRepository` """
-    name = xmlmap.StringField('repositoryName')
-    "repository name"
-    base_url = xmlmap.StringField('repositoryBaseURL')
-    "base url"
-    version = xmlmap.StringField('repositoryVersion')
-    "version of Fedora being run"
-    pid_info = xmlmap.NodeField('repositoryPID', RepositoryDescriptionPid)
-    ":class:`RepositoryDescriptionPid` - configuration info for pids"
-    oai_info = xmlmap.NodeField('repositoryPID', RepositoryDescriptionOAI)
-    ":class:`RepositoryDescriptionOAI` - configuration info for OAI"
-    search_url = xmlmap.StringField('sampleSearch-URL')
-    "sample search url"
-    access_url = xmlmap.StringField('sampleAccess-URL')
-    "sample access url"
-    oai_url = xmlmap.StringField('sampleOAI-URL')
-    "sample OAI url"
-    admin_email = xmlmap.StringListField("adminEmail")
-    "administrator emails"
 
 
 class ResourceIndex(HTTP_API_Base):

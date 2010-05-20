@@ -253,7 +253,7 @@ class TestDigitalObject(FedoraTestCase):
         self.obj.label = "An updated test object"
         self.obj.owner = "notme"
         self.obj.state = "I"
-        saved = self.obj.saveProfile("saving test object profile")
+        saved = self.obj._saveProfile("saving test object profile")
         self.assertTrue(saved, "DigitalObject saveProfile should return True on successful update")
         profile = self.obj.getProfile() # get fresh from fedora to confirm updated
         self.assertEqual(profile.label, "An updated test object")

@@ -10,25 +10,36 @@ DigitalObject
 .. autoclass:: eulcore.fedora.models.DigitalObject
     :members:
 
-.. autoclass:: eulcore.fedora.models.ObjectProfile
+Custom Exception
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: eulcore.fedora.models.DigitalObjectSaveFailure
     :members:
-    :undoc-members:
 
 Datastream
 ----------
 
-.. autoclass:: eulcore.fedora.models.DatastreamObject
-    :members:
+Datastream Descriptors
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: eulcore.fedora.models.Datastream
-    :members:
-
-.. autoclass:: eulcore.fedora.models.XmlDatastreamObject
     :members:
 
 .. autoclass:: eulcore.fedora.models.XmlDatastream
     :members:
 
-.. autoclass:: eulcore.fedora.models.DatastreamProfile
+.. autoclass:: eulcore.fedora.models.RdfDatastream
     :members:
-    :undoc-members:
+
+Datastream Objects
+^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: eulcore.fedora.models.DatastreamObject
+    :members:
+
+.. autoclass:: eulcore.fedora.models.XmlDatastreamObject
+    :members:
+
+.. autoclass:: eulcore.fedora.models.RdfDatastreamObject
+    :members:
+
