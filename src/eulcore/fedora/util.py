@@ -70,7 +70,11 @@ def encode_multipart_formdata(fields, files):
     return content_type, body
 
 def get_content_type(filename):
-    return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    if filename:
+        guesses = mimetypes.guess_type(filename)
+        if guesses:
+            return guesses[0]
+    return 'application/octet-stream'
 
 # generate a random boundary character string
 def generate_boundary():

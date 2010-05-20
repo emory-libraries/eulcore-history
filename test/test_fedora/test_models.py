@@ -21,12 +21,17 @@ class MyDigitalObject(DigitalObject):
             'control_group': 'X',
             'format': 'http://www.openarchives.org/OAI/2.0/oai_dc/',
         })
-    text = Datastream("TEXT", "Text datastream", defaults={
-            'mimetype': 'text/plain', 
-        })
     rels_ext = RdfDatastream("RELS-EXT", "External Relations", defaults={
             'control_group': 'X',
             'format': 'info:fedora/fedora-system:FedoraRELSExt-1.0',
+        })
+    text = Datastream("TEXT", "Text datastream", defaults={
+            'mimetype': 'text/plain',
+        })
+    extradc = XmlDatastream("EXTRADC", "Managed DC XML datastream", DublinCore,
+        defaults={
+            'mimetype': 'application/xml',
+            'versionable': True,
         })
 
 TEXT_CONTENT = "Here is some text content for a non-xml datastream."
@@ -185,7 +190,7 @@ class TestNewObject(FedoraTestCase):
         fetched = MyDigitalObject(self.api, obj.pid)
         self.assertEqual(fetched.dc.content.identifier, obj.pid)
 
-    def test_profile(self):
+    def test_modified_profile(self):
         obj = MyDigitalObject(self.api, pid=self.getNextPid)
         obj.label = 'test label'
         obj.owner = 'tester'
@@ -203,9 +208,43 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(fetched.state, 'I')
 
     def test_default_datastreams(self):
+        """If we just create and save an object, verify that DigitalObject
+        initializes its datastreams appropriately."""
+
         obj = MyDigitalObject(self.api, pid=self.getNextPid)
         obj.save()
         self.append_test_pid(obj.pid)
+
+        # verify some datastreams on the original object
+
+        # fedora treats dc specially
+        self.assertEqual(obj.dc.label, 'Dublin Core')
+        self.assertEqual(obj.dc.mimetype, 'text/xml')
+        self.assertEqual(obj.dc.versionable, False)
+        self.assertEqual(obj.dc.state, 'A')
+        self.assertEqual(obj.dc.format, 'http://www.openarchives.org/OAI/2.0/oai_dc/')
+        self.assertEqual(obj.dc.control_group, 'X')
+        self.assertEqual(obj.dc.content.identifier, obj.pid) # fedora sets this automatically
+
+        # test rels-ext as an rdf datastream
+        self.assertEqual(obj.rels_ext.label, 'External Relations')
+        self.assertEqual(obj.rels_ext.mimetype, 'application/rdf+xml')
+        self.assertEqual(obj.rels_ext.versionable, False)
+        self.assertEqual(obj.rels_ext.state, 'A')
+        self.assertEqual(obj.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
+        self.assertEqual(obj.rels_ext.control_group, 'X')
+        self.assertTrue(isinstance(obj.rels_ext.content, RdfGraph))
+
+        # test managed xml datastreams
+        self.assertEqual(obj.extradc.label, 'Managed DC XML datastream')
+        self.assertEqual(obj.extradc.mimetype, 'application/xml')
+        self.assertEqual(obj.extradc.versionable, True)
+        self.assertEqual(obj.extradc.state, 'A')
+        self.assertEqual(obj.extradc.control_group, 'M')
+        self.assertTrue(isinstance(obj.extradc.content, DublinCore))
+
+        # verify those datastreams on a new version fetched fresh from the
+        # repo
 
         fetched = MyDigitalObject(self.api, obj.pid)
 
@@ -217,15 +256,68 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(fetched.dc.control_group, 'X')
         self.assertEqual(fetched.dc.content.identifier, fetched.pid)
 
-        # skip text for now: it's meaningless unless we give it content
-
         self.assertEqual(fetched.rels_ext.label, 'External Relations')
         self.assertEqual(fetched.rels_ext.mimetype, 'application/rdf+xml')
         self.assertEqual(fetched.rels_ext.versionable, False)
         self.assertEqual(fetched.rels_ext.state, 'A')
         self.assertEqual(fetched.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
         self.assertEqual(fetched.rels_ext.control_group, 'X')
+
+        self.assertEqual(fetched.extradc.label, 'Managed DC XML datastream')
+        self.assertEqual(fetched.extradc.mimetype, 'application/xml')
+        self.assertEqual(fetched.extradc.versionable, True)
+        self.assertEqual(fetched.extradc.state, 'A')
+        self.assertEqual(fetched.extradc.control_group, 'M')
+        self.assertTrue(isinstance(fetched.extradc.content, DublinCore))
+
+    def test_modified_datastreams(self):
+        """Verify that we can modify a new object's datastreams before
+        ingesting it."""
+        obj = MyDigitalObject(self.api, pid=self.getNextPid)
         
+        # modify content for dc (metadata should be covered by other tests)
+        obj.dc.content.description = 'A test object'
+        obj.dc.content.rights = 'Rights? Sure, copy our test object.'
+
+        # modify managed xml content (more metadata in text, below)
+        obj.extradc.content.description = 'Still the same test object'
+
+        # rewrite info and content for a managed binary datastream
+        obj.text.label = 'The outer limits of testing'
+        obj.text.mimetype = 'text/x-test'
+        obj.text.versionable = True
+        obj.text.state = 'I'
+        obj.text.format = 'http://example.com/'
+        obj.text.content = 'We are controlling transmission.'
+
+        # save and verify in the same object
+        obj.save()
+        self.append_test_pid(obj.pid)
+
+        self.assertEqual(obj.dc.content.description, 'A test object')
+        self.assertEqual(obj.dc.content.rights, 'Rights? Sure, copy our test object.')
+        self.assertEqual(obj.extradc.content.description, 'Still the same test object')
+        self.assertEqual(obj.text.label, 'The outer limits of testing')
+        self.assertEqual(obj.text.mimetype, 'text/x-test')
+        self.assertEqual(obj.text.versionable, True)
+        self.assertEqual(obj.text.state, 'I')
+        self.assertEqual(obj.text.format, 'http://example.com/')
+        self.assertEqual(obj.text.content, 'We are controlling transmission.')
+
+        # re-fetch and verify
+        fetched = MyDigitalObject(self.api, obj.pid)
+
+        self.assertEqual(fetched.dc.content.description, 'A test object')
+        self.assertEqual(fetched.dc.content.rights, 'Rights? Sure, copy our test object.')
+        self.assertEqual(fetched.extradc.content.description, 'Still the same test object')
+        self.assertEqual(fetched.text.label, 'The outer limits of testing')
+        self.assertEqual(fetched.text.mimetype, 'text/x-test')
+        self.assertEqual(fetched.text.versionable, True)
+        self.assertEqual(fetched.text.state, 'I')
+        self.assertEqual(fetched.text.format, 'http://example.com/')
+        self.assertEqual(fetched.text.content, 'We are controlling transmission.')
+
+
 class TestDigitalObject(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
     pidspace = TEST_PIDSPACE

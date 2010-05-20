@@ -446,15 +446,24 @@ class TestAPI_M_LITE(FedoraTestCase):
         self.pid = self.fedora_fixtures_ingested[0]
         self.api_m = API_M_LITE(self.opener)
 
-    def testUpload(self):
+    def testUploadString(self):
+        data = "Here is some temporary content to upload to fedora."
+        upload_id = self.api_m.upload(data)
+        # current format looks like uploaded://####
+        pattern = re.compile('uploaded://[0-9]+')
+        self.assert_(pattern.match(upload_id))
+
+    def testUploadFile(self):
         FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
         FILE.write("Here is some temporary content to upload to fedora.")
         FILE.flush()
 
-        upload_id = self.api_m.upload(FILE.name)
+        with open(FILE.name, 'rb') as f:
+            upload_id = self.api_m.upload(f)
         # current format looks like uploaded://####
         pattern = re.compile('uploaded://[0-9]+')
         self.assert_(pattern.match(upload_id))
+
 
 # NOTE: to debug soap, uncomment these lines
 #from soaplib.client import debug

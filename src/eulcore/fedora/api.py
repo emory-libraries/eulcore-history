@@ -406,11 +406,16 @@ class API_A_LITE(HTTP_API_Base):
 
 
 class API_M_LITE(HTTP_API_Base):
-    def upload(self, filename):
-        fp = open(filename, 'rb')
+    def upload(self, data):
+        filename = None
+        if hasattr(data, 'read'):
+            data = data.read()
+            filename = getattr(data, 'name', None)
+
         url = 'management/upload'
 
-        content_type, body = encode_multipart_formdata({}, [ ('file', filename, fp.read())])
+        entry = ('file', filename, str(data))
+        content_type, body = encode_multipart_formdata({}, [entry])
         headers = { 'Content-Type' : content_type,
                     'Content-Length' : str(len(body)) }
 
@@ -418,7 +423,8 @@ class API_M_LITE(HTTP_API_Base):
             # returns 201 Created on success
             # return response.status == 201
             # content of response should be upload id, if successful
-            return response.read()
+            resp_data = response.read()
+            return resp_data.strip()
 
 
 # return object for getRelationships soap call
