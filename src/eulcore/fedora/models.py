@@ -1,3 +1,5 @@
+from datetime import datetime
+from dateutil.tz import tzutc
 import hashlib
 import rdflib
 from cStringIO import StringIO
@@ -7,10 +9,8 @@ from Ft.Xml.Domlette import CanonicalPrint, PrettyPrint, \
         implementation as DomImplementation
 
 from eulcore import xmlmap
-from eulcore.fedora.api import ApiFacade
-from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed
-from eulcore.fedora.xml import ObjectDatastream, ObjectDatastreams, \
-        ObjectProfile, DatastreamProfile, NewPids
+from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed, fedora_time_format
+from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfile, NewPids
 
 # FIXME: needed by both server and models, where to put?
 URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
@@ -53,6 +53,9 @@ class DatastreamObject(object):
         }
         self._info = None
         self._content = None
+        # for unversioned datastreams, store a copy of data pulled from fedora in case undo save is required
+        self._info_backup = None
+        self._content_backup = None
 
         self.info_modified = False
         self.digest = None
@@ -65,6 +68,14 @@ class DatastreamObject(object):
                 self._info = self.obj.getDatastreamProfile(self.id)
             else:
                 self._info = self._bootstrap_info()
+            if not self.versionable:
+                self._info_backup = { 'dsLabel': self._info.label,
+                                      'mimeType': self._info.mimetype,
+                                      'versionable': self._info.versionable,
+                                      'dsState': self._info.state,
+                                      'formatURI': self._info.format,
+                                      'checksumType': self._info.checksum_type,
+                                      'checksum': self._info.checksum }
         return self._info
 
     def _bootstrap_info(self):
@@ -83,19 +94,24 @@ class DatastreamObject(object):
         # pull datastream content from Fedora, but only when accessed
         if self._content is None:
             if self.obj._ingested:
-                self._content = self._convert_content(self.obj.api.getDatastreamDissemination(self.obj.pid, self.id))
+                data, url = self.obj.api.getDatastreamDissemination(self.obj.pid, self.id)
+                self._content = self._convert_content(data, url)
+                if not self.versionable:   
+                    self._content_backup = data
                 # calculate and store a digest of the current datastream text content
                 self.digest = self._content_digest()
             else:
                 self._content = self._bootstrap_content()
         return self._content
     def _set_content(self, val):
+        # if datastream is not versionable, grab contents before updating
+        if not self.versionable:
+            self._get_content()
         self._content = val
     content = property(_get_content, _set_content, None, "datastream content")
 
-    def _convert_content(self, content):
-        # convert the raw API output of getDatastreamDissemination into the expected content type
-        data, url = content
+    def _convert_content(self, data, url):
+        # convert output of getDatastreamDissemination into the expected content type
         return data
 
     def _bootstrap_content(self):
@@ -195,6 +211,7 @@ class DatastreamObject(object):
                 modify_opts['dsState'] = self.state
             if self.format:
                 modify_opts['formatURI'] = self.format
+            # FIXME: should be able to handle checksums
         # NOTE: as of Fedora 3.2, updating content without specifying mimetype fails (Fedora bug?)
         if 'mimeType' not in modify_opts.keys():
             # if datastreamProfile has not been pulled from fedora, use configured default mimetype
@@ -204,14 +221,45 @@ class DatastreamObject(object):
                 modify_opts['mimeType'] = self.defaults['mimetype']
             
         success, msg = self.obj.api.modifyDatastream(self.obj.pid, self.id, content=data,
-                logMessage=logmessage, **modify_opts)    # checksums?
+                logMessage=logmessage, **modify_opts) 
         if success:
             # update modification indicators
             self.info_modified = False
             self.digest = self._content_digest()
             
         return success      # msg ?
-    
+
+    def undo_last_save(self, datetime, logMessage=None):
+        """Undo the last change made to the datastream content and profile, effectively 
+        reverting to the object state in Fedora as of the specified timestamp.
+
+        For a versioned datastream, this will purge all datastream versions newer
+        than the specified time.  For an unversioned datastream, this will overwrite
+        the last changes with a cached version of any content and/or info pulled
+        from Fedora.
+        """
+        
+        # NOTE: currently not clearing any of the object caches and backups
+        # of fedora content and datastream info, as it is unclear what (if anything)
+        # should be cleared
+
+        if self.versionable:
+            # if this is a versioned datastream, Fedora handles it for us;
+            # simply purge any revisions after the specified time
+            return self.obj.api.purgeDatastream(self.obj.pid, self.id, fedora_time_format(datetime),
+                                                logMessage=logMessage)
+        else:
+            # for an unversioned datastream, update with any content and info
+            # backups that were pulled from Fedora before any modifications were made
+            args = {}
+            if self._content_backup is not None:
+                args['content'] = self._content_backup
+            if self._info_backup is not None:
+                args.update(self._info_backup)
+            success, msg = self.obj.api.modifyDatastream(self.obj.pid, self.id,
+                            logMessage=logMessage, **args)
+            return success                   
+
 class Datastream(object):
     """Datastream descriptor to make it easy to configure datastreams that belong
     to a particular :class:`DigitalObject`.
@@ -262,8 +310,7 @@ class XmlDatastreamObject(DatastreamObject):
 
     # FIXME: override _set_content to handle setting full xml content?
 
-    def _convert_content(self, content):
-        data, url = content
+    def _convert_content(self, data, url):
         return parse_xml_object(self.objtype, data, url)
 
     def _bootstrap_content(self):
@@ -277,8 +324,9 @@ class XmlDatastream(Datastream):
     """XML-specific version of :class:`Datastream`.
 
     Datastreams are initialized as instances of :class:`XmlDatastreamObject`.
-    Additional, optional parameter ``objtype`` is passed to the Datastream object
-    configure the type of  :class:`eulcore.xmlmap.XmlObject` that should be returned.
+    An dditional, optional parameter ``objtype`` is passed to the Datastream object
+    to configure the type of  :class:`eulcore.xmlmap.XmlObject` that should be
+    used for datastream content.
     """
     _datastreamClass = XmlDatastreamObject
     
@@ -294,8 +342,7 @@ class RdfDatastreamObject(DatastreamObject):
     default_mimetype = "application/rdf+xml"
     # FIXME: override _set_content to handle setting content?
 
-    def _convert_content(self, content):
-        data, url = content
+    def _convert_content(self, data, url):
         return parse_rdf(data, url)
 
     def _bootstrap_content(self):
@@ -333,6 +380,9 @@ class DigitalObject(object):
         # cache object profile, track if it is modified and needs to be saved
         self._info = None
         self.info_modified = False
+        
+        # datastream list from fedora
+        self._ds_list = None
 
         # a string pid is a live object in the repository. a callable pid
         # means a new object: we call that function to get our initial pid.
@@ -440,26 +490,56 @@ class DigitalObject(object):
     
     def save(self, logMessage=None):
         """Save to Fedora any parts of this object that have been modified (object
-        profile or any datastream content or info).        
+        profile or any datastream content or info).  If a failure occurs at any
+        point on saving any of the parts of the object, will back out any changes that
+        have been made and raise a :class:`DigitalObjectSaveFailure` with information
+        about where the failure occurred and whether or not it was recoverable.
         """
+        # TODO: update docstring to indicate what happens for a new object?
         if callable(self.pid):
             self._ingest(logMessage)
         else:
             self._save_existing(logMessage)
 
     def _save_existing(self, logMessage):
-        # TODO: add logic to back out changes if a failure occurs part-way through saving
+        # save an object that has already been ingested into fedora
 
-        # loop through any datastreams that have been accessed, saving any that have been modified
-        for dsobj in self.dscache.itervalues():
-            if dsobj.isModified():
-                if not dsobj.save(logMessage):
-                    raise Exception("Error saving %s/%s" % (self.pid, dsobj.id))
+        # pre-save setup, so we can recover if something goes wrong:
+        # - record checkpoint time before saving, for backing out changes
+        save_start = datetime.now(tzutc())
+        # - list of datastreams that should be saved
+        to_save = [ds for ds, dsobj in self.dscache.iteritems() if dsobj.isModified()]
+        # - track successfully saved datastreams, in case roll-back is necessary
+        saved = []        
+        # save modified datastreams
+        for ds in to_save:
+            if self.dscache[ds].save(logMessage):
+                    saved.append(ds)
+            else:
+                # save datastream failed - back out any changes that have been made
+                cleaned = self._undo_save(saved, save_start,
+                                          "failed saving %s, rolling back out to %s" % \
+                                           (ds, save_start))
+                raise DigitalObjectSaveFailure(self.pid, ds, to_save, saved, cleaned)
 
-        # only save object profile after all modified datastreams have been successfully saved
+        # NOTE: to_save list in exception will never include profile; should it?
+
+        # FIXME: catch exceptions on save, treat same as failure to save (?)
+
+        # save object profile (if needed) after all modified datastreams have been successfully saved
         if self.info_modified:
             if not self.saveProfile(logMessage):
-                raise Exception("Error saving object profile for %s" % self.pid)
+                cleaned = self._undo_save(saved, save_start)
+                raise DigitalObjectSaveFailure(self.pid, "object profile", to_save, saved, cleaned)
+
+    def _undo_save(self, datastreams, save_start, logMessage=None):
+        """Takes a list of datastreams and a datetime, run undo save on all of them,
+        and returns a list of the datastreams where the undo succeeded.
+
+        :param datastreams: list of datastream ids (should be in self.dscache)
+        :param save_start: datetime to use for datastream undo save rollback
+        """
+        return [ds for ds in datastreams if self.dscache[ds].undo_last_save(save_start, logMessage)]
 
     def _ingest(self, logMessage):
         requested_pid = self.pid()
@@ -553,7 +633,7 @@ class DigitalObject(object):
 
         return sio.getvalue()
 
-    def get_datastreams(self):
+    def _get_datastreams(self):
         """
         Get all datastreams that belong to this object.
 
@@ -563,7 +643,7 @@ class DigitalObject(object):
         :rtype: dictionary
         """
         if self._ingested:
-            # FIXME: add caching? make a property?
+            # NOTE: can be accessed as a cached class property via ds_list
             data, url = self.api.listDatastreams(self.pid)
             dsobj = parse_xml_object(ObjectDatastreams, data, url)
             return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
@@ -571,6 +651,16 @@ class DigitalObject(object):
             # FIXME: should we default to the datastreams defined in code?
             return {}
 
+    @property
+    def ds_list(self):      # NOTE: how to name to distinguish from locally configured datastream objects?
+        """
+        Dictionary of all datastreams that belong to this object in Fedora.
+        Key is datastream id, value is an :class:`ObjectDatastream` for that
+        datastream.
+        """
+        if self._ds_list is None:
+            self._ds_list = self._get_datastreams()
+        return self._ds_list
 
     def add_relationship(self, rel_uri, object):
         """
@@ -614,12 +704,43 @@ class DigitalObject(object):
             rels = self.rels_ext.content
         except RequestFailed, e:
             # if rels-ext can't be retrieved, confirm this object does not have a RELS-EXT
-            # (in which case, it does not subscribe to the specified content model)
-            ds_list = self.get_datastreams()
-            if "RELS-EXT" not in ds_list.keys():
+            # (in which case, it does not subscribe to the specified content model)            
+            if "RELS-EXT" not in self.ds_list.keys():
                 return False
             else:
                 raise Exception(e)            
             
         st = (rdflib.URIRef(self.uri), rdflib.URIRef(URI_HAS_MODEL), rdflib.URIRef(model))
         return st in rels
+
+
+class DigitalObjectSaveFailure(StandardError):
+    """Custom exception class for when a save error occurs part-way through saving 
+    an instance of :class:`DigitalObject`.  This exception should contain enough
+    information to determine where the save failed, and whether or not any changes
+    saved before the failure were successfully rolled back.
+
+    These properties are available:
+     * obj_pid - pid of the :class:`DigitalObject` instance that failed to save
+     * failure - where the failure occurred (either a datastream ID or 'object profile')
+     * to_be_saved - list of datastreams that were modified and should have been saved
+     * saved - list of datastreams that were successfully saved before failure occurred
+     * cleaned - list of saved datastreams that were successfully rolled back
+     * not_cleaned - saved datastreams that were not rolled back
+     * recovered - boolean, True indicates all saved datastreams were rolled back
+    
+    """
+    def __init__(self, pid, failure, to_be_saved, saved, cleaned):
+        self.obj_pid = pid
+        self.failure = failure
+        self.to_be_saved = to_be_saved
+        self.saved = saved
+        self.cleaned = cleaned
+        # check for anything was saved before failure occurred that was *not* cleaned up
+        self.not_cleaned = [item for item in self.saved if not item in self.cleaned]
+        self.recovered = (len(self.not_cleaned) == 0)
+
+    def __str__(self):
+        return "Error saving %s - failed to save %s; saved %s; successfully backed out %s" \
+                % (self.obj_pid, self.failure, ', '.join(self.saved), ', '.join(self.cleaned))
+        

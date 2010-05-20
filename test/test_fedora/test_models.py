@@ -1,18 +1,18 @@
 #!/usr/bin/env python
-from datetime import date
+from datetime import date, datetime
+from dateutil.tz import tzutc
 from rdflib.Graph import Graph as RdfGraph
 import rdflib
 import tempfile
 
-from eulcore.fedora.api import ApiFacade
 from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject, \
-        XmlDatastream, XmlDatastreamObject, RdfDatastream, RdfDatastreamObject
+        XmlDatastream, XmlDatastreamObject, RdfDatastream, RdfDatastreamObject, \
+        DigitalObjectSaveFailure
 from eulcore.fedora.server import URI_HAS_MODEL
-from eulcore.fedora.util import RelativeOpener
 from eulcore.fedora.xml import ObjectDatastream
 from eulcore.xmlmap.dc import DublinCore
 
-from test_fedora.base import FedoraTestCase, TEST_PIDSPACE, REPO_ROOT, REPO_USER, REPO_PASS
+from test_fedora.base import FedoraTestCase, TEST_PIDSPACE
 from testcore import main
 
 class MyDigitalObject(DigitalObject):
@@ -29,8 +29,8 @@ class MyDigitalObject(DigitalObject):
             'format': 'info:fedora/fedora-system:FedoraRELSExt-1.0',
         })
 
-def _add_text_datastream(obj):
-    TEXT_CONTENT = "Here is some text content for a non-xml datastream."
+TEXT_CONTENT = "Here is some text content for a non-xml datastream."
+def _add_text_datastream(obj):    
     # add a text datastream to the current test object
     FILE = tempfile.NamedTemporaryFile(mode="w", suffix=".txt")
     FILE.write(TEXT_CONTENT)
@@ -48,8 +48,6 @@ def _add_text_datastream(obj):
 class TestDatastreams(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
     pidspace = TEST_PIDSPACE
-    
-    TEXT_CONTENT = "Here is some text content for a non-xml datastream."
 
     def setUp(self):
         super(TestDatastreams, self).setUp()
@@ -69,7 +67,7 @@ class TestDatastreams(FedoraTestCase):
         self.assertEqual(dc.identifier, self.pid)
 
         self.assert_(isinstance(self.obj.text, DatastreamObject))
-        self.assertEqual(self.obj.text.content, self.TEXT_CONTENT)
+        self.assertEqual(self.obj.text.content, TEXT_CONTENT)
 
     def test_get_ds_info(self):
         self.assertEqual(self.obj.dc.label, "Dublin Core")
@@ -137,8 +135,42 @@ class TestDatastreams(FedoraTestCase):
         self.assert_(isinstance(self.obj.rels_ext, RdfDatastreamObject))
         self.assert_(isinstance(self.obj.rels_ext.content, RdfGraph))
         self.assert_("isMemberOf" in self.obj.rels_ext.content.serialize())
-        
 
+    def test_undo_last_save(self):
+        # test undoing profile and content changes        
+        # store time of version to revert to
+        before = datetime.now(tzutc())      
+        
+        # unversioned datastream
+        self.obj.text.label = "totally new label"
+        self.obj.text.content = "and totally new content, too"
+        self.obj.text.save()
+        self.assertTrue(self.obj.text.undo_last_save(before))
+        history = self.obj.api.getDatastreamHistory(self.obj.pid, self.obj.text.id)
+        self.assertEqual("text datastream", history.datastreams[0].label)
+        data, url = self.obj.api.getDatastreamDissemination(self.pid, self.obj.text.id)
+        self.assertEqual(TEXT_CONTENT, data)
+        
+        # versioned datastream
+        self.obj.dc.label = "DC 2.0"
+        self.obj.dc.title = "my new DC"
+        self.assertTrue(self.obj.dc.undo_last_save(before))
+        history = self.obj.api.getDatastreamHistory(self.obj.pid, self.obj.dc.id)
+        self.assertEqual(1, len(history.datastreams))  # new datastream added, then removed - back to 1 version
+        self.assertEqual("Dublin Core", history.datastreams[0].label)
+        data, url = self.obj.api.getDatastreamDissemination(self.pid, self.obj.dc.id)
+        self.assert_('<dc:title>A partially-prepared test object</dc:title>' in data)
+
+        # unversioned - profile change only
+        self.obj = MyDigitalObject(self.api, self.pid)
+        self.obj.text.label = "totally new label"
+        self.obj.text.save()
+        self.assertTrue(self.obj.text.undo_last_save(before))
+        history = self.obj.api.getDatastreamHistory(self.obj.pid, self.obj.text.id)
+        self.assertEqual("text datastream", history.datastreams[0].label)
+        data, url = self.obj.api.getDatastreamDissemination(self.pid, self.obj.text.id)
+        self.assertEqual(TEXT_CONTENT, data)     
+        
 class TestNewObject(FedoraTestCase):
     pidspace = TEST_PIDSPACE
 
@@ -194,8 +226,6 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(fetched.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
         self.assertEqual(fetched.rels_ext.control_group, 'X')
         
-
-
 class TestDigitalObject(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
     pidspace = TEST_PIDSPACE
@@ -250,21 +280,64 @@ class TestDigitalObject(FedoraTestCase):
         text_info = self.obj.getDatastreamProfile(self.obj.text.id)
         self.assertEqual(text_info.label, "text content")
 
-        # TODO: how to simulate errors saving?
+        # force an error on saving DC to test backing out text datastream
+        self.obj.text.content = "some new text"
         self.obj.dc.content = "this is not dublin core!"    # NOTE: setting xml content like this could change...
-        self.assertRaises(Exception, self.obj.save)
+        # catch the exception so we can inspect it
+        try:
+            self.obj.save()
+        except DigitalObjectSaveFailure, f:
+            save_error = f
+        self.assert_(isinstance(save_error, DigitalObjectSaveFailure))
+        self.assertEqual(save_error.obj_pid, self.obj.pid,
+            "save failure exception should include object pid %s, got %s" % (self.obj.pid, save_error.obj_pid))
+        self.assertEqual(save_error.failure, "DC", )
+        self.assertEqual(['TEXT', 'DC'], save_error.to_be_saved)
+        self.assertEqual(['TEXT'], save_error.saved)
+        self.assertEqual(['TEXT'], save_error.cleaned)
+        self.assertEqual([], save_error.not_cleaned)
+        self.assertTrue(save_error.recovered)
+        data, url = self.obj.api.getDatastreamDissemination(self.pid, self.obj.text.id)
+        self.assertEqual(TEXT_CONTENT, data)
 
-    def test_get_datastreams(self):
-        ds_list = self.obj.get_datastreams()
-        self.assert_("DC" in ds_list.keys())
-        self.assert_(isinstance(ds_list["DC"], ObjectDatastream))
-        dc = ds_list["DC"]
+        # force an error updating the profile, should back out both datastreams
+        self.obj = MyDigitalObject(self.api, self.pid)
+        self.obj.text.content = "some new text"
+        self.obj.dc.content.description = "happy happy joy joy"
+        # object label is limited in length - force an error with a label that exceeds it
+        self.obj.label = ' '.join('too long' for i in range(50))
+        try:
+            self.obj.save()
+        except DigitalObjectSaveFailure, f:
+            profile_save_error = f
+        self.assert_(isinstance(profile_save_error, DigitalObjectSaveFailure))
+        self.assertEqual(profile_save_error.obj_pid, self.obj.pid,
+            "save failure exception should include object pid %s, got %s" % (self.obj.pid, save_error.obj_pid))
+        self.assertEqual(profile_save_error.failure, "object profile", )
+        all_datastreams = ['TEXT', 'DC']
+        self.assertEqual(all_datastreams, profile_save_error.to_be_saved)
+        self.assertEqual(all_datastreams, profile_save_error.saved)
+        self.assertEqual(all_datastreams, profile_save_error.cleaned)
+        self.assertEqual([], profile_save_error.not_cleaned)
+        self.assertTrue(profile_save_error.recovered)
+        # confirm datastreams were reverted back to previous contents
+        data, url = self.obj.api.getDatastreamDissemination(self.pid, self.obj.text.id)
+        self.assertEqual(TEXT_CONTENT, data)
+        data, url = self.obj.api.getDatastreamDissemination(self.pid, self.obj.dc.id)
+        self.assert_("<dc:description>This object has more data in it than a basic-object.</dc:description>" in data)
+
+        # how to force an error that can't be backed out?
+
+    def test_datastreams_list(self):
+        self.assert_("DC" in self.obj.ds_list.keys())
+        self.assert_(isinstance(self.obj.ds_list["DC"], ObjectDatastream))
+        dc = self.obj.ds_list["DC"]
         self.assertEqual("DC", dc.dsid)
         self.assertEqual("Dublin Core", dc.label)
         self.assertEqual("text/xml", dc.mimeType)
 
-        self.assert_("TEXT" in ds_list.keys())
-        text = ds_list["TEXT"]
+        self.assert_("TEXT" in self.obj.ds_list.keys())
+        text = self.obj.ds_list["TEXT"]
         self.assertEqual("text datastream", text.label)
         self.assertEqual("text/plain", text.mimeType)
 
@@ -304,9 +377,6 @@ class TestDigitalObject(FedoraTestCase):
         # convert first added relationship to rdflib statement to check that it is in the rdf graph
         st = (rdflib.URIRef(self.obj.uri), rdflib.URIRef(isMemberOf), rdflib.URIRef(related.uri))
         self.assertTrue(st in rels)
-
-    #def testGetRelationships(self):
-        # TODO: should do something besides HTTPError/404 when object does not have RELS-EXT
 
 
 if __name__ == '__main__':

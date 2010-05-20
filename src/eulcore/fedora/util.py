@@ -1,4 +1,5 @@
 import httplib
+from dateutil.tz import tzutc
 import mimetypes
 import random
 import string
@@ -179,3 +180,9 @@ def parse_rdf(data, url, format=None):
 def parse_xml_object(cls, data, url):
     doc = xmlmap.parseString(data, url)
     return cls(doc.documentElement)
+
+def fedora_time_format(datetime):
+    # format a date-time in a format fedora can handle
+    # make sure time is in UTC, since the only time-zone notation Fedora seems able to handle is 'Z'
+    utctime = datetime.astimezone(tzutc())      
+    return utctime.strftime('%Y-%m-%dT%H:%M:%S') + '.%03d' % (utctime.microsecond/1000) + 'Z'
