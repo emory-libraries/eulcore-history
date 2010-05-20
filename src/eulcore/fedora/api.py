@@ -1,6 +1,5 @@
 from urllib import urlencode
 from urlparse import urlsplit
-from base64 import b64encode
 
 from soaplib.serializers import primitive as soap_types
 from soaplib.serializers.clazz import ClassSerializer
@@ -423,12 +422,15 @@ class API_M_LITE(HTTP_API_Base):
 
 
 # return object for getRelationships soap call
-class GetRelationshipResponse:    
-    def from_xml(self, *elements):
-        self.relationships = []
-        for el in elements:
-            self.relationships.append(RelationshipTuple.from_xml(el))
-        return self
+class GetRelationshipResponse:
+    def __init__(self, relationships):
+        self.relationships = relationships
+
+    @staticmethod
+    def from_xml(*elements):
+        return GetRelationshipResponse([RelationshipTuple.from_xml(el)
+                                        for el in elements])
+
     
 class RelationshipTuple(ClassSerializer):
     class types:
@@ -439,11 +441,13 @@ class RelationshipTuple(ClassSerializer):
         datatype = soap_types.String
 
 class GetDatastreamHistoryResponse:
-    def from_xml(self, *elements):
-        self.datastreams = []
-        for el in elements:
-            self.datastreams.append(Datastream.from_xml(el))
-        return self
+    def __init__(self, datastreams):
+        self.datastreams = datastreams
+
+    @staticmethod
+    def from_xml(*elements):
+        return GetDatastreamHistoryResponse([Datastream.from_xml(el)
+                                             for el in elements])
 
 class Datastream(ClassSerializer):
     # soap datastream response used by getDatastreamHistory and getDatastream
@@ -456,7 +460,7 @@ class Datastream(ClassSerializer):
         versionable = soap_types.Boolean
         MIMEType = soap_types.String
         formatURI = soap_types.String
-        createDate = soap_types.String
+        createDate = soap_types.DateTime
         size = soap_types.Integer   # Long ?
         state = soap_types.String
         location = soap_types.String
@@ -493,7 +497,7 @@ class API_M_Service(SimpleWSGISoapApp):
             soap_types.String,  # subject (fedora object or datastream URI) 
             soap_types.String,  # relationship
             _outVariableName='relationships',
-            _returns = GetRelationshipResponse())   # custom class for complex soap type
+            _returns = GetRelationshipResponse)   # custom class for complex soap type
     def getRelationships(self, subject=None, relationship=None):
         pass
 
@@ -510,7 +514,7 @@ class API_M_Service(SimpleWSGISoapApp):
     @soapmethod(
             soap_types.String,  #pid
             soap_types.String,  #dsID
-            _returns = GetDatastreamHistoryResponse(),
+            _returns = GetDatastreamHistoryResponse,
             _outVariableName="datastream")
     def getDatastreamHistory(self, pid, dsID):
         pass

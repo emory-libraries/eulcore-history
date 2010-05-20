@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
+from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
 from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE, API_M
 from eulcore.fedora.server import URI_HAS_MODEL
 from eulcore.fedora.util import RelativeOpener
 from testcore import main
 from datetime import date, datetime
+from dateutil.tz import tzutc
 from time import sleep
 import tempfile
 import re
@@ -468,14 +469,14 @@ class TestAPI_M(FedoraTestCase):
     rel_owner = "info:fedora/fedora-system:def/relations-external#owner"
 
     def setUp(self):
+        self.now = datetime.now(tzutc())   # need a timezone-aware time for comparing
+        
         super(TestAPI_M, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
         self.api_m = API_M(self.opener)
         self.opener = RelativeOpener(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
         self.rest_api = REST_API(self.opener)
-
-        self.today = str(date.today())
-
+        
     def test_addRelationship(self):
         # rel to resource
         added = self.api_m.addRelationship(self.pid, URI_HAS_MODEL, "info:fedora/pid:123", False)
@@ -544,11 +545,10 @@ class TestAPI_M(FedoraTestCase):
         self.assertTrue(dc_info.versionable)
         self.assertEqual("text/xml", dc_info.MIMEType)
         # formatURI not set in test fixture
-        self.assert_(self.today in dc_info.createDate)
+        self.assert_(self.now < dc_info.createDate)     # created after 'now' in setup
         self.assertEqual(490, dc_info.size)     # NOTE: based on current fixture size; is this a useful test?
         self.assertEqual('A', dc_info.state) 
         # location, checksumType, and checksum not set in current fixture
-
         
         # modify DC so there are multiple versions        
         new_dc = """<oai_dc:dc
@@ -562,6 +562,7 @@ class TestAPI_M(FedoraTestCase):
         history = self.api_m.getDatastreamHistory(self.pid, "DC")
         self.assertEqual(2, len(history.datastreams))
         self.assertEqual('DC.1', history.datastreams[0].versionID)      # newest version is first
+        self.assertNotEqual(history.datastreams[0].createDate, history.datastreams[1].createDate)
 
         # bogus datastream
         self.assertEqual(None, self.api_m.getDatastreamHistory(self.pid, "BOGUS"))
