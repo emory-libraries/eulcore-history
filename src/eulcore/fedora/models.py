@@ -229,24 +229,24 @@ class DatastreamObject(object):
             
         return success      # msg ?
 
-    def undo_last_save(self, datetime, logMessage=None):
+    def undo_last_save(self, logMessage=None):
         """Undo the last change made to the datastream content and profile, effectively 
         reverting to the object state in Fedora as of the specified timestamp.
 
-        For a versioned datastream, this will purge all datastream versions newer
-        than the specified time.  For an unversioned datastream, this will overwrite
-        the last changes with a cached version of any content and/or info pulled
-        from Fedora.
-        """
-        
+        For a versioned datastream, this will purge the most recent datastream.
+        For an unversioned datastream, this will overwrite the last changes with
+        a cached version of any content and/or info pulled from Fedora.
+        """        
         # NOTE: currently not clearing any of the object caches and backups
         # of fedora content and datastream info, as it is unclear what (if anything)
         # should be cleared
 
         if self.versionable:
-            # if this is a versioned datastream, Fedora handles it for us;
-            # simply purge any revisions after the specified time
-            return self.obj.api.purgeDatastream(self.obj.pid, self.id, datetime_to_fedoratime(datetime),
+            # if this is a versioned datastream, get datastream history
+            # and purge the most recent version 
+            history = self.obj.api.getDatastreamHistory(self.obj.pid, self.id)
+            last_save = history.datastreams[0].createDate   # fedora returns with most recent first
+            return self.obj.api.purgeDatastream(self.obj.pid, self.id, datetime_to_fedoratime(last_save),
                                                 logMessage=logMessage)
         else:
             # for an unversioned datastream, update with any content and info
@@ -523,13 +523,6 @@ class DigitalObject(object):
     def _save_existing(self, logMessage):
         # save an object that has already been ingested into fedora
 
-        # pre-save setup, so we can recover if something goes wrong:
-        # - record checkpoint time before saving, for backing out changes
-        #   NOTE: because we can't rely on time synchronization between local
-        #   machine and fedora server, get a fresh copy of object profile
-        #   and use object lastModified time from fedora as a checkpoint
-        objinfo = self.getProfile()
-        checkpoint = objinfo.modified
         # - list of datastreams that should be saved
         to_save = [ds for ds, dsobj in self.dscache.iteritems() if dsobj.isModified()]
         # - track successfully saved datastreams, in case roll-back is necessary
@@ -540,9 +533,8 @@ class DigitalObject(object):
                     saved.append(ds)
             else:
                 # save datastream failed - back out any changes that have been made
-                cleaned = self._undo_save(saved, checkpoint,
-                                          "failed saving %s, rolling back out to %s" % \
-                                           (ds, checkpoint))
+                cleaned = self._undo_save(saved, 
+                                          "failed saving %s, rolling back changes" % ds)
                 raise DigitalObjectSaveFailure(self.pid, ds, to_save, saved, cleaned)
 
         # NOTE: to_save list in exception will never include profile; should it?
@@ -552,17 +544,17 @@ class DigitalObject(object):
         # save object profile (if needed) after all modified datastreams have been successfully saved
         if self.info_modified:
             if not self._saveProfile(logMessage):
-                cleaned = self._undo_save(saved, checkpoint)
+                cleaned = self._undo_save(saved, "failed to save object profile, rolling back changes")
                 raise DigitalObjectSaveFailure(self.pid, "object profile", to_save, saved, cleaned)
 
-    def _undo_save(self, datastreams, checkpoint, logMessage=None):
+    def _undo_save(self, datastreams, logMessage=None):
         """Takes a list of datastreams and a datetime, run undo save on all of them,
         and returns a list of the datastreams where the undo succeeded.
 
         :param datastreams: list of datastream ids (should be in self.dscache)
-        :param checkpoint: datetime to use for datastream undo save rollback
+        :param logMessage: optional log message
         """
-        return [ds for ds in datastreams if self.dscache[ds].undo_last_save(checkpoint, logMessage)]
+        return [ds for ds in datastreams if self.dscache[ds].undo_last_save(logMessage)]
 
     def _ingest(self, logMessage):
         requested_pid = self.pid()

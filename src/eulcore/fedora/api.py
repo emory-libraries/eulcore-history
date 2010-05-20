@@ -126,7 +126,7 @@ class REST_API(HTTP_API_Base):
             http_args['dsLocation'] = dsLocation
         if altIDs:
             http_args['altIDs'] = altIDs
-        if versionable:
+        if versionable is not None:
             http_args['versionable'] = versionable
         if dsState:
             http_args['dsState'] = dsState

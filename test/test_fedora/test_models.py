@@ -22,7 +22,7 @@ class MyDigitalObject(DigitalObject):
             'format': 'http://www.openarchives.org/OAI/2.0/oai_dc/',
         })
     text = Datastream("TEXT", "Text datastream", defaults={
-            'mimetype': 'text/plain',
+            'mimetype': 'text/plain', 
         })
     rels_ext = RdfDatastream("RELS-EXT", "External Relations", defaults={
             'control_group': 'X',
@@ -41,7 +41,7 @@ def _add_text_datastream(obj):
         'checksumType' : 'MD5'}
     obj.api.addDatastream(obj.pid, ds['id'], ds['label'],
         ds['mimeType'], ds['logMessage'], ds['controlGroup'], filename=FILE.name,
-        checksumType=ds['checksumType'])
+        checksumType=ds['checksumType'], versionable=ds['versionable'])
     FILE.close()
 
 
@@ -81,7 +81,7 @@ class TestDatastreams(FedoraTestCase):
         self.assertEqual(self.obj.text.label, "text datastream")
         self.assertEqual(self.obj.text.mimetype, "text/plain")
         self.assertEqual(self.obj.text.state, "A")
-        self.assertEqual(self.obj.text.versionable, True)
+        self.assertEqual(self.obj.text.versionable, False)
         self.assertEqual(self.obj.text.control_group, "M")
         self.assert_(self.now < self.obj.text.created)
 
@@ -139,14 +139,12 @@ class TestDatastreams(FedoraTestCase):
 
     def test_undo_last_save(self):
         # test undoing profile and content changes        
-        # store time of version to revert to
-        before = datetime.now(tzutc())      
         
         # unversioned datastream
         self.obj.text.label = "totally new label"
         self.obj.text.content = "and totally new content, too"
         self.obj.text.save()
-        self.assertTrue(self.obj.text.undo_last_save(before))
+        self.assertTrue(self.obj.text.undo_last_save())
         history = self.obj.api.getDatastreamHistory(self.obj.pid, self.obj.text.id)
         self.assertEqual("text datastream", history.datastreams[0].label)
         data, url = self.obj.api.getDatastreamDissemination(self.pid, self.obj.text.id)
@@ -155,7 +153,8 @@ class TestDatastreams(FedoraTestCase):
         # versioned datastream
         self.obj.dc.label = "DC 2.0"
         self.obj.dc.title = "my new DC"
-        self.assertTrue(self.obj.dc.undo_last_save(before))
+        self.obj.dc.save()
+        self.assertTrue(self.obj.dc.undo_last_save())
         history = self.obj.api.getDatastreamHistory(self.obj.pid, self.obj.dc.id)
         self.assertEqual(1, len(history.datastreams))  # new datastream added, then removed - back to 1 version
         self.assertEqual("Dublin Core", history.datastreams[0].label)
@@ -166,7 +165,7 @@ class TestDatastreams(FedoraTestCase):
         self.obj = MyDigitalObject(self.api, self.pid)
         self.obj.text.label = "totally new label"
         self.obj.text.save()
-        self.assertTrue(self.obj.text.undo_last_save(before))
+        self.assertTrue(self.obj.text.undo_last_save())
         history = self.obj.api.getDatastreamHistory(self.obj.pid, self.obj.text.id)
         self.assertEqual("text datastream", history.datastreams[0].label)
         data, url = self.obj.api.getDatastreamDissemination(self.pid, self.obj.text.id)
