@@ -1,5 +1,3 @@
-from datetime import datetime
-from dateutil.tz import tzutc
 import hashlib
 import rdflib
 from cStringIO import StringIO
@@ -9,7 +7,7 @@ from Ft.Xml.Domlette import CanonicalPrint, PrettyPrint, \
         implementation as DomImplementation
 
 from eulcore import xmlmap
-from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed, fedora_time_format
+from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed, datetime_to_fedoratime
 from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfile, NewPids
 
 # FIXME: needed by both server and models, where to put?
@@ -248,7 +246,7 @@ class DatastreamObject(object):
         if self.versionable:
             # if this is a versioned datastream, Fedora handles it for us;
             # simply purge any revisions after the specified time
-            return self.obj.api.purgeDatastream(self.obj.pid, self.id, fedora_time_format(datetime),
+            return self.obj.api.purgeDatastream(self.obj.pid, self.id, datetime_to_fedoratime(datetime),
                                                 logMessage=logMessage)
         else:
             # for an unversioned datastream, update with any content and info
@@ -527,7 +525,11 @@ class DigitalObject(object):
 
         # pre-save setup, so we can recover if something goes wrong:
         # - record checkpoint time before saving, for backing out changes
-        save_start = datetime.now(tzutc())
+        #   NOTE: because we can't rely on time synchronization between local
+        #   machine and fedora server, get a fresh copy of object profile
+        #   and use object lastModified time from fedora as a checkpoint
+        objinfo = self.getProfile()
+        checkpoint = objinfo.modified
         # - list of datastreams that should be saved
         to_save = [ds for ds, dsobj in self.dscache.iteritems() if dsobj.isModified()]
         # - track successfully saved datastreams, in case roll-back is necessary
@@ -538,9 +540,9 @@ class DigitalObject(object):
                     saved.append(ds)
             else:
                 # save datastream failed - back out any changes that have been made
-                cleaned = self._undo_save(saved, save_start,
+                cleaned = self._undo_save(saved, checkpoint,
                                           "failed saving %s, rolling back out to %s" % \
-                                           (ds, save_start))
+                                           (ds, checkpoint))
                 raise DigitalObjectSaveFailure(self.pid, ds, to_save, saved, cleaned)
 
         # NOTE: to_save list in exception will never include profile; should it?
@@ -550,17 +552,17 @@ class DigitalObject(object):
         # save object profile (if needed) after all modified datastreams have been successfully saved
         if self.info_modified:
             if not self._saveProfile(logMessage):
-                cleaned = self._undo_save(saved, save_start)
+                cleaned = self._undo_save(saved, checkpoint)
                 raise DigitalObjectSaveFailure(self.pid, "object profile", to_save, saved, cleaned)
 
-    def _undo_save(self, datastreams, save_start, logMessage=None):
+    def _undo_save(self, datastreams, checkpoint, logMessage=None):
         """Takes a list of datastreams and a datetime, run undo save on all of them,
         and returns a list of the datastreams where the undo succeeded.
 
         :param datastreams: list of datastream ids (should be in self.dscache)
-        :param save_start: datetime to use for datastream undo save rollback
+        :param checkpoint: datetime to use for datastream undo save rollback
         """
-        return [ds for ds in datastreams if self.dscache[ds].undo_last_save(save_start, logMessage)]
+        return [ds for ds in datastreams if self.dscache[ds].undo_last_save(checkpoint, logMessage)]
 
     def _ingest(self, logMessage):
         requested_pid = self.pid()

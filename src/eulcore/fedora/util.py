@@ -1,4 +1,5 @@
 import httplib
+from datetime import datetime
 from dateutil.tz import tzutc
 import mimetypes
 import random
@@ -181,8 +182,20 @@ def parse_xml_object(cls, data, url):
     doc = xmlmap.parseString(data, url)
     return cls(doc.documentElement)
 
-def fedora_time_format(datetime):
+def datetime_to_fedoratime(datetime):
     # format a date-time in a format fedora can handle
     # make sure time is in UTC, since the only time-zone notation Fedora seems able to handle is 'Z'
     utctime = datetime.astimezone(tzutc())      
     return utctime.strftime('%Y-%m-%dT%H:%M:%S') + '.%03d' % (utctime.microsecond/1000) + 'Z'
+
+
+def fedoratime_to_datetime(rep):
+    if rep.endswith('Z'):       
+        rep = rep[:-1]      # strip Z for parsing
+        tz = tzutc()
+        # strptime creates a timezone-naive datetime
+        dt = datetime.strptime(rep, '%Y-%m-%dT%H:%M:%S.%f')
+        # use the generated time to create a timezone-aware
+        return datetime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, tz)
+    else:
+        raise Exception("Cannot parse '%s' as a Fedora datetime" % rep)

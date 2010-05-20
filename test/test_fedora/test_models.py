@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from datetime import date, datetime
+from datetime import datetime
 from dateutil.tz import tzutc
 from rdflib.Graph import Graph as RdfGraph
 import rdflib
@@ -49,6 +49,9 @@ class TestDatastreams(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
     pidspace = TEST_PIDSPACE
 
+    # save date-time before fixtures are created in fedora
+    now = datetime.now(tzutc())   
+
     def setUp(self):
         super(TestDatastreams, self).setUp()
         self.pid = self.fedora_fixtures_ingested[-1] # get the pid for the last object
@@ -56,8 +59,6 @@ class TestDatastreams(FedoraTestCase):
 
         # add a text datastream to the current test object
         _add_text_datastream(self.obj)
-
-        self.today = str(date.today())
 
     def test_get_ds_content(self):
         dc = self.obj.dc.content
@@ -75,14 +76,14 @@ class TestDatastreams(FedoraTestCase):
         self.assertEqual(self.obj.dc.state, "A")
         self.assertEqual(self.obj.dc.versionable, True) 
         self.assertEqual(self.obj.dc.control_group, "X")
-        self.assert_(self.obj.dc.created.startswith(self.today))
+        self.assert_(self.now < self.obj.dc.created)
 
         self.assertEqual(self.obj.text.label, "text datastream")
         self.assertEqual(self.obj.text.mimetype, "text/plain")
         self.assertEqual(self.obj.text.state, "A")
         self.assertEqual(self.obj.text.versionable, True)
         self.assertEqual(self.obj.text.control_group, "M")
-        self.assert_(self.obj.text.created.startswith(self.today))
+        self.assert_(self.now < self.obj.text.created)
 
     def test_savedatastream(self):
         new_text = "Here is some totally new text content."
@@ -230,12 +231,14 @@ class TestDigitalObject(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
     pidspace = TEST_PIDSPACE
 
+    # save date-time before fixtures are created in fedora
+    now = datetime.now(tzutc())   
+
     def setUp(self):
         super(TestDigitalObject, self).setUp()
         self.pid = self.fedora_fixtures_ingested[-1] # get the pid for the last object
         self.obj = MyDigitalObject(self.api, self.pid)
         _add_text_datastream(self.obj)
-        self.today = str(date.today())
 
     def test_properties(self):
         self.assertEqual(self.pid, self.obj.pid)
@@ -246,8 +249,8 @@ class TestDigitalObject(FedoraTestCase):
         self.assertEqual(self.obj.label, "A partially-prepared test object")
         self.assertEqual(self.obj.owner, "tester")
         self.assertEqual(self.obj.state, "A")
-        self.assert_(self.obj.created.startswith(self.today))
-        self.assert_(self.obj.modified.startswith(self.today))
+        self.assert_(self.now < self.obj.created)
+        self.assert_(self.now < self.obj.modified)
 
     def test_save_object_info(self):
         self.obj.label = "An updated test object"

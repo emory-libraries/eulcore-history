@@ -6,6 +6,28 @@ from eulcore import xmlmap
 # it part of the real xmlmap interface.
 from eulcore.xmlmap.fields import DateField
 
+from eulcore.fedora.util import datetime_to_fedoratime, fedoratime_to_datetime
+
+class FedoraDateMapper(xmlmap.fields.DateMapper):
+    def to_python(self, node):
+        rep = node.xpath(self.XPATH)
+        return fedoratime_to_datetime(rep)
+
+    def to_xml(self, dt):
+        return datetime_to_fedoratime(dt)
+
+class FedoraDateField(xmlmap.fields.Field):
+    """Map an XPath expression to a single Python `datetime.datetime`.
+    Assumes date-time format in use by Fedora, e.g. 2010-05-20T18:42:52.766Z
+    """
+    def __init__(self, xpath):
+        super(FedoraDateField, self).__init__(xpath,
+                manager = xmlmap.fields.SingleNodeManager(),
+                mapper = FedoraDateMapper())
+
+
+
+
 # xml objects to wrap around xml returns from fedora
 
 class ObjectDatastream(xmlmap.XmlObject):
@@ -36,9 +58,9 @@ class ObjectProfile(xmlmap.XmlObject):
     "object label"
     owner = xmlmap.StringField('objOwnerId')
     "object owner"
-    created = xmlmap.StringField('objCreateDate')        # date?
+    created = FedoraDateField('objCreateDate')    
     "date the object was created"
-    modified = xmlmap.StringField('objLastModDate')        # date?
+    modified = FedoraDateField('objLastModDate')   
     "date the object was last modified"
     # do we care about these? probably not useful in this context...
     # - disseminator index view url
@@ -56,7 +78,7 @@ class DatastreamProfile(xmlmap.XmlObject):
     "datastream label"
     version_id = xmlmap.StringField('dsVersionID')
     "current datastream version id"
-    created = xmlmap.StringField('dsCreateDate')        # date?
+    created = FedoraDateField('dsCreateDate') 
     "date the datastream was created"
     state = xmlmap.StringField('dsState')
     "datastream state (A/I/D - Active, Inactive, Deleted)"
