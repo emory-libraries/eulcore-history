@@ -529,7 +529,7 @@ class DigitalObject(object):
         If the object is new, ingest it. If object profile information has
         been modified before saving, this data is used in the ingest.
         Datastreams are initialized to sensible defaults: XML objects are
-        created using their default constructor, and RDF datastreams start
+        created using their default constructor, and RDF graphs start
         empty. If they're updated before saving then those updates are
         included in the initial version. Datastream profile information is
         initialized from defaults specified in the :class:`Datastream`

@@ -105,24 +105,33 @@ class XmlObject(object):
     A Python object wrapped around an XML DOM node.
 
     Typical programs will define subclasses of :class:`XmlObject` with
-    various field members. Generally they will use
+    various field members. Some programs will use
     :func:`load_xmlobject_from_string` and :func:`load_xmlobject_from_file`
-    to create instances of these subclasses, though they can be constructed
-    directly if more control is necessary.
+    to create instances of these subclasses. Other programs will create them
+    directly, passing a dom_node argument to the constructor. If the
+    subclass defines a :attr:`ROOT_NAME` then this dom_node argument is
+    optional: Programs may then create instances directly with no
+    constructor arguments.
 
-    In particular, programs can pass an optional
-    :class:`Ft.Xml.XPath.Context` argument to the constructor to specify an
-    XPath evaluation context with alternate namespace or variable
-    definitions. By default, fields are evaluated in an XPath context
-    containing the namespaces of the wrapped DOM node and no variables.
+    Programs can also pass an optional :class:`Ft.Xml.XPath.Context`
+    argument to the constructor to specify an XPath evaluation context with
+    alternate namespace or variable definitions. By default, fields are
+    evaluated in an XPath context containing the namespaces of the wrapped
+    DOM node and no variables.
     """
 
     __metaclass__ = XmlObjectType
 
-    # used by default _build_root_element()
     ROOT_NAME = None
+    """A default root element name (with namespace prefix) used when an object
+    of this type is created from scratch."""
     ROOT_NS = None
+    """The default namespace used when an object of this type is created from
+    scratch."""
     EXTRA_ROOT_NAMESPACES = {}
+    """A dictionary whose keys are namespace prefixes and whose values are
+    namespace URIs. These namespaces are added to the root element when an
+    object of this type is created from scratch."""
 
     def __init__(self, dom_node=None, context=None):
         if dom_node is None:
