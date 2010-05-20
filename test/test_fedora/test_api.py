@@ -64,6 +64,10 @@ Hey, nonny-nonny."""
         self.assert_('<listSession>' in found)
         self.assert_('<token>' in found)
 
+        # search by terms
+        found, url = self.rest_api.findObjects(terms="more dat? in it than a *")
+        self.assert_('<pid>%s</pid>' % self.pid in found)
+
         # NOTE: not testing resumeFind here because it would require parsing the xml
         # for the session token - tested at the server/Repository level
 

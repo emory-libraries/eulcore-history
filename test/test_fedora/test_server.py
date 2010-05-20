@@ -8,7 +8,7 @@ from testcore import main
 
 class TestBasicFedoraFunctionality(FedoraTestCase):
     pidspace = TEST_PIDSPACE	# will be used for any objects ingested with ingestFixture
-    def testGetNextPID(self):
+    def test_get_next_pid(self):
         pid = self.repo.get_next_pid()
         self.assertTrue(pid)
 
@@ -23,7 +23,7 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
             self.assertTrue(pid.startswith(PID_SPACE))
 
 
-    def testIngestWithoutPid(self):
+    def test_ingest_without_pid(self):
         object = load_fixture_data('basic-object.foxml')
         pid = self.repo.ingest(object)
         self.assertTrue(pid)
@@ -35,12 +35,12 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         # - can currently only be accessed by retrieving entire object xml
         xml, url = self.repo.api.getObjectXML(pid)
         self.assertTrue("this is my test ingest message" in xml)
-        self.repo.purge_object(pid, "removing test ingest object")
+        purged = self.repo.purge_object(pid, "removing test ingest object")
+        self.assertTrue(purged)
         # FIXME: how can we test logMessage arg to purge?
         #  -- have no idea where log message is actually stored... (if anywhere)
 
-    def testGetObject(self):
-        # get_object doesn't currently check/require that object exists in Fedora...
+    def test_get_object(self):       
         
         testpid = "testpid:1"
         # without info:fedora/ prefix
@@ -59,16 +59,33 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         # specified type
         obj = self.repo.get_object(testpid, MyDigitalObject)
         self.assertTrue(isinstance(obj, MyDigitalObject))
+        
+        # new object 
+        obj = self.repo.get_object()
+        self.assertTrue(isinstance(obj, DigitalObject))
+        self.assertFalse(obj._ingested)
+        # new object, specified type
+        obj = self.repo.get_object(type=MyDigitalObject)
+        self.assertTrue(isinstance(obj, MyDigitalObject))
+        self.assertFalse(obj._ingested)
 
-    def testFindObjects(self):
+
+
+    def test_find_objects(self):
         self.ingestFixture("object-with-pid.foxml")
         pid = self.fedora_fixtures_ingested[0]
 
-        objects = list(self.repo.find_objects(ownerId='tester'))
+        # fielded search
+        objects = list(self.repo.find_objects(owner='tester', title='partially-prepared',
+                        description='more data'))
         # should find test object
         self.assertEqual(objects[0].pid, pid)
-        # FIXME: is this a reasonable test? do we need a more specific query?
         self.assertEqual(1, len(objects))
+
+        # search by phrase
+        objects = list(self.repo.find_objects("more dat? in it than a *"))
+        # should find test object
+        self.assertEqual(objects[0].pid, pid)
 
         # ingest 2 more copies of the same test object, then retrieve with chunksize=2
         # - retrieve a second chunk of results with findObjects with a session token
@@ -81,7 +98,9 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         for pid in self.fedora_fixtures_ingested:
             self.assert_(pid in found_pids)
 
-    def testGetObjectsByCmodel(self):
+        self.assertRaises(Exception, list, self.repo.find_objects(bogus_field="foo"))
+
+    def test_get_objects_by_cmodel(self):
         self.ingestFixture("object-with-pid.foxml")
         pid = self.fedora_fixtures_ingested[0]
         obj = self.repo.get_object(pid)

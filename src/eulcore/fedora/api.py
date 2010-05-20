@@ -30,12 +30,15 @@ class REST_API(HTTP_API_Base):
     ### API-A methods (access) #### 
     # describeRepository not implemented in REST, use API-A-LITE version
 
-    def findObjects(self, query, pid=True, chunksize=None, session_token=None):
+    def findObjects(self, query=None, terms=None, pid=True, chunksize=None, session_token=None):
         """
         Wrapper function for `Fedora REST API findObjects <http://fedora-commons.org/confluence/display/FCR30/REST+API#RESTAPI-findObjects>`_
         and `Fedora REST API resumeFindObjects <http://fedora-commons.org/confluence/display/FCR30/REST+API#RESTAPI-resumeFindObjects>`_
 
+        One and only one of query or terms must be specified.
+
         :param query: string of fields and terms to search for
+        :param terms: phrase search across all fields
         :param pid: include pid in search results
         :param chunksize: number of objects to return at a time
         :param session_token: get an additional chunk of results from a prior search
@@ -43,10 +46,15 @@ class REST_API(HTTP_API_Base):
                       raw string data
         :rtype: string
         """
-        http_args = {
-            'query': query,
-            'resultFormat': 'xml',
-        }
+        if query is not None and terms is not None:
+            raise Exception("Cannot findObject with both query ('%s') and terms ('%s')" % (query, terms))
+        
+        http_args = {'resultFormat': 'xml'}
+        if query is not None:
+            http_args['query'] = query
+        if terms is not None:
+            http_args['terms'] = terms
+
         if pid:
             http_args['pid'] = 'true'
         if session_token:

@@ -180,18 +180,19 @@ class TestNewObject(FedoraTestCase):
     pidspace = TEST_PIDSPACE
 
     def test_basic_ingest(self):
-        obj = MyDigitalObject(self.api, pid=self.getNextPid)
+        self.repo.default_pidspace = self.pidspace
+        obj = self.repo.get_object(type=MyDigitalObject)
         obj.save()
 
         self.assertTrue(isinstance(obj.pid, basestring))
         self.append_test_pid(obj.pid)
         self.assertTrue(obj.pid.startswith(self.pidspace))
 
-        fetched = MyDigitalObject(self.api, obj.pid)
+        fetched = self.repo.get_object(obj.pid, type=MyDigitalObject)
         self.assertEqual(fetched.dc.content.identifier, obj.pid)
 
     def test_modified_profile(self):
-        obj = MyDigitalObject(self.api, pid=self.getNextPid)
+        obj = self.repo.get_object(type=MyDigitalObject)
         obj.label = 'test label'
         obj.owner = 'tester'
         obj.state = 'I'
@@ -202,7 +203,7 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(obj.owner, 'tester')
         self.assertEqual(obj.state, 'I')
 
-        fetched = MyDigitalObject(self.api, obj.pid)
+        fetched = self.repo.get_object(obj.pid, type=MyDigitalObject)
         self.assertEqual(fetched.label, 'test label')
         self.assertEqual(fetched.owner, 'tester')
         self.assertEqual(fetched.state, 'I')
@@ -211,7 +212,7 @@ class TestNewObject(FedoraTestCase):
         """If we just create and save an object, verify that DigitalObject
         initializes its datastreams appropriately."""
 
-        obj = MyDigitalObject(self.api, pid=self.getNextPid)
+        obj = self.repo.get_object(type=MyDigitalObject)
         obj.save()
         self.append_test_pid(obj.pid)
 
@@ -246,7 +247,7 @@ class TestNewObject(FedoraTestCase):
         # verify those datastreams on a new version fetched fresh from the
         # repo
 
-        fetched = MyDigitalObject(self.api, obj.pid)
+        fetched = self.repo.get_object(obj.pid, type=MyDigitalObject)
 
         self.assertEqual(fetched.dc.label, 'Dublin Core')
         self.assertEqual(fetched.dc.mimetype, 'text/xml')
