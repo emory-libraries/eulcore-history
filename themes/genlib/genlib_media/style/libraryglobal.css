@@ -685,7 +685,6 @@ a.icon-power-point, a.ppt, a.pptx { background:url(images/icon-power-point.png) 
 
 .title-line  {
     border-bottom:2px solid #3E6280;
-    clear:both;
     margin:0 0 20px;
     padding-bottom:4px;
 }
