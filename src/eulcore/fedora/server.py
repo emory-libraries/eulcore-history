@@ -185,7 +185,7 @@ class Repository(object):
                 yield type(self.api, result.pid)
 
             if chunk.session_token:
-                data, url = self.api.findObjects(query, session_token=chunk.session_token, chunksize=chunksize)
+                data, url = self.api.findObjects(session_token=chunk.session_token, **find_opts)
                 chunk = parse_xml_object(SearchResults, data, url)
             else:
                 break
