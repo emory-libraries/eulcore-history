@@ -22,40 +22,50 @@ http://www.queness.com/post/274/jquery-sliding-tab-menu-for-sidebar-tutorial
             <div id="panel">
                 <div id="panel-discovere">
                         <form action="http://discovere.emory.edu/primo_library/libweb/action/search.do" method="get">
+                            <div id="panel-discovere-body">
                             <input id="vl(freeText0)" class="form-text" alt="Search discoverE" maxlength="255" name="vl(freeText0)" type="text" value="Search discoverE" />
                             <input name="fn" type="hidden" value="search" />
                             <input name="vid" type="hidden" value="discovere" />
                             <input id="submit-discovere" class="form-submit" name="op" type="submit" value="Search" />
+                            </div>
                         </form>
                 </div>
                 <div id="panel-euclid">
                     <form class="search" action="http://www.library.emory.edu/uhtbin/cgisirsi/x/0/0/5?" method="get">
+                        <div id="panel-euclid-body">
                         <input id="searchdata1" class="form-text" alt="Search EUCLID" name="searchdata1" size="20"  value="Search EUCLID" type="text" />
                         <input name="library" type="hidden" /> <input name="user_id" value="WEBSERVER" type="hidden" />
                         <input id="submit-euclid" class="form-submit" name="op" value="Search" type="submit" />
+                        </div>
                     </form>
                 </div>
                 <div id="panel-databases">
                         <form action="http://web.library.emory.edu/dblocator" method="get">
+                            <div id="panel-databases-body">
                             <input id="tabbed-search-databases-term" class="form-text" alt="Search Databases" maxlength="255" name="term" type="text" value="Search Databases" />
                             <input name="search_type" value="keyword" type="hidden" />
                             <input name="search" value="simple" type="hidden" />
                             <input id="submit-dblocator" class="form-submit" name="op" value="Search" type="submit" />
+                            </div>
                         </form>
                 </div>
                 <div id="panel-guides">
                     <form action="http://guides.main.library.emory.edu/search.php" method="get">
+                        <div id="panel-guides-body">
                         <input id="tabbed-search-guides-search" class="form-text" alt="Search LibGuides" maxlength="255" name="search" type="text" value="Search Guides" />
                         <input name="iid" value="206" type="hidden" /> <input name="c" value="0" type="hidden" />
                         <input id="submit-libguides" class="form-submit" name="op" value="Search" type="submit" />
+                        </div>
                     </form>
                 </div>
                 <div id="panel-ejournals">
                     <form action="http://ejournals.emory.edu/" method="get">
+                        <div id="panel-ejournals-body">
                         <input id="tabbed-search-ejournals-er_search" class="form-text" alt="Search eJournals" maxlength="255" name="er_search" type="text" value="Search eJournals" />
                         <input name="er_lop" value="all" type="hidden" /> <input name="er_op" value="search" type="hidden" />
                         <input name="er_start" value="0" type="hidden" /> <input name="er_genre" value="journal" type="hidden" />
                         <input id="submit-ejournals" class="form-submit" name="op" value="Search" type="submit" />
+                        </div>
                     </form>
                 </div>
             </div>
