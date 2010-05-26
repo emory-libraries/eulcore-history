@@ -9,8 +9,9 @@ class DublinCore(xmlmap.XmlObject):
     """    
 
     ROOT_NS = 'http://www.openarchives.org/OAI/2.0/oai_dc/'
-    ROOT_NAME = 'oai_dc:dc'
-    EXTRA_ROOT_NAMESPACES = { 'dc': 'http://purl.org/dc/elements/1.1/'}
+    ROOT_NAME = 'dc'
+    ROOT_NAMESPACES = { 'oai_dc' : ROOT_NS,
+                              'dc': 'http://purl.org/dc/elements/1.1/'}
     
     # schema not used yet...
     schema = "http://dublincore.org/schemas/xmls/simpledc20021212.xsd"

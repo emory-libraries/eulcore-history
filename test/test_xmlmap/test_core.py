@@ -34,7 +34,6 @@ class TestXsl(unittest.TestCase):
     def setUp(self):
         # parseString wants a url. let's give it a proper one.
         url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'FIXTURE_TEXT')
-
         self.fixture = xmlmap.parseString(self.FIXTURE_TEXT, url)
 
     def test_xslTransform(self):
@@ -43,9 +42,10 @@ class TestXsl(unittest.TestCase):
             nobar_baz = xmlmap.StringField('baz[1]')
 
         # xsl in string
-        obj = TestObject(self.fixture.documentElement)
+        #obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         result = obj.xslTransform(xsl=self.FIXTURE_XSL)
-        newobj = xmlmap.load_xmlobject_from_string(result, TestObject)
+        newobj = xmlmap.load_xmlobject_from_string(str(result), TestObject)
         self.assertEqual('42', newobj.nobar_baz)
         self.assertEqual(None, newobj.bar_baz)
 
@@ -54,9 +54,10 @@ class TestXsl(unittest.TestCase):
         self.FILE.write(self.FIXTURE_XSL)
         self.FILE.flush()
 
-        obj = TestObject(self.fixture.documentElement)
+        #obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         result = obj.xslTransform(filename=self.FILE.name)
-        newobj = xmlmap.load_xmlobject_from_string(result, TestObject)
+        newobj = xmlmap.load_xmlobject_from_string(str(result), TestObject)
         self.assertEqual('42', newobj.nobar_baz)
         self.assertEqual(None, newobj.bar_baz)
 

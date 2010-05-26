@@ -24,6 +24,8 @@ class TestFields(unittest.TestCase):
         </foo>
     '''
 
+    namespaces = {'ex' : 'http://example.com/'}
+
     def setUp(self):
         # parseString wants a url. let's give it a proper one.
         url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'FIXTURE_TEXT')
@@ -38,7 +40,7 @@ class TestFields(unittest.TestCase):
             child = xmlmap.NodeField('bar[1]', TestSubobject)
             missing = xmlmap.NodeField('missing', TestSubobject)
 
-        obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         self.assertEqual(obj.child.val, '42')
         self.assertEqual(obj.missing, None)
         # undefined if >1 matched nodes
@@ -51,7 +53,7 @@ class TestFields(unittest.TestCase):
             children = xmlmap.NodeListField('bar', TestSubobject)
             missing = xmlmap.NodeListField('missing', TestSubobject)
 
-        obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         child_vals = [ child.val for child in obj.children ]
         self.assertEqual(child_vals, [42, 13])
         self.assertEqual(obj.missing, [])
@@ -68,7 +70,7 @@ class TestFields(unittest.TestCase):
             mixed = xmlmap.StringField('bar[1]')
             id = xmlmap.StringField('@id')
 
-        obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         self.assertEqual(obj.val, '42')
         self.assertEqual(obj.missing, None)
         # undefined if >1 matched nodes
@@ -98,13 +100,13 @@ class TestFields(unittest.TestCase):
         self.assertEqual(obj.dom_node.xpath('string(missing)'), 'not here')
         # with ns
         obj.missing_ns = 'over there'
-        self.assertEqual(obj.dom_node.xpath('string(ex:missing)'), 'over there')
         # in attrib
         obj.missing_att = 'out to pasture'
         self.assertEqual(obj.dom_node.xpath('string(@missing)'), 'out to pasture')
         # in attrib with ns
         obj.missing_att_ns = "can't find me!"
-        self.assertEqual(obj.dom_node.xpath('string(@ex:missing)'), "can't find me!")
+        self.assertEqual(obj.dom_node.xpath('string(@ex:missing)',
+                        namespaces=self.namespaces), "can't find me!")
         # in subelement
         obj.sub_missing = 'pining (for the fjords)'
         self.assertEqual(obj.dom_node.xpath('string(bar/missing)'), 'pining (for the fjords)')
@@ -117,7 +119,7 @@ class TestFields(unittest.TestCase):
             vals = xmlmap.StringListField('bar/baz')
             missing = xmlmap.StringListField('missing')
 
-        obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         self.assertEqual(obj.vals, ['42', '13'])
         self.assertEqual(obj.missing, [])
 
@@ -126,7 +128,7 @@ class TestFields(unittest.TestCase):
             val = xmlmap.IntegerField('bar[2]/baz')
             missing = xmlmap.IntegerField('missing')
 
-        obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         self.assertEqual(obj.val, 13)
         self.assertEqual(obj.missing, None)
         # undefined if >1 matched nodes
@@ -144,7 +146,7 @@ class TestFields(unittest.TestCase):
             vals = xmlmap.IntegerListField('bar/baz')
             missing = xmlmap.IntegerListField('missing')
 
-        obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         self.assertEqual(obj.vals, [42, 13])
         self.assertEqual(obj.missing, [])
 
@@ -153,7 +155,7 @@ class TestFields(unittest.TestCase):
             letter = xmlmap.ItemField('substring(bar/baz, 1, 1)')
             missing = xmlmap.ItemField('missing')
 
-        obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         self.assertEqual(obj.letter, '4')
         self.assertEqual(obj.missing, None)
 
@@ -164,7 +166,8 @@ class TestFields(unittest.TestCase):
             num_bool1 = xmlmap.SimpleBooleanField('boolean/num1', 1, 0)
             num_bool2 = xmlmap.SimpleBooleanField('boolean/num2', 1, 0)
 
-        obj = TestObject(self.fixture.documentElement)
+        #obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         self.assertEqual(obj.txt_bool1, True)
         self.assertEqual(obj.txt_bool2, False)
         self.assertEqual(obj.num_bool1, True)

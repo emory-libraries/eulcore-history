@@ -1,9 +1,12 @@
-from Ft.Lib import Uri
-from Ft.Xml.Domlette import NonvalidatingReader, CanonicalPrint, \
-                            ValidatingReader, \
-                            implementation as DomImplementation
-from Ft.Xml.XPath.Context import Context
-from Ft.Xml.Xslt import Processor
+from lxml import etree
+from lxml.builder import ElementMaker
+
+#from Ft.Lib import Uri
+#from Ft.Xml.Domlette import NonvalidatingReader, CanonicalPrint, \
+#                            ValidatingReader, \
+ #                           implementation as DomImplementation
+#from Ft.Xml.XPath.Context import Context
+#from Ft.Xml.Xslt import Processor
 import cStringIO
 
 from eulcore.xmlmap.fields import Field
@@ -11,8 +14,10 @@ from eulcore.xmlmap.fields import Field
 __all__ = [ 'XmlObject', 'parseUri', 'parseString',
     'load_xmlobject_from_string', 'load_xmlobject_from_file' ]
 
-parseUri = NonvalidatingReader.parseUri
-parseString = NonvalidatingReader.parseString
+def parseUri(stream, uri=None):
+    return etree.parse(string, base_url=uri)
+def parseString(string, uri=None):
+    return etree.fromstring(string, base_url=None)
 
 class _FieldDescriptor(object):
     def __init__(self, field):
@@ -138,15 +143,22 @@ class XmlObject(object):
             dom_node = self._build_root_element()
 
         self.dom_node = dom_node
-        self.context = context or Context(dom_node, 
-            processorNss=dict([(n.localName, n.value) for n in dom_node.xpathNamespaces]))
+        # FIXME: context probably needs work
+        self.context = {'namespaces' : dom_node.nsmap}
+        if context is not None:
+            self.context.update(context)
 
     def _build_root_element(self):
-        doc = DomImplementation.createDocument(self.ROOT_NS, self.ROOT_NAME, None)
-        for prefix, ns in self.EXTRA_ROOT_NAMESPACES.items():
-            doc.documentElement.setAttributeNS('http://www.w3.org/2000/xmlns/',
-                'xmlns:' + prefix, ns)
-        return doc.documentElement
+        opts = {}
+        if hasattr(self, 'ROOT_NS'):
+            opts['namespace'] = self.ROOT_NS
+        if hasattr(self, 'ROOT_NAMESPACES'):
+            opts['nsmap'] = self.ROOT_NAMESPACES
+
+        E = ElementMaker(**opts)
+        root = E(self.ROOT_NAME)
+        return root
+        
 
     def xslTransform(self, filename=None, xsl=None, params={}):
         """Run an xslt transform on the contents of the XmlObject.
@@ -156,13 +168,18 @@ class XmlObject(object):
         transformation.
 
         """
-        xslproc = Processor.Processor()
+        #xslproc = Processor.Processor()
         if filename is not None:
-            xslt = parseUri(Uri.OsPathToUri(filename))
+            #xslt = parseUri(Uri.OsPathToUri(filename))
+            xslt_doc = etree.parse(filename)
         if xsl is not None:
-            xslt = parseString(xsl, "urn:bogus")
-        xslproc.appendStylesheetNode(xslt)
-        return xslproc.runNode(self.dom_node.ownerDocument, topLevelParams=params)
+            #xslt = parseString(xsl, "urn:bogus")
+            xslt_doc = etree.fromstring(xsl)
+        #xslproc.appendStylesheetNode(xslt)
+        transform = etree.XSLT(xslt_doc)
+        # FIXME: this returns an etree; should it convert to string first?
+        return transform(self.dom_node.getroottree())
+        #return xslproc.runNode(self.dom_node.ownerDocument, topLevelParams=params)
 
     def __unicode__(self):
         return self.dom_node.xpath("normalize-space(.)")
@@ -178,9 +195,13 @@ class XmlObject(object):
         else:
             string_mode = False
 
-        # NOTE: using CanonicalPrint to keep namespace declarations, etc. where they are in the original xml
-        CanonicalPrint(self.dom_node, stream=stream)
         
+        # NOTE: etree c14n doesn't seem to like fedora info: URIs
+        #self.dom_node.getroottree().write_c14n(stream)
+        stream.write(etree.tostring(self.dom_node.getroottree(), encoding='UTF-8'))
+
+        # NOTE: could also use tostring, takes options like pretty_prent, etc.
+
         if string_mode:
             data = stream.getvalue()
             stream.close()
@@ -198,12 +219,17 @@ def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False):
     
     """
     if validate:
-        parser = ValidatingReader.parseString
+        #parser = ValidatingReader.parseString
+        parser = etree.XMLParser(dtd_validation=True)
     else:
-        parser = NonvalidatingReader.parseString
+        parser = etree.XMLParser()
+        #parser = NonvalidatingReader.parseString
     # parseString wants a uri, but context doesn't really matter for a string...
-    parsed_str= parser(string, "urn:bogus")
-    return xmlclass(parsed_str.documentElement)
+    #parsed_str= parser(string, "urn:bogus")
+    element = etree.fromstring(string, parser)
+    return xmlclass(element)
+    #return xmlclass(parsed_str.documentElement)
+
 
 def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False):
     """Initialize an XmlObject from a file.
@@ -214,13 +240,17 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False):
     
     """
     if validate:
-        parser = ValidatingReader.parseUri
+        parser = etree.XMLParser(dtd_validation=True)
+        #parser = ValidatingReader.parseUri
     else:
-        parser = NonvalidatingReader.parseUri
+        parser = etree.XMLParser()
+        #parser = NonvalidatingReader.parseUri
 
-    file_uri = Uri.OsPathToUri(filename)
-    parsed_file = parser(file_uri)
-    return xmlclass(parsed_file.documentElement)
+    #file_uri = Uri.OsPathToUri(filename)
+    #parsed_file = parser(file_uri)
+    tree = etree.parse(filename, parser)
+    return xmlclass(tree.getroot())
+    #return xmlclass(parsed_file.documentElement)
 
 # Import these for backward compatibility. Should consider deprecating these
 # and asking new code to pull them from descriptor
