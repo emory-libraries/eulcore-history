@@ -198,6 +198,7 @@ class TestEad(unittest.TestCase):
     
     def test_ProfileDescription(self):
         profiledesc = self.ead.profiledesc
+        self.assert_(isinstance(profiledesc, ProfileDescription))
         self.assertEqual("English", profiledesc.language)
 
 
