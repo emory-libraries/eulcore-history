@@ -1,10 +1,9 @@
 import hashlib
 import rdflib
-from cStringIO import StringIO
 from rdflib.Graph import Graph as RdfGraph
 
-from Ft.Xml.Domlette import CanonicalPrint, PrettyPrint, \
-        implementation as DomImplementation
+from lxml import etree
+from lxml.builder import ElementMaker
 
 from eulcore import xmlmap
 from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed, datetime_to_fedoratime
@@ -598,25 +597,22 @@ class DigitalObject(object):
     def _build_foxml_for_ingest(self, pid, pretty=False):
         doc = self._build_foxml_doc(pid)
 
-        sio = StringIO()
+        print_opts = {'encoding' : 'UTF-8'}
         if pretty: # for easier debug
-            PrettyPrint(doc, stream=sio)
-        else:
-            CanonicalPrint(doc, stream=sio)
-
-        return sio.getvalue()
+            print_opts['pretty_print'] = True
+        
+        return etree.tostring(doc, **print_opts)
 
     FOXML_NS = "info:fedora/fedora-system:def/foxml#"
 
     def _build_foxml_doc(self, pid):
-        doc = DomImplementation.createDocument(self.FOXML_NS, 'foxml:digitalObject', None)
-        obj = doc.documentElement
-        obj.setAttributeNS(None, 'VERSION', '1.1')
-        obj.setAttributeNS(None, 'PID', pid)
-
-        props = self._build_foxml_properties(doc)
-        obj.appendChild(props)
-
+        # make an lxml element builder - default namespace is foxml, display with foxml prefix
+        E = ElementMaker(namespace=self.FOXML_NS, nsmap={'foxml' : self.FOXML_NS })
+        doc = E('digitalObject')
+        doc.set('VERSION', '1.1')
+        doc.set('PID', pid)
+        doc.append(self._build_foxml_properties(E))
+        
         # collect datastream definitions for ingest.
         # FIXME: this method of identifying datastreams doesn't address
         # inheritance.
@@ -627,85 +623,81 @@ class DigitalObject(object):
             ds = fval # ds is the Datastream
             dsobj = getattr(self, fname) # dsobj is the DatastreamObject
 
-            dsnode = self._build_foxml_datastream(doc, ds.id, dsobj)
-            if dsnode:
-                obj.appendChild(dsnode)
-
+            dsnode = self._build_foxml_datastream(E, ds.id, dsobj)
+            if dsnode is not None:
+                doc.append(dsnode)
+        
         return doc
 
-    def _build_foxml_properties(self, doc):
-        props = doc.createElementNS(self.FOXML_NS, 'foxml:objectProperties')
-
-        state = doc.createElementNS(self.FOXML_NS, 'foxml:property')
-        state.setAttributeNS(None, 'NAME', 'info:fedora/fedora-system:def/model#state')
-        state.setAttributeNS(None, 'VALUE', self.state or 'A')
-        props.appendChild(state)
+    def _build_foxml_properties(self, E):
+        props = E('objectProperties')
+        state = E('property')
+        state.set('NAME', 'info:fedora/fedora-system:def/model#state')
+        state.set('VALUE', self.state or 'A')
+        props.append(state)
 
         if self.label:
-            label = doc.createElementNS(self.FOXML_NS, 'foxml:property')
-            label.setAttributeNS(None, 'NAME', 'info:fedora/fedora-system:def/model#label')
-            label.setAttributeNS(None, 'VALUE', self.label)
-            props.appendChild(label)
-
+            label = E('property')
+            label.set('NAME', 'info:fedora/fedora-system:def/model#label')
+            label.set('VALUE', self.label)
+            props.append(label)
+        
         if self.owner:
-            owner = doc.createElementNS(self.FOXML_NS, 'foxml:property')
-            owner.setAttributeNS(None, 'NAME', 'info:fedora/fedora-system:def/model#ownerId')
-            owner.setAttributeNS(None, 'VALUE', self.owner)
-            props.appendChild(owner)
+            owner = E('property')
+            owner.set('NAME', 'info:fedora/fedora-system:def/model#ownerId')
+            owner.set('VALUE', self.owner)
+            props.append(owner)
 
         return props
 
-    def _build_foxml_datastream(self, doc, dsid, dsobj):
+    def _build_foxml_datastream(self, E, dsid, dsobj):
 
         # if we can't construct a content node then bail before constructing
         # any other dom
         content_node = None
         if dsobj.control_group == 'X':
-            content_node = self._build_foxml_inline_content(doc, dsobj)
+            content_node = self._build_foxml_inline_content(E, dsobj)
         elif dsobj.control_group == 'M':
-            content_node = self._build_foxml_managed_content(doc, dsobj)
+            content_node = self._build_foxml_managed_content(E, dsobj)
         if content_node is None:
             return
 
-        ds_xml = doc.createElementNS(self.FOXML_NS, 'foxml:datastream')
-        ds_xml.setAttributeNS(None, 'ID', dsid)
-        ds_xml.setAttributeNS(None, 'CONTROL_GROUP', dsobj.control_group)
-        ds_xml.setAttributeNS(None, 'STATE', dsobj.state)
-        ds_xml.setAttributeNS(None, 'VERSIONABLE',
-                str(dsobj.versionable).lower())
+        ds_xml = E('datastream')
+        ds_xml.set('ID', dsid)
+        ds_xml.set('CONTROL_GROUP', dsobj.control_group)
+        ds_xml.set('STATE', dsobj.state)
+        ds_xml.set('VERSIONABLE', str(dsobj.versionable).lower())
 
-        ver_xml = doc.createElementNS(self.FOXML_NS, 'foxml:datastreamVersion')
-        ver_xml.setAttributeNS(None, 'ID', dsid + '.0')
-        ver_xml.setAttributeNS(None, 'MIMETYPE', dsobj.mimetype)
+        ver_xml = E('datastreamVersion')
+        ver_xml.set('ID', dsid + '.0')
+        ver_xml.set('MIMETYPE', dsobj.mimetype)
         if dsobj.format:
-            ver_xml.setAttributeNS(None, 'FORMAT_URI', dsobj.format)
+            ver_xml.set('FORMAT_URI', dsobj.format)
         if dsobj.label:
-            ver_xml.setAttributeNS(None, 'LABEL', dsobj.label)
-        ds_xml.appendChild(ver_xml)
+            ver_xml.set('LABEL', dsobj.label)
+        ds_xml.append(ver_xml)
 
-        ver_xml.appendChild(content_node)
+        ver_xml.append(content_node)
         return ds_xml
 
-    def _build_foxml_inline_content(self, doc, dsobj):
+    def _build_foxml_inline_content(self, E, dsobj):
         orig_content_dom = dsobj._content_as_dom()
-        if not orig_content_dom:
+        if orig_content_dom is None:
             return
 
-        content_container_xml = doc.createElementNS(self.FOXML_NS, 'foxml:xmlContent')
-        content_xml = doc.importNode(orig_content_dom, True)
-        content_container_xml.appendChild(content_xml)
-        
+        content_container_xml = E('xmlContent')
+        content_container_xml.append(orig_content_dom)
         return content_container_xml
 
-    def _build_foxml_managed_content(self, doc, dsobj):
+    def _build_foxml_managed_content(self, E, dsobj):
         content_s = dsobj._content_as_string()
         if content_s is None:
             return
 
         upload_id = self.api.upload(content_s)
-        content_location = doc.createElementNS(self.FOXML_NS, 'foxml:contentLocation')
-        content_location.setAttributeNS(None, 'REF', upload_id)
-        content_location.setAttributeNS(None, 'TYPE', 'INTERNAL_ID')
+        content_location = E('contentLocation')
+        content_location.set('REF', upload_id)
+        content_location.set('TYPE', 'INTERNAL_ID')
         return content_location
 
     def _get_datastreams(self):

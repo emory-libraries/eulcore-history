@@ -10,7 +10,7 @@ from eulcore.fedora.util import datetime_to_fedoratime, fedoratime_to_datetime
 
 class FedoraDateMapper(xmlmap.fields.DateMapper):
     def to_python(self, node):
-        rep = node.xpath(self.XPATH)
+        rep = self.XPATH(node)
         return fedoratime_to_datetime(rep)
 
     def to_xml(self, dt):
@@ -153,7 +153,7 @@ class SearchResult(xmlmap.XmlObject):
         returned by :meth:`REST_API.findObjects`"""
     def __init__(self, dom_node, context=None):
         if context is None:
-            context = Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
+            context = {'namespaces' : {'res': 'http://www.fedora.info/definitions/1/0/types/'}}
         xmlmap.XmlObject.__init__(self, dom_node, context)
 
     pid = xmlmap.StringField('res:pid')
@@ -164,7 +164,7 @@ class SearchResults(xmlmap.XmlObject):
         :meth:`REST_API.findObjects`"""
     def __init__(self, dom_node, context=None):
         if context is None:
-            context = Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
+            context = {'namespaces' : {'res': 'http://www.fedora.info/definitions/1/0/types/'}}
         xmlmap.XmlObject.__init__(self, dom_node, context)
 
     session_token = xmlmap.StringField('res:listSession/res:token')

@@ -1,13 +1,6 @@
+import cStringIO
 from lxml import etree
 from lxml.builder import ElementMaker
-
-#from Ft.Lib import Uri
-#from Ft.Xml.Domlette import NonvalidatingReader, CanonicalPrint, \
-#                            ValidatingReader, \
- #                           implementation as DomImplementation
-#from Ft.Xml.XPath.Context import Context
-#from Ft.Xml.Xslt import Processor
-import cStringIO
 
 from eulcore.xmlmap.fields import Field
 
@@ -168,18 +161,13 @@ class XmlObject(object):
         transformation.
 
         """
-        #xslproc = Processor.Processor()
         if filename is not None:
-            #xslt = parseUri(Uri.OsPathToUri(filename))
             xslt_doc = etree.parse(filename)
         if xsl is not None:
-            #xslt = parseString(xsl, "urn:bogus")
             xslt_doc = etree.fromstring(xsl)
-        #xslproc.appendStylesheetNode(xslt)
         transform = etree.XSLT(xslt_doc)
         # FIXME: this returns an etree; should it convert to string first?
-        return transform(self.dom_node.getroottree())
-        #return xslproc.runNode(self.dom_node.ownerDocument, topLevelParams=params)
+        return transform(self.dom_node)
 
     def __unicode__(self):
         return self.dom_node.xpath("normalize-space(.)")
@@ -199,8 +187,6 @@ class XmlObject(object):
         # NOTE: etree c14n doesn't seem to like fedora info: URIs
         #self.dom_node.getroottree().write_c14n(stream)
         stream.write(etree.tostring(self.dom_node.getroottree(), encoding='UTF-8'))
-
-        # NOTE: could also use tostring, takes options like pretty_prent, etc.
 
         if string_mode:
             data = stream.getvalue()
