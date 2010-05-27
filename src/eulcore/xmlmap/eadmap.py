@@ -293,6 +293,12 @@ class PublicationStatement(xmlmap.XmlObject):
     address = xmlmap.NodeField("address", Address)
     "address of publication/publisher - `address`"
 
+class ProfileDescription(xmlmap.XmlObject):
+    """Profile Descriptor for an EAD document.
+       Expected dom_node element passed to constructor: 'ead/eadheader/profiledesc'.
+    """
+    language = xmlmap.StringField("langusage/language")
+    
 class FileDescription(xmlmap.XmlObject):
     """Bibliographic information about this EAD document.
 
@@ -330,4 +336,6 @@ class EncodedArchivalDescription(xmlmap.XmlObject):
     ":class:`SubordinateComponents` `archdesc/dsc`; accessible at top-level for convenience"
     file_desc = xmlmap.NodeField("eadheader/filedesc", FileDescription)
     ":class:`FileDescription` - `filedesc`"
+    profiledesc = xmlmap.NodeField("eadheader/profiledesc", ProfileDescription)
+    ":class:`Profile description` - `profiledesc`"
 
