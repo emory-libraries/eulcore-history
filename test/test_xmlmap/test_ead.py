@@ -195,6 +195,10 @@ class TestEad(unittest.TestCase):
         self.assertEqual("Robert W. Woodruff Library", filedesc.publication.address.lines[0])
         self.assertEqual("404-727-6887", filedesc.publication.address.lines[3])
         self.assertEqual("marbl@emory.edu", filedesc.publication.address.lines[-1])
+    
+    def test_ProfileDescription(self):
+        profiledesc = self.ead.profiledesc
+        self.assertEqual("English", profiledesc.language)
 
 
         
