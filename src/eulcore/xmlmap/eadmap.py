@@ -76,15 +76,21 @@ class Container(xmlmap.XmlObject):
     def __unicode__(self):
         return self.value
 
-
+class DateField(xmlmap.XmlObject):
+    """
+    DateField - to parse date and unitdate.
+    """
+    date = xmlmap.StringField("@normal")
+    "date - `date`"
+    
 class DescriptiveIdentification(xmlmap.XmlObject):
     """Descriptive Information (`did` element) for materials in a component"""
     unitid = xmlmap.StringField("unitid")
     "unit id - `unitid`"
     unittitle = xmlmap.NodeField("unittitle", xmlmap.XmlObject)
     "unit title - `unittitle`"
-    unitdate = xmlmap.StringField("unitdate")
-    "unit date - `unitdate`"
+    unitdate = xmlmap.NodeField(".//unitdate", DateField)
+    "unit date - `.//unitdate' can be anywhere under did"
     physdesc = xmlmap.StringField("physdesc")
     "physical description - `physdesc`"
     abstract = xmlmap.NodeField('abstract', xmlmap.XmlObject)
@@ -286,8 +292,8 @@ class PublicationStatement(xmlmap.XmlObject):
 
       Expected dom_node element passed to constructor: `ead/eadheader/filedesc/publicationstmt`.
       """
-    date = xmlmap.StringField("date")
-    "publication date - `date`"
+    datefield = xmlmap.NodeField("date", DateField)
+    "date field - `datefield`"
     publisher = xmlmap.StringField("publisher")
     "publisher - `publisher`"
     address = xmlmap.NodeField("address", Address)
@@ -298,6 +304,7 @@ class ProfileDescription(xmlmap.XmlObject):
        Expected dom_node element passed to constructor: 'ead/eadheader/profiledesc'.
     """
     language = xmlmap.StringField("langusage/language")
+    "language information - `language`"
     
 class FileDescription(xmlmap.XmlObject):
     """Bibliographic information about this EAD document.
@@ -337,5 +344,5 @@ class EncodedArchivalDescription(xmlmap.XmlObject):
     file_desc = xmlmap.NodeField("eadheader/filedesc", FileDescription)
     ":class:`FileDescription` - `filedesc`"
     profiledesc = xmlmap.NodeField("eadheader/profiledesc", ProfileDescription)
-    ":class:`Profile description` - `profiledesc`"
+    ":class:`ProfileDescription` - `profiledesc`"
 
