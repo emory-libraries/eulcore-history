@@ -99,6 +99,9 @@ See also LOC documentation for `did element <http://www.loc.gov/ead/tglib/elemen
   .. autoclass:: eulcore.xmlmap.eadmap.Reference(dom_node[, context])
       :members:
 
+  .. autoclass:: eulcore.xmlmap.eadmap.ProfileDescription(dom_node[, context])
+      :members:
+
 
 
   
