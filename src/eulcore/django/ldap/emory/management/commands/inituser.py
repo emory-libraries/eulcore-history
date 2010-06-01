@@ -4,18 +4,18 @@
 # by 'manage.py help' with help text as to how to execute.
 
 from django.core.management.base import BaseCommand
+from eulcore.django.ldap.emory.backends import EmoryLDAPBackend
 
 class Command(BaseCommand):
     help = 'Initializes user accounts based on Emory LDAP usernames'
     args = 'username [username ...]'
 
     def handle(self, *usernames, **options):
-        from eulcore.django.ldap.emory import EmoryLDAPServer
 
-        els = EmoryLDAPServer()
+        backend = EmoryLDAPBackend()
         for uname in usernames:
-            usr = els.find_user(uname)
-            if usr[0]: # if user is in the system it comes back.
-                print 'Initialized account for user %s' % usr[1]
+            user_dn, user = backend.find_user(uname)
+            if user_dn: # if user is in the system it comes back.
+                print 'Initialized account for user %s' % (user_dn,)
             else: # If user not in system, comes back Non.
-                print 'No user found for %s!!' % uname
+                print 'No user found for %s!!' % (uname,)
