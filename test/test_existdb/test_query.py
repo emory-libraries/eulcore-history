@@ -218,6 +218,14 @@ class ExistQueryTest(unittest.TestCase):
         self.assertTrue(hasattr(fqs[0], "wnn"))
         self.assertEqual(42, fqs[0].wnn)
 
+    def test_only_hash(self):
+        fqs = self.qs.only('hash')
+        # no filters, should return all 3 test objects
+        for result in fqs:
+            # each return object should have a 40-character SHA-1 hash checksum
+            self.assertEqual(40, len(result.hash),
+                'xquery result should have 40-character checksum, got %s' % result.hash)
+
     def test_iter(self):
         for q in self.qs:
             self.assert_(isinstance(q, QueryTestModel))

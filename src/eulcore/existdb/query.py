@@ -441,11 +441,14 @@ class Xquery(object):
         if self.order_by or self.return_fields or self.additional_return_fields:
             # NOTE: use constructed xpath, with collection (if any)
             flowr_for = 'for %s in %s' % (self.xq_var, xpath)
-            
-            flowr_let = ''
+
+            let = []
             if 'fulltext_score' == self.order_by or 'fulltext_score' in self.return_fields \
                 or 'fulltext_score' in self.additional_return_fields:
-                flowr_let = 'let $fulltext_score := ft:score(%s)' % self.xq_var
+                let.append('let $fulltext_score := ft:score(%s)' % self.xq_var)
+            if 'hash' in self.return_fields or 'hash' in self.additional_return_fields:
+                let.append('let $hash := util:hash(%s, "SHA-1")' % self.xq_var)
+            flowr_let = '\n'.join(let)
             
             # for now, assume sort relative to root element
             if self.order_by:
@@ -548,6 +551,8 @@ class Xquery(object):
                     rblocks.append('element %s {util:document-name(%s)}' % (name, self.xq_var))
                 elif name == "collection_name":
                     rblocks.append('element %s {util:collection-name(%s)}' % (name, self.xq_var))
+                elif name == 'hash':
+                    rblocks.append('element %s {$hash}' % name)
                 else:
                     if re.search('@[^/,]+$', xpath):     # last element in path is an attribute node
                         # returning attributes as elements to avoid attribute conflict
