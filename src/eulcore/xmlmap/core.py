@@ -1,6 +1,6 @@
 from Ft.Lib import Uri
-from Ft.Xml.Domlette import NonvalidatingReader, CanonicalPrint, \
-                            ValidatingReader, \
+from Ft.Xml.Domlette import CanonicalPrint, NonvalidatingReader, \
+                            PrettyPrint, ValidatingReader, \
                             implementation as DomImplementation
 from Ft.Xml.XPath.Context import Context
 from Ft.Xml.Xslt import Processor
@@ -167,7 +167,7 @@ class XmlObject(object):
     def __unicode__(self):
         return self.dom_node.xpath("normalize-space(.)")
 
-    def serialize(self, stream=None):
+    def serialize(self, stream=None, pretty=False):
         """Serialize the contents of the XmlObject to a stream.
 
         If no stream is specified, returns a string.
@@ -179,7 +179,10 @@ class XmlObject(object):
             string_mode = False
 
         # NOTE: using CanonicalPrint to keep namespace declarations, etc. where they are in the original xml
-        CanonicalPrint(self.dom_node, stream=stream)
+        if pretty:
+            PrettyPrint(self.dom_node, stream=stream)
+        else:
+            CanonicalPrint(self.dom_node, stream=stream)
         
         if string_mode:
             data = stream.getvalue()
