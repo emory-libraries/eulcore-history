@@ -261,12 +261,13 @@ class REST_API(HTTP_API_Base):
 
     def modifyDatastream(self, pid, dsID, dsLabel=None, mimeType=None, logMessage=None, dsLocation=None,
         altIDs=None, versionable=None, dsState=None, formatURI=None, checksumType=None,
-        checksum=None, filename=None, content=None, force=False):   
+        checksum=None, content=None, force=False):   
         # /objects/{pid}/datastreams/{dsID} ? [dsLocation] [altIDs] [dsLabel] [versionable] [dsState] [formatURI] [checksumType] [checksum] [mimeType] [logMessage] [force] [ignoreContent]
         # NOTE: not implementing ignoreContent (unneeded)
         
         # content via multipart file in request content, or dsLocation=URI
-        # if dsLocation, filename, or content is not specified, datastream content will not be updated
+        # if dsLocation or content is not specified, datastream content will not be updated
+        # content can be string or a file-like object
 
         http_args = {}
         if dsLabel:
@@ -295,14 +296,12 @@ class REST_API(HTTP_API_Base):
         headers = {}
         body = None
         if content:
-            body = content
+            if hasattr(content, 'read'):    # allow content to be a file
+                body = content.read()
+            else:
+                body = content
             headers = { 'Content-Type' : mimeType,
                         'Content-Length' : str(len(body)) }          
-        if filename:
-            fp = open(filename, 'rb')
-            body = fp.read()
-            headers = { 'Content-Type' : get_content_type(filename),
-                        'Content-Length' : str(len(body)) }               
 
         url = 'objects/%s/datastreams/%s?' % (pid, dsID) + urlencode(http_args)
         with self.open('PUT', url, body, headers, throw_errors=False) as response:

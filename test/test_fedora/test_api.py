@@ -284,7 +284,7 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
 
         # modify managed datastream by file
         updated, msg = self.rest_api.modifyDatastream(self.pid, ds['id'], "text datastream (modified)",
-            mimeType="text/other", logMessage="modifying TEXT datastream", filename=FILE.name)                
+            mimeType="text/other", logMessage="modifying TEXT datastream", content=open(FILE.name))
         self.assertTrue(updated)
         # log message in audit trail
         xml, url = self.rest_api.getObjectXML(self.pid)
@@ -316,13 +316,13 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
 
         # bogus datastream on valid pid
         updated, msg = self.rest_api.modifyDatastream(self.pid, "BOGUS", "Text DS",
-            mimeType="text/plain", logMessage="modifiying non-existent DS", filename=FILE.name)
+            mimeType="text/plain", logMessage="modifiying non-existent DS", content=open(FILE.name))
         self.assertFalse(updated)
         # NOTE: error message is useless in this case (java null pointer)  - fedora bug
 
         # bogus pid
         updated, msg = self.rest_api.modifyDatastream("bogus:pid", "TEXT", "Text DS",
-            mimeType="text/plain", logMessage="modifiying non-existent DS", filename=FILE.name)
+            mimeType="text/plain", logMessage="modifiying non-existent DS", content=open(FILE.name))
         self.assertFalse(updated)
         self.assertEqual("no path in db registry for [bogus:pid]", msg)
 
