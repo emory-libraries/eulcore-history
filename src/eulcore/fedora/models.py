@@ -1,3 +1,4 @@
+import cStringIO
 import hashlib
 import rdflib
 from rdflib.Graph import Graph as RdfGraph
@@ -119,8 +120,12 @@ class DatastreamObject(object):
         # used for serializing inline xml datastreams at ingest
         return None
 
-    def _content_as_string(self):
-        # used for serializing managed binary datastreams at ingest
+    def _raw_content(self):
+        # return datastream content in the appropriate format to be saved to Fedora
+        # (normally, either a string or a file); used for serializing
+        # managed datastreams for ingest and save and generating a hash
+        # NOTE: if you override so this does not return a string, you may
+        # also need to override _content_digest and/or isModified
         if self.content is None:
             return None
         if hasattr(self.content, 'serialize'):
@@ -138,7 +143,7 @@ class DatastreamObject(object):
 
     def _content_digest(self):
         # generate a hash of the content so we can easily check if it has changed and should be saved
-        return hashlib.sha1(self._content_as_text()).hexdigest()
+        return hashlib.sha1(self._raw_content()).hexdigest()
 
     ### access to datastream profile fields; tracks if changes are made for saving to Fedora
 
@@ -192,20 +197,13 @@ class DatastreamObject(object):
     def modified(self):
         return self.info.modified
 
-    def _content_as_text(self):
-        # return datastream content as text
-        if hasattr(self.content, 'serialize'):
-            return self.content.serialize()
-        else:
-            return str(self.content)
-    
     def save(self, logmessage=None):
         """Save datastream content and any changed datastream profile
         information to Fedora.
 
         :rtype: boolean for success
         """
-        data = self._content_as_text()
+        data = self._raw_content()
         
         modify_opts = {}
         if self.info_modified:
@@ -386,6 +384,56 @@ class RdfDatastream(Datastream):
             rels_ext = RdfDatastream("RELS-EXT", "External Relations")
     """
     _datastreamClass = RdfDatastreamObject
+
+
+class FileDatastreamObject(DatastreamObject):
+    """Extends :class:`DatastreamObject` in order to allow setting and reading
+    datastream content as a file. To update contents, set datastream content
+    property to a new file object. For example::
+
+        class ImageObject(DigitalObject):
+            image = FileDatastream('IMAGE', 'image datastream', defaults={
+                'mimetype': 'image/png'
+            })
+    
+    Then, with an instance of ImageObject::
+
+        obj.image.content = open('/path/to/my/file')
+        obj.save()
+    """
+
+    _content_modified = False
+
+    def _raw_content(self):  
+        return self.content     # return the file itself (handled by upload/save API calls)
+
+    def _convert_content(self, data, url):
+        # for now, using stringio to return a file-like object
+        # NOTE: will require changes (here and in APIs) to handle large files
+        return cStringIO.StringIO(data)
+
+    # redefine content property to override set_content to set a flag when modified
+    def _get_content(self):
+        super(FileDatastreamObject, self)._get_content()
+        return self._content    
+    def _set_content(self, val):
+        super(FileDatastreamObject, self)._set_content(val)
+        self._content_modified = True        
+    content = property(_get_content, _set_content, None,
+        "contents of the datastream; only pulled from Fedora when accessed, cached after first access")
+
+    def _content_digest(self):
+        # don't attempt to create a checksum of the file content
+        pass
+    
+    def isModified(self):
+        return self.info_modified or self._content_modified
+
+class FileDatastream(Datastream):
+    """File-based content version of :class:`Datastream`.  Datastreams are
+    initialized as instances of :class:`FileDatastreamObject`.
+    """
+    _datastreamClass = FileDatastreamObject
 
 
 class DigitalObject(object):
@@ -690,7 +738,7 @@ class DigitalObject(object):
         return content_container_xml
 
     def _build_foxml_managed_content(self, E, dsobj):
-        content_s = dsobj._content_as_string()
+        content_s = dsobj._raw_content()
         if content_s is None:
             return
 
