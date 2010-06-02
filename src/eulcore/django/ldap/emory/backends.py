@@ -1,4 +1,4 @@
-from eulcore.django.ldap.auth.backends import LDAPBackend, map_fields
+from eulcore.django.ldap.backends import LDAPBackend, map_fields
 from eulcore.django.ldap.emory.models import EmoryLDAPUser
 
 class EmoryLDAPBackend(LDAPBackend):

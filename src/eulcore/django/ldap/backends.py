@@ -1,5 +1,6 @@
+from django.conf import settings
 from django.contrib.auth.models import User
-from ldap import INVALID_CREDENTIALS
+import ldap
 
 # originally inspired by http://www.carthage.edu/webdev/?p=12
 
@@ -19,7 +20,7 @@ def map_fields(model, source, **kwargs):
                 setattr(model, model_field_name, values[0])
 
 
-# to login via ldap, add 'eulcore.ldap.auth.backends.LDAPBackend' to your
+# to login via ldap, add 'eulcore.ldap.backends.LDAPBackend' to your
 # AUTHENTICATION_BACKENDS in settings.py.
 class LDAPBackend(object):
     USER_MODEL = User
