@@ -26,14 +26,14 @@ class LDAPBackend(object):
     USER_MODEL = User
 
     def __init__(self):
-        self.server = self.get_server(settings.AUTH_LDAP_BASE_USER, 
-                                      settings.AUTH_LDAP_BASE_PASS)
+        self.server = self.get_server(getattr(settings, 'AUTH_LDAP_BASE_USER', None),
+                                      getattr(settings, 'AUTH_LDAP_BASE_PASS', None))
 
     def get_server(self, user_dn, password):
         return LDAPServer(user_dn, password)
 
     def authenticate(self, username=None, password=None):
-        user_dn, user = self.server.find_user(username)
+        user_dn, user = self.find_user(username)
 
         # use a new LDAPServer in case binding causes access/permissions
         # problems for the root one.
@@ -49,16 +49,19 @@ class LDAPBackend(object):
 
     def get_user(self, user_id):
         try:
-            return USER_MODEL.objects.get(pk=user_id)
-        except USER_MODEL.DoesNotExist:
+            return self.USER_MODEL.objects.get(pk=user_id)
+        except self.USER_MODEL.DoesNotExist:
             return None
 
     def find_user(self, username):
-        user_dn, user_fields = self.server.find_username(username)
-        if user_dn is None:
+        username_results = self.server.find_usernames(username)
+        # If the user does not exist in LDAP, of if somehow there are
+        # multiple matches, fail.
+        if len(username_results) != 1:
             return None, None
 
-        user, created = USER_MODEL.objects.get_or_create(username=username)
+        user_dn, user_fields = username_results[0]
+        user, created = self.USER_MODEL.objects.get_or_create(username=username)
         user.set_unusable_password()
         self.update_user_fields(user, user_fields)
         user.save()
@@ -82,11 +85,4 @@ class LDAPServer(object):
 
     def find_username(self, username):
         filter = settings.AUTH_LDAP_SEARCH_FILTER % (ldap.filter.escape_filter_chars(username),)
-        result_data = self.server.search_s(settings.AUTH_LDAP_SEARCH_SUFFIX, ldap.SCOPE_SUBTREE, filter, ['*'])
-
-        # If the user does not exist in LDAP, Fail.
-        if (len(result_data) != 1):
-            return None, None
-        user_dn, user_fields = result_data[0]
-
-        return user_dn, user_fields
+        return self.server.search_s(settings.AUTH_LDAP_SEARCH_SUFFIX, ldap.SCOPE_SUBTREE, filter, ['*'])

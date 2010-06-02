@@ -76,8 +76,17 @@ TEMPLATE_DIRS = (
 )
 
 INSTALLED_APPS = (
+    # needed for test dependencies:
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.sites',
+
+    # our apps to test:
     'eulcore.django.existdb',
     'eulcore.django.testsetup',
+    'eulcore.django.ldap',
 )
 
 try:
