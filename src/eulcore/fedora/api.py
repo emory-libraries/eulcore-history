@@ -119,15 +119,16 @@ class REST_API(HTTP_API_Base):
 
     ### API-M methods (management) ####
 
-    def addDatastream(self, pid, dsID, dsLabel,  mimeType, logMessage,
+    def addDatastream(self, pid, dsID, dsLabel,  mimeType, logMessage=None,
         controlGroup=None, dsLocation=None, altIDs=None, versionable=None,
         dsState=None, formatURI=None, checksumType=None, checksum=None, filename=None):
         # objects/{pid}/datastreams/NEWDS? [opts]
         # content via multipart file in request content, or dsLocation=URI
         # one of dsLocation or filename must be specified
 
-        http_args = { 'dsLabel' : dsLabel, 'mimeType' : mimeType,
-            'logMessage' : logMessage}
+        http_args = {'dsLabel': dsLabel, 'mimeType': mimeType}
+        if logMessage:
+            http_args['logMessage'] = logMessage
         if controlGroup:
             http_args['controlGroup'] = controlGroup
         if dsLocation:
