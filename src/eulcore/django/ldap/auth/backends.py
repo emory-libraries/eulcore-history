@@ -1,7 +1,15 @@
 from django.contrib.auth.models import User
-from eulcore.django.ldap import LDAPServer, INVALID_CREDENTIALS
+from ldap import INVALID_CREDENTIALS
 
 # originally inspired by http://www.carthage.edu/webdev/?p=12
+
+cert_path = getattr(settings, 'AUTH_LDAP_CA_CERT_PATH', '')
+if cert_path:
+    ldap.set_option(ldap.OPT_X_TLS_CACERTFILE, cert_path)
+check_cert = getattr(settings, 'AUTH_LDAP_CHECK_SERVER_CERT', True)
+if not check_cert:
+    ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+
 
 def map_fields(model, source, **kwargs):
     for model_field_name, source_field_name in kwargs.items():
