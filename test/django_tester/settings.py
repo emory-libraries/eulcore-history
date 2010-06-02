@@ -84,9 +84,10 @@ INSTALLED_APPS = (
     'django.contrib.sites',
 
     # our apps to test:
+    'eulcore.django.emory_ldap',
     'eulcore.django.existdb',
-    'eulcore.django.testsetup',
     'eulcore.django.ldap',
+    'eulcore.django.testsetup',
 )
 
 try:

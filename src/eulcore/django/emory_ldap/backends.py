@@ -5,7 +5,7 @@ class EmoryLDAPBackend(LDAPBackend):
     USER_MODEL = EmoryLDAPUser
 
     def update_user_fields(self, user, extra_fields):
-        super(EmoryLDAPBackend, this).update_user_fields(user, extra_fields)
+        super(EmoryLDAPBackend, self).update_user_fields(user, extra_fields)
         user.is_staff = True
         map_fields(user, extra_fields,
             phone='telephoneNumber',
