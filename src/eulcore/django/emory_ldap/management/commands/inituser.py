@@ -11,11 +11,13 @@ class Command(BaseCommand):
     args = 'username [username ...]'
 
     def handle(self, *usernames, **options):
-
-        backend = EmoryLDAPBackend()
+        backend = self.get_backend()
         for uname in usernames:
             user_dn, user = backend.find_user(uname)
             if user_dn: # if user is in the system it comes back.
                 print 'Initialized account for user %s' % (user_dn,)
             else: # If user not in system, comes back Non.
                 print 'No user found for %s!!' % (uname,)
+
+    def get_backend(self):
+        return EmoryLDAPBackend()
