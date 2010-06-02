@@ -34,6 +34,8 @@ class LDAPBackend(object):
 
     def authenticate(self, username=None, password=None):
         user_dn, user = self.find_user(username)
+        if user_dn is None or user is None:
+            return None
 
         # use a new LDAPServer in case binding causes access/permissions
         # problems for the root one.
@@ -42,7 +44,7 @@ class LDAPBackend(object):
             # LDAPServer will raise an exception on auth failure, so if we
             # created the LDAPServer then we succeeded.
             return user
-        except INVALID_CREDENTIALS:
+        except ldap.INVALID_CREDENTIALS:
             return None
 
         return user

@@ -1,5 +1,6 @@
-from unittest import TestCase
+import ldap
 from django.contrib.auth.models import User
+from django.test import TestCase
 from eulcore.django.ldap.backends import LDAPBackend
 
 class TestBackend(LDAPBackend):
@@ -47,4 +48,59 @@ class LDAPBackendTest(TestCase):
         # and verify the user is in the db
         user = User.objects.get(username='test_user')
         self.assertEqual('test_user', user.username)
+
+    def testAuthenticateExistingUser(self):
+        user = User.objects.create(username='test_user')
+        user.save()
+        uid = user.id
+
+        self.server.find_results = [('uid=test_user,o=example.com', {})]
+        self.server.auth_exception = None
+
+        user = self.backend.authenticate('test_user', 'good_password')
+        self.assertEqual('test_user', user.username)
+        self.assertEqual(uid, user.id)
+
+    def testAuthenticatePopulatesUserData(self):
+        self.server.find_results = [('uid=test_user,o=example.com', {
+                    'givenName': ['Test'],
+                    'sn': ['User'],
+                    'mail': ['test_user@example.com'],
+                }),
+            ]
+        self.server.auth_exception = None
+        
+        user = self.backend.authenticate('test_user', 'good_password')
+        self.assertEqual('test_user', user.username)
+        self.assertEqual('Test', user.first_name)
+        self.assertEqual('User', user.last_name)
+        self.assertEqual('test_user@example.com', user.email)
+
+    def testAcceptExtraFields(self):
+        '''Test that we can handle unrecognized LDAP fields from the server.'''
+        self.server.find_results = [('uid=test_user,o=example.com', {
+                    'mail': ['test_user@example.com'],
+                    'foo': ['abc'],
+                    'bar': ['def'],
+                }),
+            ]
+        self.server.auth_exception = None
+
+        user = self.backend.authenticate('test_user', 'good_password')
+        self.assertEqual('test_user', user.username)
+        self.assertEqual('test_user@example.com', user.email)
+
+    def testNoSuchUser(self):
+        self.server.find_results = []
+        self.server.auth_exception = None
+
+        user = self.backend.authenticate('test_user', 'good_password')
+        self.assertTrue(user is None)
+
+    def testBadPassword(self):
+        self.server.find_results = [('uid=test_user,o=example.com', {})]
+        self.server.auth_exception = ldap.INVALID_CREDENTIALS
+
+        user = self.backend.authenticate('test_user', 'bad_password')
+        self.assertTrue(user is None)
 
