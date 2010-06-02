@@ -1,5 +1,6 @@
 from django.test import TestCase
 from eulcore.django.emory_ldap.backends import EmoryLDAPBackend
+from eulcore.django.emory_ldap.models import EmoryLDAPUser
 from eulcore.django.ldap.tests import MockServer
 
 class TestBackend(EmoryLDAPBackend):
@@ -15,6 +16,21 @@ class TestBackend(EmoryLDAPBackend):
         self._server.mock_authentication_stub(*args, **kwargs)
         return self._server
 
+
+class UserTest(TestCase):
+    def test_implicit_full_name(self):
+        user = EmoryLDAPUser(username='test_user')
+        user.first_name = 'Test'
+        user.last_name = 'User'
+        self.assertEqual('Test User', user.get_full_name())
+
+    def test_explicit_full_name(self):
+        user = EmoryLDAPUser(username='test_user')
+        user.first_name = 'Test'
+        user.last_name = 'User'
+        user.full_name = 'Frank Oz'
+        self.assertEqual('Frank Oz', user.get_full_name())
+        
 
 class BackendTest(TestCase):
     def setUp(self):

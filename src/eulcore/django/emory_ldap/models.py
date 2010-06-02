@@ -11,4 +11,5 @@ class EmoryLDAPUser(User):
     hr_id = models.CharField(max_length=50, blank=True)
 
     def get_full_name(self):
-        return self.full_name or self.user.get_full_name()
+        super_full = super(EmoryLDAPUser, self).get_full_name
+        return self.full_name or super_full()
