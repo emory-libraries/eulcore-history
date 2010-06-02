@@ -4,7 +4,7 @@
 # by 'manage.py help' with help text as to how to execute.
 
 from django.core.management.base import BaseCommand
-from eulcore.django.ldap.emory.backends import EmoryLDAPBackend
+from eulcore.django.emory_ldap.backends import EmoryLDAPBackend
 
 class Command(BaseCommand):
     help = 'Initializes user accounts based on Emory LDAP usernames'

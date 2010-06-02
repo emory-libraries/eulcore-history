@@ -1,4 +1,4 @@
 from django.contrib import admin
-from eulcore.django.ldap.emory.models import EmoryLDAPUser
+from eulcore.django.emory_ldap.models import EmoryLDAPUser
 
 admin.site.register(EmoryLDAPUser)
