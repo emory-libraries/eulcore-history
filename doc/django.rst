@@ -76,6 +76,19 @@ For more details on these commands, use ``manage.py <command> help``
    for a collection index
  * **existdb_reindex** - reindex a collection index in exist
 
+
+:mod:`eulcore.django.fedora` -- Django tie-ins for :mod:`eulcore.fedora`
+--------------------------------------------------------------------------
+
+.. include:: ../src/eulcore/django/fedora/README
+
+.. automodule:: eulcore.django.fedora
+
+.. automodule:: eulcore.django.fedora.server
+
+   .. autoclass:: Repository
+
+
 :mod:`eulcore.django.test` - Django test extensions
 ---------------------------------------------------
 

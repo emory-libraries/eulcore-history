@@ -1,0 +1,18 @@
+:mod:`eulcore.django.fedora` is a Django-aware extension of
+:mod:`eulcore.fedora`.
+
+When you create an instance of :class:`~eulcore.django.fedora.server.Repository`,
+it will automatically configure the repository connection based on Django
+settings, using the configuration names documented below.
+
+Projects that use this module should include the following settings in their
+``settings.py``::
+
+    # Fedora Repository settings
+    FEDORA_ROOT = 'http://fedora.host.name:8080/fedora/'
+    FEDORA_USER = 'user'
+    FEDORA_PASS = 'password'
+
+If username and password are not specified, the Repository instance will be
+initialized without credentials.
+
