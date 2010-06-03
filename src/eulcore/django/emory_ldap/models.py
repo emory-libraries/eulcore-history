@@ -18,6 +18,9 @@ class AbstractEmoryLDAPUserProfile(models.Model):
 class EmoryLDAPUserProfile(AbstractEmoryLDAPUserProfile):
     user = models.OneToOneField(User)
 
+    def __unicode__(self):
+        return unicode(self.user)
+
     def get_full_name(self):
         return self.full_name or self.user.get_full_name()
 
