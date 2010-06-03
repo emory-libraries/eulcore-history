@@ -103,6 +103,8 @@ class TestFields(unittest.TestCase):
         self.assertEqual(obj.dom_node.xpath('string(missing)'), 'not here')
         # with ns
         obj.missing_ns = 'over there'
+        self.assertEqual(obj.dom_node.xpath('string(ex:missing)', namespaces=self.namespaces),
+                    'over there')
         # in attrib
         obj.missing_att = 'out to pasture'
         self.assertEqual(obj.dom_node.xpath('string(@missing)'), 'out to pasture')

@@ -23,18 +23,42 @@ class Field(object):
     def __init__(self, xpath, manager, mapper):
         # compile xpath in order to catch an invalid xpath at load time
         etree.XPath(xpath)
-        # NOTE: not saving compiled xpath because namespaces/context must be
-        # passed in at compile time when evaluating an xpath on a node            
+        # NOTE: not saving compiled xpath because namespaces must be
+        # passed in at compile time when evaluating an etree.XPath on a node
         self.xpath = xpath
         self.manager = manager
         self.mapper = mapper
+
+        # determine parent xpath, node name, node type 
+        effective_xpath = Compile(xpath)
+        self.node_info = {}
+        
+        if isinstance(effective_xpath, ParsedRelativeLocationPath):
+            self.node_info['parent_xpath'] = effective_xpath._left
+            effective_xpath = effective_xpath._right
+            
+        if isinstance(effective_xpath, ParsedStep):
+            self.node_info['type'] = repr(effective_xpath._axis)  # child or attribute
+            self.node_info['name'], self.node_info['prefix'] = \
+                        self._get_name_parts(effective_xpath._nodeTest)
 
     def get_for_node(self, node, context):
         return self.manager.get(self.xpath, node, context, self.mapper.to_python)
 
     def set_for_node(self, node, context, value):
-        return self.manager.set(self.xpath, node, context, self.mapper.to_xml, value)
-        
+        return self.manager.set(self.xpath, node, context, self.mapper.to_xml, value, self.node_info)
+
+    def _get_name_parts(self, node_name_test):
+        # NOTE: namespace URI must currently be determined via context,
+        # which is only passed in on get/set and not available on initialization
+        node_name = repr(node_name_test)
+        if isinstance(node_name_test, LocalNameTest):
+            prefix = None
+        elif isinstance(node_name_test, QualifiedNameTest):
+            prefix = node_name_test._prefix
+            node_name = node_name_test._localName
+        return node_name, prefix
+
 # data mappers to translate between identified xml nodes and Python values
 
 class Mapper(object):
@@ -45,14 +69,14 @@ class Mapper(object):
 class StringMapper(Mapper):
     XPATH = etree.XPath('string()')
     def to_python(self, node):
-        if isinstance(node, etree._ElementStringResult):
+        if isinstance(node, basestring):
             return node
         return self.XPATH(node)
        
 class NumberMapper(Mapper):
     XPATH = etree.XPath('number()')
     def to_python(self, node):
-        if isinstance(node, etree._ElementStringResult):
+        if isinstance(node, basestring):
             return int(node)     # FIXME: not equivalent to xpath number()...
         return self.XPATH(node)
 
@@ -63,7 +87,7 @@ class SimpleBooleanMapper(Mapper):
         self.false = false
         
     def to_python(self, node):
-        if isinstance(node, etree._ElementStringResult):
+        if isinstance(node, basestring):
             value = node
         else:
             value = self.XPATH(node)
@@ -84,7 +108,7 @@ class SimpleBooleanMapper(Mapper):
 class DateMapper(object):
     XPATH = etree.XPath('string()')
     def to_python(self, node):
-        if isinstance(node, etree._ElementStringResult):
+        if isinstance(node, basestring):
             rep = node
         else:
             rep = self.XPATH(node)
@@ -119,113 +143,104 @@ class SingleNodeManager(object):
         if match is not None:
             return to_python(match)
 
-    def set(self, xpath, node, context, to_xml, value):
+    def set(self, xpath, node, context, to_xml, value, node_info):
         match = self.find_xml_node(xpath, node, context)
         if match == None:
-            match = self.create_xml_node(xpath, node, context)
+            match = self.create_xml_node(xpath, node, context, node_info)
             # create_xml_node() throws an exception on failure
 
-        return self.set_in_xml(match, to_xml(value), xpath, context)
+        return self.set_in_xml(match, to_xml(value), context, node_info)
 
     def find_xml_node(self, xpath, node, context):
-        #matches = Evaluate(xpath, node, context)
         matches = node.xpath(xpath, **context)
         if matches:
             return matches[0]
 
-    def create_xml_node(self, xpath, node, context):
-        effective_xpath = Compile(xpath)  # use copy so error reporting can use orig
+    def create_xml_node(self, xpath, node, context, node_info):
+        # a node can be created if:
 
-        # the cases we can create:
-
-        # relative paths if the parent exists:
-        if isinstance(effective_xpath, ParsedRelativeLocationPath):
-            node, effective_xpath = \
-                self._find_parent_node(effective_xpath, node, context)
+        # relative path and the parent node exists
+        if 'parent_xpath' in node_info:
+            parent_nodeset = node.xpath(repr(node_info['parent_xpath']), **context)
+            if len(parent_nodeset) != 1:
+                msg = ("Missing element for '%s', and node creation is " + \
+                       "supported only when parent xpath '%s' evaluates " + \
+                       "to a single node. Instead, it evaluates to %d.") % \
+                       (repr(xpath), repr(parent_xpath), len(parent_nodeset))
+                raise Exception(msg)
+            # otherwise, we found the parent.
+            parent_node = parent_nodeset[0]
+        else:
+            # if there is no parent xpath, create missing node under the current node
+            parent_node = node
 
         # and if the last part of the path is a simple, unpredicated child
         # or attribute
-        if isinstance(effective_xpath, ParsedStep):
-            if effective_xpath._predicates is None:
-                if repr(effective_xpath._axis) == 'child':
-                    return self.create_child_node(effective_xpath, node, context)
-                if repr(effective_xpath._axis) == 'attribute':
-                    return self.create_attribute_node(effective_xpath, node, context)
+        if 'type' in node_info:            
+            if node_info['type'] == 'child':
+                return self.create_child_node(parent_node, context, node_info)
+            elif node_info['type'] == 'attribute':
+                return self.create_attribute_node(parent_node, context, node_info)
 
         # anything else, throw an exception:
         msg = ("Missing element for '%s', and node creation is supported " + \
                "only for simple child and attribute nodes.") % (repr(xpath),)
         raise Exception(msg)
 
-    def _find_parent_node(self, xpath, node, context):
-        parent_xpath = xpath._left
-        parent_nodeset = node.xpath(repr(parent_xpath))        
-        if len(parent_nodeset) != 1:
-            msg = ("Missing element for '%s', and node creation is " + \
-                   "supported only when parent xpath '%s' evaluates " + \
-                   "to a single node. Instead, it evaluates to %d.") % \
-                   (repr(xpath), repr(parent_xpath), len(parent_nodeset))
-            raise Exception(msg)
-
-        # otherwise, we found the parent.
-        return parent_nodeset[0], xpath._right
-
-    def create_child_node(self, xpath, node, context):
-        ns_uri, node_name, prefix = self._get_name_parts(xpath._nodeTest, context)        
+    def create_child_node(self, node, context, node_info):
         opts = {}
+        ns_uri = None
         if 'namespaces' in context:
             opts['nsmap'] = context['namespaces']
+            if node_info['prefix'] is not None:
+                ns_uri = context['namespaces'][node_info['prefix']]
         E = ElementMaker(namespace=ns_uri, **opts)
-        new_node = E(node_name)
+        new_node = E(node_info['name'])
         node.append(new_node)
         return new_node
 
-    def create_attribute_node(self, xpath, node, context):
-        ns_uri, node_name, prefix = self._get_name_parts(xpath._nodeTest, context)        
-        nsmap = {}
-        xp_node_name = node_name
-        if prefix:
-            xp_node_name = '%s:%s' % (prefix, node_name)
-            node_name = '{%s}%s' % (ns_uri, node_name)            
-            nsmap = {prefix: ns_uri}
-        # create an empty attribute node so we can set it normally via set_in_xml
+    def create_attribute_node(self, node, context, node_info):
+        node_name, node_xpath, nsmap = self._get_attribute_name(node_info, context)        
+        # create an empty attribute node
         node.set(node_name, '')
-        # find via xpath so a 'smart' string can be returned
-        result = node.xpath('@%s' % (xp_node_name), namespaces=nsmap)        
+        # find via xpath so a 'smart' string can be returned and set normally
+        result = node.xpath(node_xpath, namespaces=nsmap)
         return result[0]
 
-    def _get_name_parts(self, node_name_test, context):
-        node_name = repr(node_name_test)
-        if isinstance(node_name_test, LocalNameTest):
-            ns_uri = None
-            prefix = None
-        elif isinstance(node_name_test, QualifiedNameTest):
-            prefix = node_name_test._prefix
-            if 'namespaces' in context:
-                ns_uri = context['namespaces'][prefix]            
-            #ns_uri = context.processorNss.get(prefix, None)
-            else:
-                ns_uri = None
-            node_name = node_name_test._localName
-            # we could throw an exception here if ns_uri wasn't found, but
-            # for now assume the user knows what he's doing...        
-        return ns_uri, node_name, prefix
-
-    def set_in_xml(self, node, val, xpath, context):
+    def set_in_xml(self, node, val, context, node_info):
         if isinstance(node, etree._Element):
             if not list(node):      # no child elements
                 node.text = val
             else:                 
                 raise Exception("Cannot set string value - not a text node!")
-        else:
+        elif node_info['type'] == 'attribute':
             # by default, etree returns a "smart" string for attribute result;
-            # get attribute name from xpath and set on parent node
-            attribute = xpath[xpath.rindex('@') + 1:]
-            if ':' in attribute:
-                prefix, localname = attribute.split(':')                
-                attribute = '{%s}%s' % (context['namespaces'][prefix], localname)
+            # determine attribute name and set on parent node            
+            attribute, node_xpath, nsmap = self._get_attribute_name(node_info, context)
             node.getparent().set(attribute, val)
 
+    def _get_attribute_name(self, node_info, context):
+        # calculate attribute name, xpath, and nsmap based on node info and context namespaces
+        if node_info['prefix'] is None:
+            nsmap = {}
+            ns_uri = None
+            node_name = node_info['name']
+            node_xpath = '@%s' % node_name
+        else:
+            # if node has a prefix, the namespace *should* be defined in context
+            if 'namespaces' in context and node_info['prefix'] in context['namespaces']:
+                ns_uri = context['namespaces'][node_info['prefix']]
+            else:
+                ns_uri = None
+                # we could throw an exception here if ns_uri wasn't found, but
+                # for now assume the user knows what he's doing...
+
+            node_xpath = '@%s:%s' % (node_info['prefix'], node_info['name'])
+            node_name = '{%s}%s' % (ns_uri, node_info['name'])
+            nsmap = {node_info['prefix']: ns_uri}
+
+        return node_name, node_xpath, nsmap
+        
 
 class NodeListManager(object):
     def get(self, xpath, node, context, to_python):        
