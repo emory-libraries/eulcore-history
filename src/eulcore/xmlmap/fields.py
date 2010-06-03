@@ -21,17 +21,19 @@ __all__ = [
 
 class Field(object):
     def __init__(self, xpath, manager, mapper):
+        # compile xpath in order to catch an invalid xpath at load time
+        etree.XPath(xpath)
+        # NOTE: not saving compiled xpath because namespaces/context must be
+        # passed in at compile time when evaluating an xpath on a node            
         self.xpath = xpath
-        #self._xpath = Compile(xpath)
-        self._xpath = xpath
         self.manager = manager
         self.mapper = mapper
 
     def get_for_node(self, node, context):
-        return self.manager.get(self._xpath, node, context, self.mapper.to_python)
+        return self.manager.get(self.xpath, node, context, self.mapper.to_python)
 
     def set_for_node(self, node, context, value):
-        return self.manager.set(self._xpath, node, context, self.mapper.to_xml, value)
+        return self.manager.set(self.xpath, node, context, self.mapper.to_xml, value)
         
 # data mappers to translate between identified xml nodes and Python values
 

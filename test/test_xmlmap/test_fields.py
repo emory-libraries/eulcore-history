@@ -32,6 +32,9 @@ class TestFields(unittest.TestCase):
 
         self.fixture = xmlmap.parseString(self.FIXTURE_TEXT, url)
 
+    def testInvalidXpath(self):
+        self.assertRaises(Exception, xmlmap.StringField, '["')
+        
     def testNodeField(self):
         class TestSubobject(xmlmap.XmlObject):
             val = xmlmap.StringField('baz')
