@@ -21,7 +21,7 @@ def _use_test_fedora(sender, **kwargs):
 
     if getattr(settings, "FEDORA_TEST_PIDSPACE", None):
         settings.FEDORA_PIDSPACE = settings.FEDORA_TEST_PIDSPACE
-    elif getattr(settings, "PIDSPACE", None):
+    elif getattr(settings, "FEDORA_PIDSPACE", None):
         settings.FEDORA_PIDSPACE = "%s-test" % settings.FEDORA_PIDSPACE
     print "Using Fedora pidspace: %s" % settings.FEDORA_PIDSPACE
 
