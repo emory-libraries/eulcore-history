@@ -76,9 +76,21 @@ TEMPLATE_DIRS = (
 )
 
 INSTALLED_APPS = (
+    # needed for test dependencies:
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.sites',
+
+    # our apps to test:
+    'eulcore.django.emory_ldap',
     'eulcore.django.existdb',
+    'eulcore.django.ldap',
     'eulcore.django.testsetup',
 )
+
+AUTH_PROFILE_MODULE = 'emory_ldap.EmoryLDAPUserProfile'
 
 try:
     # use xmlrunner if it's installed; default runner otherwise. download

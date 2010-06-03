@@ -8,25 +8,14 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         
-        # Adding model 'EmoryLDAPUserProfile'
-        db.create_table('emory_emoryldapuserprofile', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'], unique=True)),
-            ('phone', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
-            ('dept_num', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
-            ('full_name', self.gf('django.db.models.fields.CharField')(max_length=100, blank=True)),
-            ('title', self.gf('django.db.models.fields.CharField')(max_length=100, blank=True)),
-            ('employee_num', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
-            ('subdept_code', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
-            ('hr_id', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
-        ))
-        db.send_create_signal('emory', ['EmoryLDAPUserProfile'])
+        # Changing field 'EmoryLDAPUserProfile.user'
+        db.alter_column('emory_emoryldapuserprofile', 'user_id', self.gf('django.db.models.fields.related.OneToOneField')(to=orm['auth.User'], unique=True))
 
 
     def backwards(self, orm):
         
-        # Deleting model 'EmoryLDAPUserProfile'
-        db.delete_table('emory_emoryldapuserprofile')
+        # Changing field 'EmoryLDAPUserProfile.user'
+        db.alter_column('emory_emoryldapuserprofile', 'user_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'], unique=True))
 
 
     models = {
@@ -66,8 +55,8 @@ class Migration(SchemaMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
-        'emory.emoryldapuserprofile': {
-            'Meta': {'object_name': 'EmoryLDAPUserProfile'},
+        'emory_ldap.emoryldapuserprofile': {
+            'Meta': {'object_name': 'EmoryLDAPUserProfile', 'db_table': "'emory_emoryldapuserprofile'"},
             'dept_num': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
             'employee_num': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
             'full_name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'blank': 'True'}),
@@ -76,8 +65,8 @@ class Migration(SchemaMigration):
             'phone': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
             'subdept_code': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
             'title': ('django.db.models.fields.CharField', [], {'max_length': '100', 'blank': 'True'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']", 'unique': 'True'})
+            'user': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['auth.User']", 'unique': 'True'})
         }
     }
 
-    complete_apps = ['emory']
+    complete_apps = ['emory_ldap']

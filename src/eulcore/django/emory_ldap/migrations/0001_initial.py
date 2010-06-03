@@ -1,29 +1,33 @@
 # encoding: utf-8
 import datetime
 from south.db import db
-from south.v2 import DataMigration
+from south.v2 import SchemaMigration
 from django.db import models
-from django.contrib.auth.models import User
-from eulcore.django.ldap.emory.models import EmoryLDAPUserProfile
 
-class Migration(DataMigration):
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        profile_user_ids = EmoryLDAPUserProfile.objects.values('user')
-        users_without_profiles = User.objects.exclude(pk__in=profile_user_ids)
-        for user in users_without_profiles:
-            profile = EmoryLDAPUserProfile(user=user)
-            profile.save()
+        
+        # Adding model 'EmoryLDAPUserProfile'
+        db.create_table('emory_emoryldapuserprofile', (
+            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'], unique=True)),
+            ('phone', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
+            ('dept_num', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
+            ('full_name', self.gf('django.db.models.fields.CharField')(max_length=100, blank=True)),
+            ('title', self.gf('django.db.models.fields.CharField')(max_length=100, blank=True)),
+            ('employee_num', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
+            ('subdept_code', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
+            ('hr_id', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
+        ))
+        db.send_create_signal('emory_ldap', ['EmoryLDAPUserProfile'])
 
-        # after the app is installed, the profile post_save signal handler
-        # is responsible for keeping true the invariant that every user has
-        # a profile. we might have to bootstrap that, though, for any users
-        # created before that post_save went into effect.
 
     def backwards(self, orm):
-        # nothing distinguishes migration-created profiles from
-        # non-migration-created ones. can't really roll back.
-        pass
+        
+        # Deleting model 'EmoryLDAPUserProfile'
+        db.delete_table('emory_emoryldapuserprofile')
+
 
     models = {
         'auth.group': {
@@ -62,8 +66,8 @@ class Migration(DataMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
-        'emory.emoryldapuserprofile': {
-            'Meta': {'object_name': 'EmoryLDAPUserProfile'},
+        'emory_ldap.emoryldapuserprofile': {
+            'Meta': {'object_name': 'EmoryLDAPUserProfile', 'db_table': "'emory_emoryldapuserprofile'"},
             'dept_num': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
             'employee_num': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
             'full_name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'blank': 'True'}),
@@ -76,4 +80,4 @@ class Migration(DataMigration):
         }
     }
 
-    complete_apps = ['emory']
+    complete_apps = ['emory_ldap']
