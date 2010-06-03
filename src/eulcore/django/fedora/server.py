@@ -16,4 +16,6 @@ class Repository(server.Repository):
             password = settings.FEDORA_PASS
         super(Repository, self).__init__(settings.FEDORA_ROOT, username, password)
 
+        if hasattr(settings, 'FEDORA_PIDSPACE'):
+            self.default_pidspace = settings.FEDORA_PIDSPACE
 
