@@ -199,7 +199,8 @@ class TestEad(unittest.TestCase):
     def test_ProfileDescription(self):
         profiledesc = self.ead.profiledesc
         self.assert_(isinstance(profiledesc, ProfileDescription))
-        self.assertEqual("English", profiledesc.language)
+        self.assertEqual("English", profiledesc.languages[0])
+        self.assertEqual("eng", profiledesc.language_codes[0])
     
     def test_DateField(self):
         date = self.ead.file_desc.publication.date

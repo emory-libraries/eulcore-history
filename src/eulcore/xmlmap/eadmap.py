@@ -316,8 +316,10 @@ class ProfileDescription(xmlmap.XmlObject):
     """
     date = xmlmap.NodeField("date", DateField)
     ":class:`DateField` - `date`"
-    language = xmlmap.StringField("langusage/language")
-    "language information - `language`"
+    languages = xmlmap.StringListField("langusage/language")
+    "language information - `langusage/language`"
+    language_codes = xmlmap.StringListField("langusage/language/@langcode")
+    "language codes - `langusage/language/@langcode`"
     
 class FileDescription(xmlmap.XmlObject):
     """Bibliographic information about this EAD document.
