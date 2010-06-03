@@ -1,3 +1,30 @@
+"""This module implements basic double-bind LDAP authentication.
+
+To use LDAP authentication in a Django app, include
+:class:`eulcore.django.ldap.backends.LDAPBackend` in your
+``AUTHENTICATION_BACKENDS`` setting, and add a few additional settings to
+configure it::
+
+    AUTH_LDAP_SERVER = 'ldaps://ldap.example.com'
+    AUTH_LDAP_BASE_USER = 'cn=example,o=example.com'
+    AUTH_LDAP_BASE_PASS = 's00p3rs33kr!t'
+    AUTH_LDAP_SEARCH_SUFFIX = 'o=emory.edu'
+    AUTH_LDAP_SEARCH_FILTER = '(uid=%s)'
+    AUTH_LDAP_CHECK_SERVER_CERT = True
+    AUTH_LDAP_CA_CERT_PATH = '/path/to/trusted/certs.pem'
+
+In general, this should be all an application developer needs to do. For
+those who want to tweak the functionality, several hooks have been
+defined in :class:`LDAPBackend`.
+
+Application developers at Emory University may want to look at the
+:mod:`~eulcore.django.emory_ldap` module, which adds Emory-specific
+features and LDAP attribute mappings. Non-Emory users may want to look at
+that module for examples of how they might tweak the code for their own
+implementations.
+"""
+
+
 from django.conf import settings
 from django.contrib.auth.models import User, SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
@@ -14,6 +41,12 @@ if not check_cert:
 
 
 def map_fields(model, source, **kwargs):
+    """Copy values from a source dict to a model object. For each keyword
+    argument specified, interpret the name as a model attribute name and the
+    value as a source index. If the value is in the source dict, copy it to
+    the named model attribute. Used as a helper to copy LDAP fields to model
+    objects."""
+
     for model_field_name, source_field_name in kwargs.items():
         if source_field_name in source:
             values = source[source_field_name]
@@ -21,10 +54,15 @@ def map_fields(model, source, **kwargs):
                 setattr(model, model_field_name, values[0])
 
 
-# to login via ldap, add 'eulcore.ldap.backends.LDAPBackend' to your
+# to login via ldap, add 'eulcore.django.ldap.backends.LDAPBackend' to your
 # AUTHENTICATION_BACKENDS in settings.py.
 class LDAPBackend(object):
+    """A Django authentication backend for double-bind LDAP authentication."""
+
     USER_MODEL = User
+    """The Django Model to create for each user. Defaults to
+    :class:`django.contrib.auth.models.User`. The backend finds or creates
+    one of these for each user it sees."""
 
     def __init__(self):
         self.server = self.get_server(getattr(settings, 'AUTH_LDAP_BASE_USER', None),
@@ -79,7 +117,11 @@ class LDAPBackend(object):
         return user_dn, user
 
     def update_user_fields(self, user, extra_fields):
-        # overide/extend this to map LDAP fields to model fields
+        """Set fields on the user model from a dictionary of LDAP attributes
+        returned by the server. Called automatically by the backend while
+        looking up a user. The keys of `extra_fields` are the LDAP
+        attributes returned by the server for that user. The values are
+        arrays of values included in the response."""
         map_fields(user, extra_fields,
             first_name='givenName',
             last_name='sn',
@@ -87,7 +129,13 @@ class LDAPBackend(object):
         pass
 
     def update_user_profile_fields(self, profile, extra_fields):
-        # overide/extend this to map LDAP fields to user profile fields
+        """Set fields on the user profile model from a dictionary of LDAP
+        attributes returned by the server. Called automatically by the
+        backend while looking up a user, but only if the
+        ``AUTH_PROFILE_MODULE`` setting is set and this user already has a
+        profile. The keys of `extra_fields` are the LDAP attributes returned
+        by the server for that user. The values are arrays of values
+        included in the response."""
         pass
 
 
