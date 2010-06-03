@@ -3,16 +3,14 @@ import datetime
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
-from django.contrib.auth.models import User
-from eulcore.django.ldap.emory.models import EmoryLDAPUserProfile
 
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        profile_user_ids = EmoryLDAPUserProfile.objects.values('user')
-        users_without_profiles = User.objects.exclude(pk__in=profile_user_ids)
+        profile_user_ids = orm['emory_ldap.EmoryLDAPUserProfile'].objects.values('user')
+        users_without_profiles = orm['auth.User'].objects.exclude(pk__in=profile_user_ids)
         for user in users_without_profiles:
-            profile = EmoryLDAPUserProfile(user=user)
+            profile = orm['emory_ldap.EmoryLDAPUserProfile'](user=user)
             profile.save()
 
         # after the app is installed, the profile post_save signal handler
@@ -62,8 +60,8 @@ class Migration(DataMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
-        'emory.emoryldapuserprofile': {
-            'Meta': {'object_name': 'EmoryLDAPUserProfile'},
+        'emory_ldap.emoryldapuserprofile': {
+            'Meta': {'object_name': 'EmoryLDAPUserProfile', 'db_table': "'emory_emoryldapuserprofile'"},
             'dept_num': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
             'employee_num': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
             'full_name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'blank': 'True'}),
@@ -76,4 +74,4 @@ class Migration(DataMigration):
         }
     }
 
-    complete_apps = ['emory']
+    complete_apps = ['emory_ldap']

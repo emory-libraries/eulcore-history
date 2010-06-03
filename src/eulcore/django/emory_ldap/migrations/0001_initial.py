@@ -20,7 +20,7 @@ class Migration(SchemaMigration):
             ('subdept_code', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
             ('hr_id', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
         ))
-        db.send_create_signal('emory', ['EmoryLDAPUserProfile'])
+        db.send_create_signal('emory_ldap', ['EmoryLDAPUserProfile'])
 
 
     def backwards(self, orm):
@@ -66,8 +66,8 @@ class Migration(SchemaMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
-        'emory.emoryldapuserprofile': {
-            'Meta': {'object_name': 'EmoryLDAPUserProfile'},
+        'emory_ldap.emoryldapuserprofile': {
+            'Meta': {'object_name': 'EmoryLDAPUserProfile', 'db_table': "'emory_emoryldapuserprofile'"},
             'dept_num': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
             'employee_num': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
             'full_name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'blank': 'True'}),
@@ -80,4 +80,4 @@ class Migration(SchemaMigration):
         }
     }
 
-    complete_apps = ['emory']
+    complete_apps = ['emory_ldap']
