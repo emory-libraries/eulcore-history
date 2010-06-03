@@ -1,13 +1,14 @@
 from eulcore.django.ldap.backends import LDAPBackend, map_fields
-from eulcore.django.emory_ldap.models import EmoryLDAPUser
+from eulcore.django.emory_ldap.models import EmoryLDAPUserProfile
 
 class EmoryLDAPBackend(LDAPBackend):
-    USER_MODEL = EmoryLDAPUser
-
     def update_user_fields(self, user, extra_fields):
         super(EmoryLDAPBackend, self).update_user_fields(user, extra_fields)
         user.is_staff = True
-        map_fields(user, extra_fields,
+
+    def update_user_profile_fields(self, profile, extra_fields):
+        super(EmoryLDAPBackend, self).update_user_profile_fields(profile, extra_fields)
+        map_fields(profile, extra_fields,
             phone='telephoneNumber',
             dept_num='departmentNumber',
             full_name='cn',

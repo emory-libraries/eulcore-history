@@ -90,6 +90,8 @@ INSTALLED_APPS = (
     'eulcore.django.testsetup',
 )
 
+AUTH_PROFILE_MODULE = 'emory_ldap.EmoryLDAPUserProfile'
+
 try:
     # use xmlrunner if it's installed; default runner otherwise. download
     # it from http://github.com/danielfm/unittest-xml-reporting/ to output

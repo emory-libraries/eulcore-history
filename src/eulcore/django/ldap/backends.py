@@ -1,5 +1,6 @@
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, SiteProfileNotAvailable
+from django.core.exceptions import ObjectDoesNotExist
 import ldap
 
 # originally inspired by http://www.carthage.edu/webdev/?p=12
@@ -68,6 +69,13 @@ class LDAPBackend(object):
         self.update_user_fields(user, user_fields)
         user.save()
 
+        try:
+            profile = user.get_profile()
+            self.update_user_profile_fields(profile, user_fields)
+            profile.save()
+        except (ObjectDoesNotExist, SiteProfileNotAvailable):
+            pass # no profile to update.
+
         return user_dn, user
 
     def update_user_fields(self, user, extra_fields):
@@ -76,6 +84,10 @@ class LDAPBackend(object):
             first_name='givenName',
             last_name='sn',
             email='mail')
+        pass
+
+    def update_user_profile_fields(self, profile, extra_fields):
+        # overide/extend this to map LDAP fields to user profile fields
         pass
 
 
