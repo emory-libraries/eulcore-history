@@ -88,6 +88,8 @@ INSTALLED_APPS = (
     'eulcore.django.existdb',
     'eulcore.django.ldap',
     'eulcore.django.testsetup',
+    'eulcore.django.ldap.emory',
+    'south',
 )
 
 AUTH_PROFILE_MODULE = 'emory_ldap.EmoryLDAPUserProfile'
