@@ -101,7 +101,7 @@ class DescriptiveIdentification(xmlmap.XmlObject):
     unittitle = xmlmap.NodeField("unittitle", xmlmap.XmlObject)
     "unit title - `unittitle`"
     unitdate = xmlmap.NodeField(".//unitdate", DateField)
-    "unit date - `.//unitdate' can be anywhere under did"
+    "unit date - `.//unitdate` can be anywhere under did"
     physdesc = xmlmap.StringField("physdesc")
     "physical description - `physdesc`"
     abstract = xmlmap.NodeField('abstract', xmlmap.XmlObject)
