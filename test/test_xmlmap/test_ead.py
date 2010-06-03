@@ -190,7 +190,7 @@ class TestEad(unittest.TestCase):
         self.assert_(isinstance(filedesc, FileDescription))
         self.assert_(isinstance(filedesc.publication, PublicationStatement))
         self.assert_(isinstance(filedesc.publication.address, Address))
-        self.assert_(isinstance(filedesc.publication.datefield, DateField))
+        self.assert_(isinstance(filedesc.publication.date, DateField))
         self.assertEqual("Emory University", filedesc.publication.publisher)
         self.assertEqual("Robert W. Woodruff Library", filedesc.publication.address.lines[0])
         self.assertEqual("404-727-6887", filedesc.publication.address.lines[3])
@@ -199,16 +199,20 @@ class TestEad(unittest.TestCase):
     def test_ProfileDescription(self):
         profiledesc = self.ead.profiledesc
         self.assert_(isinstance(profiledesc, ProfileDescription))
-        self.assertEqual("English", profiledesc.language)
+        self.assertEqual("English", profiledesc.languages[0])
+        self.assertEqual("eng", profiledesc.language_codes[0])
     
     def test_DateField(self):
-        datefield = self.ead.file_desc.publication.datefield
-        self.assert_(isinstance(datefield, DateField))
-        self.assertEqual("2005-05-05", datefield.date)
+        date = self.ead.file_desc.publication.date
+        self.assert_(isinstance(date, DateField))
+        self.assertEqual("2005-05-05", date.normalized)
+        self.assertEqual("May 5, 2005", unicode(date))
+        self.assertEqual("ce", date.era)
+        self.assertEqual("gregorian", date.calendar)
         
-	unitdate = self.ead.dsc.c[1].c[0].did.unitdate
+        unitdate = self.ead.dsc.c[1].c[0].did.unitdate
         self.assert_(isinstance(unitdate, DateField))
-        self.assertEqual("1974/1986", unitdate.date)
+        self.assertEqual("1974/1986", unitdate.normalized)
 
 
         
