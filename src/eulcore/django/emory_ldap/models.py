@@ -21,9 +21,6 @@ class EmoryLDAPUserProfile(AbstractEmoryLDAPUserProfile):
     def get_full_name(self):
         return self.full_name or self.user.get_full_name()
 
-    class Meta:
-        db_table = 'emory_emoryldapuserprofile'
-
 def _create_profile(sender, instance, created, **kwargs):
     if created:
         profile = EmoryLDAPUserProfile(user=instance)
