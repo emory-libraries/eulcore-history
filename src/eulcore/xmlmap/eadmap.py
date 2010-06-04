@@ -76,15 +76,32 @@ class Container(xmlmap.XmlObject):
     def __unicode__(self):
         return self.value
 
+class DateField(xmlmap.XmlObject):
+    """
+    DateField - for access to date and unitdate elements value and attributes.
+    When converted to unicode, will be the non-normalized version of the date
+    in the text content of the element.
+    """
+    normalized = xmlmap.StringField("@normal")
+    "normalized form of the date - `@normal`"
+    calendar = xmlmap.StringField("@calendar")
+    "calendar (e.g. gregorian) - `@calendar`"
+    era = xmlmap.StringField("@era")
+    "era (e.g. ce) - `@era`"
+    value = xmlmap.StringField(".")
+    "human-readable date - (contents of the date element)"
 
+    def __unicode__(self):
+        return self.value
+    
 class DescriptiveIdentification(xmlmap.XmlObject):
     """Descriptive Information (`did` element) for materials in a component"""
     unitid = xmlmap.StringField("unitid")
     "unit id - `unitid`"
     unittitle = xmlmap.NodeField("unittitle", xmlmap.XmlObject)
     "unit title - `unittitle`"
-    unitdate = xmlmap.StringField("unitdate")
-    "unit date - `unitdate`"
+    unitdate = xmlmap.NodeField(".//unitdate", DateField)
+    "unit date - `.//unitdate' can be anywhere under did"
     physdesc = xmlmap.StringField("physdesc")
     "physical description - `physdesc`"
     abstract = xmlmap.NodeField('abstract', xmlmap.XmlObject)
@@ -286,13 +303,24 @@ class PublicationStatement(xmlmap.XmlObject):
 
       Expected dom_node element passed to constructor: `ead/eadheader/filedesc/publicationstmt`.
       """
-    date = xmlmap.StringField("date")
-    "publication date - `date`"
+    date = xmlmap.NodeField("date", DateField)
+    ":class:`DateField` - `date`"
     publisher = xmlmap.StringField("publisher")
     "publisher - `publisher`"
     address = xmlmap.NodeField("address", Address)
     "address of publication/publisher - `address`"
 
+class ProfileDescription(xmlmap.XmlObject):
+    """Profile Descriptor for an EAD document.
+       Expected dom_node element passed to constructor: 'ead/eadheader/profiledesc'.
+    """
+    date = xmlmap.NodeField("date", DateField)
+    ":class:`DateField` - `date`"
+    languages = xmlmap.StringListField("langusage/language")
+    "language information - `langusage/language`"
+    language_codes = xmlmap.StringListField("langusage/language/@langcode")
+    "language codes - `langusage/language/@langcode`"
+    
 class FileDescription(xmlmap.XmlObject):
     """Bibliographic information about this EAD document.
 
@@ -330,4 +358,6 @@ class EncodedArchivalDescription(xmlmap.XmlObject):
     ":class:`SubordinateComponents` `archdesc/dsc`; accessible at top-level for convenience"
     file_desc = xmlmap.NodeField("eadheader/filedesc", FileDescription)
     ":class:`FileDescription` - `filedesc`"
+    profiledesc = xmlmap.NodeField("eadheader/profiledesc", ProfileDescription)
+    ":class:`ProfileDescription` - `profiledesc`"
 

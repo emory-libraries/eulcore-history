@@ -172,7 +172,7 @@ class XmlObject(object):
     def __unicode__(self):
         return self.dom_node.xpath("normalize-space(.)")
 
-    def serialize(self, stream=None):
+    def serialize(self, stream=None, pretty=False):
         """Serialize the contents of the XmlObject to a stream.
 
         If no stream is specified, returns a string.
@@ -183,10 +183,9 @@ class XmlObject(object):
         else:
             string_mode = False
 
-        
         # NOTE: etree c14n doesn't seem to like fedora info: URIs
         #self.dom_node.getroottree().write_c14n(stream)
-        stream.write(etree.tostring(self.dom_node.getroottree(), encoding='UTF-8'))
+        stream.write(etree.tostring(self.dom_node.getroottree(), encoding='UTF-8', pretty_print=pretty))
 
         if string_mode:
             data = stream.getvalue()
