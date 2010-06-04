@@ -314,7 +314,7 @@ class ProfileDescription(xmlmap.XmlObject):
     """Profile Descriptor for an EAD document.
        Expected dom_node element passed to constructor: 'ead/eadheader/profiledesc'.
     """
-    date = xmlmap.NodeField("date", DateField)
+    date = xmlmap.NodeField("//date", DateField)
     ":class:`DateField` - `date`"
     languages = xmlmap.StringListField("langusage/language")
     "language information - `langusage/language`"
