@@ -68,6 +68,10 @@ class Mapper(object):
 
 class StringMapper(Mapper):
     XPATH = etree.XPath('string()')
+    def __init__(self, normalize=False):
+        if normalize:
+            self.XPATH = etree.XPath('normalize-space(string())')
+        
     def to_python(self, node):
         if isinstance(node, basestring):
             return node
@@ -255,24 +259,32 @@ class StringField(Field):
     expression evaluates to an empty NodeList, a StringField evaluates to
     `None`.
 
+    Takes an optional parameter to indicate that the string contents should have
+    whitespace normalized.  By default, does not normalize.
+
     Supports setting values for attributes, empty nodes, or text-only nodes.
     """
 
-    def __init__(self, xpath):
+    def __init__(self, xpath, normalize=False):
         super(StringField, self).__init__(xpath,
                 manager = SingleNodeManager(),
-                mapper = StringMapper())
+                mapper = StringMapper(normalize=normalize))
 
 class StringListField(Field):
 
     """Map an XPath expression to a list of Python strings. If the XPath
     expression evaluates to an empty NodeList, a StringListField evaluates to
-    an empty list."""
+    an empty list.
 
-    def __init__(self, xpath):
+
+    Takes an optional parameter to indicate that the string contents should have
+    whitespace normalized.  By default, does not normalize.
+
+    """
+    def __init__(self, xpath, normalize=False):
         super(StringListField, self).__init__(xpath,
                 manager = NodeListManager(),
-                mapper = StringMapper())
+                mapper = StringMapper(normalize=normalize))
 
 class IntegerField(Field):
 

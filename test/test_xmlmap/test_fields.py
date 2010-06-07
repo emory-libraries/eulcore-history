@@ -21,6 +21,10 @@ class TestFields(unittest.TestCase):
                     <num1>1</num1>
                     <num2>0</num2>
             </boolean>
+            <spacey>           this text
+        needs to be
+                normalized
+            </spacey>
         </foo>
     '''
 
@@ -72,11 +76,17 @@ class TestFields(unittest.TestCase):
             sub_missing = xmlmap.StringField('bar[1]/missing')
             mixed = xmlmap.StringField('bar[1]')
             id = xmlmap.StringField('@id')
+            spacey = xmlmap.StringField('spacey')
+            normal_spacey = xmlmap.StringField('spacey', normalize=True)
 
         obj = TestObject(self.fixture)
         self.assertEqual(obj.val, '42')
         self.assertEqual(obj.missing, None)
         # undefined if >1 matched nodes
+
+        # access normalized and non-normalized versions of string field
+        self.assertNotEqual("this text needs to be normalized", obj.spacey)
+        self.assertEqual("this text needs to be normalized", obj.normal_spacey)
 
         # set an existing string value
         obj.val = "forty-two"
@@ -123,10 +133,15 @@ class TestFields(unittest.TestCase):
         class TestObject(xmlmap.XmlObject):
             vals = xmlmap.StringListField('bar/baz')
             missing = xmlmap.StringListField('missing')
+            spacey = xmlmap.StringListField('spacey', normalize=True)
 
         obj = TestObject(self.fixture)
         self.assertEqual(obj.vals, ['42', '13'])
         self.assertEqual(obj.missing, [])
+
+        # access normalized string list field
+        self.assertEqual("this text needs to be normalized", obj.spacey[0])
+
 
     def testIntegerField(self):
         class TestObject(xmlmap.XmlObject):
