@@ -35,7 +35,7 @@ class TestEad(unittest.TestCase):
     def test_ArchivalDescription(self):
         self.assert_(isinstance(self.ead.archdesc, ArchivalDescription))
         ad = self.ead.archdesc
-        self.assert_("Heaney, Seamus, 1939-" in ad.origination)  #whitespace variance
+        self.assertEqual("Heaney, Seamus, 1939-", ad.origination) 
         self.assertEqual("Manuscript Collection No.653", ad.unitid)
         self.assertEqual("Manuscript Collection No.653", ad.unitid)
         self.assertEqual("1 linear ft.", ad.extent[0])

@@ -108,7 +108,7 @@ class DescriptiveIdentification(xmlmap.XmlObject):
     "abstract - `abstract`"
     langmaterial = xmlmap.StringField("langmaterial")
     "language of materials - `langmaterial`"
-    origination = xmlmap.StringField("origination")
+    origination = xmlmap.StringField("origination", normalize=True)
     "origination - `origination`"
     location = xmlmap.StringField("physloc")
     "physical location - `physloc`"
@@ -247,7 +247,7 @@ class ArchivalDescription(xmlmap.XmlObject):
 
       Expected dom_node element passed to constructor: `ead/archdesc`.
       """
-    origination = xmlmap.StringField("did/origination")
+    origination = xmlmap.StringField("did/origination", normalize=True)
     "origination - `did/origination`"
     unitid = xmlmap.StringField("did/unitid")
     "unit id - `did/untid`"
