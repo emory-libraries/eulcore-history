@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
+from datetime import datetime
 
 from eulcore import xmlmap
 from eulcore.existdb.db import ExistDB
@@ -225,6 +226,13 @@ class ExistQueryTest(unittest.TestCase):
             # each return object should have a 40-character SHA-1 hash checksum
             self.assertEqual(40, len(result.hash),
                 'xquery result should have 40-character checksum, got %s' % result.hash)
+
+    def test_only_lastmodified(self):
+        fqs = self.qs.only('last_modified')
+        # no filters, should return all 3 test objects
+        for result in fqs:
+            self.assert_(isinstance(result.last_modified, datetime))
+
 
     def test_iter(self):
         for q in self.qs:
