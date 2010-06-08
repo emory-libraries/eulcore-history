@@ -201,6 +201,10 @@ class TestEad(unittest.TestCase):
         self.assert_(isinstance(profiledesc, ProfileDescription))
         self.assertEqual("English", profiledesc.languages[0])
         self.assertEqual("eng", profiledesc.language_codes[0])
+        # profile creation date
+        self.assert_(isinstance(profiledesc.date, DateField))
+        self.assertEqual(u'May 5, 2005', unicode(profiledesc.date))
+        self.assertEqual('2005-05-05', profiledesc.date.normalized)
     
     def test_DateField(self):
         date = self.ead.file_desc.publication.date
