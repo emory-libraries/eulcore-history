@@ -176,7 +176,7 @@ See the individual blocks for overriding and structure.
                                 {# extend just navbar-items to use Home and Admin navbar links as-is #}
                                 {% block navbar-items %}{% endblock %}
                             {% if user.is_staff %}
-                                <li><a href="{% url admin:index %}">Admin</a></li>
+                                <li><a href="{% block admin-url %}{% url admin:index %}{% endblock %}">Admin</a></li>
                             {% endif %}
                           </ul>
                           {% endblock %}
