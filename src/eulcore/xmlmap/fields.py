@@ -120,7 +120,11 @@ class DateMapper(object):
             rep = rep[:-1]
         if rep[-6] in '+-': # strip tz
             rep = rep[:-6]
-        dt = datetime.strptime(rep, '%Y-%m-%dT%H:%M:%S')
+        try:
+            dt = datetime.strptime(rep, '%Y-%m-%dT%H:%M:%S')
+        except ValueError, v:
+            # if initial format fails, attempt to parse with microseconds
+            dt = datetime.strptime(rep, '%Y-%m-%dT%H:%M:%S.%f')
         return dt
 
     def to_xml(self, dt):
