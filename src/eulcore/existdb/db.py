@@ -192,6 +192,22 @@ class ExistDB:
         return self.server.remove(name)
 
     @_wrap_xmlrpc_fault
+    def moveDocument(self, from_collection, to_collection, document):
+        """Move a document in eXist from one collection to another.
+
+        :param from_collection: collection where the document currently exists
+        :param to_collection: collection where the document should be moved
+        :param document: name of the document in eXist
+        :rtype: boolean
+        """
+        self.query("xmldb:move('%s', '%s', '%s')" % \
+                            (from_collection, to_collection, document))
+        # query result does not return any meaningful content,
+        # but any failure (missing collection, document, etc) should result in
+        # an exception, so return true if the query completed successfully
+        return True
+
+    @_wrap_xmlrpc_fault
     def query(self, xquery, start=1, how_many=10, **kwargs):
         """Execute an XQuery_ query, returning the results directly.
 
