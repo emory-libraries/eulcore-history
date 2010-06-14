@@ -23,7 +23,7 @@ Contents
 Dependencies
 ------------
 
-.. include:: ../README.dependencies
+.. include:: ../src/eulcore/README.dependencies
 
 Indices and tables
 ------------------
