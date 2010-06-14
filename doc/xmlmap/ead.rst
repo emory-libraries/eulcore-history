@@ -21,14 +21,14 @@ Nearly all fields in all EAD XmlObjects are mapped as
 :class:`eulcore.xmlmap.XPathString` or :class:`eulcore.xmlmap.XPathStringList`,
 except for custom EAD sub-objects, which are indicated where in use.
 
-  .. autoclass:: eulcore.xmlmap.eadmap.EncodedArchivalDescription(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.EncodedArchivalDescription(node[, context])
       :members:
 
 Archival Description
 --------------------
 `LOC documentation for EAD archdesc element <http://www.loc.gov/ead/tglib/elements/archdesc.html>`_
 
-  .. autoclass:: eulcore.xmlmap.eadmap.ArchivalDescription(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.ArchivalDescription(node[, context])
       :members:
 
 Subordinate Components
@@ -36,20 +36,20 @@ Subordinate Components
 See also LOC documentation for `dsc element <http://www.loc.gov/ead/tglib/elements/dsc.html>`_ ,
 `c (component) element <http://www.loc.gov/ead/tglib/elements/c.html>`_
 
-  .. autoclass:: eulcore.xmlmap.eadmap.SubordinateComponents(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.SubordinateComponents(node[, context])
       :members:
 
-  .. autoclass:: eulcore.xmlmap.eadmap.Component(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.Component(node[, context])
       :members:
 
 Controlled Access Headings
 --------------------------
 `LOC Documentation for controlaccess element <http://www.loc.gov/ead/tglib/elements/controlaccess.html>`_
 
-  .. autoclass:: eulcore.xmlmap.eadmap.ControlledAccessHeadings(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.ControlledAccessHeadings(node[, context])
       :members:
 
-  .. autoclass:: eulcore.xmlmap.eadmap.Heading(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.Heading(node[, context])
       :members:
 
 Index and Index Entry
@@ -57,10 +57,10 @@ Index and Index Entry
 See also LOC Documentation for `index element <http://www.loc.gov/ead/tglib/elements/index-element.html>`_,
 `indexentry element <http://www.loc.gov/ead/tglib/elements/indexentry.html>`_
 
-  .. autoclass:: eulcore.xmlmap.eadmap.Index(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.Index(node[, context])
       :members:
 
-  .. autoclass:: eulcore.xmlmap.eadmap.IndexEntry(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.IndexEntry(node[, context])
       :members:
 
 File Description
@@ -68,10 +68,10 @@ File Description
 See also LOC Documentation for `filedesc element <http://www.loc.gov/ead/tglib/elements/filedesc.html>`_,
 `publicationstmt element <http://www.loc.gov/ead/tglib/elements/publicationstmt.html>`_
 
-  .. autoclass:: eulcore.xmlmap.eadmap.FileDescription(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.FileDescription(node[, context])
       :members:
 
-  .. autoclass:: eulcore.xmlmap.eadmap.PublicationStatement(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.PublicationStatement(node[, context])
       :members:
 
 
@@ -81,22 +81,22 @@ See also LOC documentation for `did element <http://www.loc.gov/ead/tglib/elemen
 `container element <http://www.loc.gov/ead/tglib/elements/container.html>`_
 
 
-  .. autoclass:: eulcore.xmlmap.eadmap.DescriptiveIdentification(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.DescriptiveIdentification(node[, context])
       :members:
 
-  .. autoclass:: eulcore.xmlmap.eadmap.Container(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.Container(node[, context])
       :members:
       
-  .. autoclass:: eulcore.xmlmap.eadmap.Section(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.Section(node[, context])
       :members:
 
-  .. autoclass:: eulcore.xmlmap.eadmap.Address(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.Address(node[, context])
       :members:
 
-  .. autoclass:: eulcore.xmlmap.eadmap.PointerGroup(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.PointerGroup(node[, context])
       :members:
 
-  .. autoclass:: eulcore.xmlmap.eadmap.Reference(dom_node[, context])
+  .. autoclass:: eulcore.xmlmap.eadmap.Reference(node[, context])
       :members:
 
 

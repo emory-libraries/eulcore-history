@@ -118,7 +118,7 @@ class DatastreamObject(object):
     def _bootstrap_content(self):
         return None
 
-    def _content_as_dom(self):
+    def _content_as_node(self):
         # used for serializing inline xml datastreams at ingest
         return None
 
@@ -329,8 +329,8 @@ class XmlDatastreamObject(DatastreamObject):
     def _bootstrap_content(self):
         return self.objtype()
 
-    def _content_as_dom(self):
-        return self.content.dom_node
+    def _content_as_node(self):
+        return self.content.node
 
 
 class XmlDatastream(Datastream):
@@ -369,11 +369,11 @@ class RdfDatastreamObject(DatastreamObject):
     def _bootstrap_content(self):
         return RdfGraph()
 
-    def _content_as_dom(self):
+    def _content_as_node(self):
         graph = self.content
         data = graph.serialize()
         obj = xmlmap.load_xmlobject_from_string(data)
-        return obj.dom_node
+        return obj.node
 
 
 class RdfDatastream(Datastream):
@@ -719,7 +719,7 @@ class DigitalObject(object):
     def _build_foxml_datastream(self, E, dsid, dsobj):
 
         # if we can't construct a content node then bail before constructing
-        # any other dom
+        # any other nodes
         content_node = None
         if dsobj.control_group == 'X':
             content_node = self._build_foxml_inline_content(E, dsobj)
@@ -747,12 +747,12 @@ class DigitalObject(object):
         return ds_xml
 
     def _build_foxml_inline_content(self, E, dsobj):
-        orig_content_dom = dsobj._content_as_dom()
-        if orig_content_dom is None:
+        orig_content_node = dsobj._content_as_node()
+        if orig_content_node is None:
             return
 
         content_container_xml = E('xmlContent')
-        content_container_xml.append(orig_content_dom)
+        content_container_xml.append(orig_content_node)
         return content_container_xml
 
     def _build_foxml_managed_content(self, E, dsobj):

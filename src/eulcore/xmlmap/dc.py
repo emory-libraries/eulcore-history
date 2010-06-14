@@ -4,7 +4,7 @@ class DublinCore(xmlmap.XmlObject):
     """
     XmlObject for Simple (unqualified) Dublin Core metadata.
 
-    If no domnode is specified when initialized, a new, empty Dublin Core
+    If no node is specified when initialized, a new, empty Dublin Core
     XmlObject will be created.
     """    
 

@@ -28,10 +28,10 @@ class _FieldDescriptor(object):
     def __get__(self, obj, objtype):
         if obj is None:
             return self
-        return self.field.get_for_node(obj.dom_node, obj.context)
+        return self.field.get_for_node(obj.node, obj.context)
 
     def __set__(self, obj, value):        
-        return self.field.set_for_node(obj.dom_node, obj.context, value)
+        return self.field.set_for_node(obj.node, obj.context, value)
 
 
 class XmlObjectType(type):
@@ -109,14 +109,14 @@ class XmlObjectType(type):
 class XmlObject(object):
 
     """
-    A Python object wrapped around an XML DOM node.
+    A Python object wrapped around an XML node.
 
     Typical programs will define subclasses of :class:`XmlObject` with
     various field members. Some programs will use
     :func:`load_xmlobject_from_string` and :func:`load_xmlobject_from_file`
     to create instances of these subclasses. Other programs will create them
-    directly, passing a dom_node argument to the constructor. If the
-    subclass defines a :attr:`ROOT_NAME` then this dom_node argument is
+    directly, passing a node argument to the constructor. If the
+    subclass defines a :attr:`ROOT_NAME` then this node argument is
     optional: Programs may then create instances directly with no
     constructor arguments.
 
@@ -124,13 +124,13 @@ class XmlObject(object):
     argument to the constructor to specify an XPath evaluation context with
     alternate namespace or variable definitions. By default, fields are
     evaluated in an XPath context containing the namespaces of the wrapped
-    DOM node and no variables.
+    node and no variables.
     """
     # FIXME: context paragraph no longer accurate...
 
     __metaclass__ = XmlObjectType
 
-    dom_node = None
+    node = None
     """The top-level xml node wrapped by the object"""
     
     ROOT_NAME = None
@@ -162,13 +162,13 @@ class XmlObject(object):
     """    
     # NOTE: DTD and RNG validation could be handled similarly to XSD validation logic
 
-    def __init__(self, dom_node=None, context=None):
-        if dom_node is None:
-            dom_node = self._build_root_element()
+    def __init__(self, node=None, context=None):
+        if node is None:
+            node = self._build_root_element()
 
-        self.dom_node = dom_node
+        self.node = node
         # FIXME: context probably needs work
-        self.context = {'namespaces' : dom_node.nsmap}
+        self.context = {'namespaces' : node.nsmap}
         if context is not None:
             self.context.update(context)
 
@@ -202,10 +202,10 @@ class XmlObject(object):
             xslt_doc = etree.fromstring(xsl)
         transform = etree.XSLT(xslt_doc)
         # FIXME: this returns an etree; should it convert to string first?
-        return transform(self.dom_node)
+        return transform(self.node)
 
     def __unicode__(self):
-        return self.dom_node.xpath("normalize-space(.)")
+        return self.node.xpath("normalize-space(.)")
 
     def serialize(self, stream=None, pretty=False):
         """Serialize the contents of the XmlObject to a stream.
@@ -222,8 +222,8 @@ class XmlObject(object):
             string_mode = False
 
         # NOTE: etree c14n doesn't seem to like fedora info: URIs
-        #self.dom_node.getroottree().write_c14n(stream)
-        stream.write(etree.tostring(self.dom_node.getroottree(), encoding='UTF-8', pretty_print=pretty))
+        #self.node.getroottree().write_c14n(stream)
+        stream.write(etree.tostring(self.node.getroottree(), encoding='UTF-8', pretty_print=pretty))
 
         if string_mode:
             data = stream.getvalue()
@@ -240,7 +240,7 @@ class XmlObject(object):
         :raises: Exception if no XSD schema is defined for this XmlObject instance
         """
         if self.xmlschema is not None:
-            return self.xmlschema.validate(self.dom_node)
+            return self.xmlschema.validate(self.node)
         else:
             raise Exception('No XSD schema is defined, cannot validate document')
 
@@ -287,7 +287,7 @@ def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False):
 
     If an xmlclass is specified, construct an instance of that class instead
     of :class:`~eulcore.xmlmap.XmlObject`. It should be a subclass of XmlObject.
-    The constructor will be passed a single DOM node.
+    The constructor will be passed a single node.
 
     If validation is requested and the specified subclass of :class:`XmlObject`
     has an XSD_SCHEMA defined, the parser will be configured to validate against

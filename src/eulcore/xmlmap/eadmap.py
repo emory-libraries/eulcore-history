@@ -34,7 +34,7 @@ class ControlledAccessHeadings(Section):
     Controlled access headings, such as subject terms, family and corporate
     names, etc.
 
-    Expected dom_node element passed to constructor: `contolaccess`.
+    Expected node element passed to constructor: `contolaccess`.
     """
     person_name = xmlmap.NodeListField("persname", Heading)
     "person name :class:`Heading` list - `persname`"
@@ -66,7 +66,7 @@ class Container(xmlmap.XmlObject):
     """
     Container - :class:`DescriptiveIdentification` subelement for locating materials.
 
-    Expected dom_node element passed to constructor: `did/container`.
+    Expected node element passed to constructor: `did/container`.
     """
     type = xmlmap.StringField("@type")
     "type - `@type`"
@@ -178,7 +178,7 @@ class Component(xmlmap.XmlObject):
 class SubordinateComponents(Section):
     """Description of Subordinate Components (dsc element); container lists and series.
     
-       Expected dom_node element passed to constructor: `ead/archdesc/dsc`.
+       Expected node element passed to constructor: `ead/archdesc/dsc`.
     """
 
     type = xmlmap.StringField("@type")
@@ -202,7 +202,7 @@ class SubordinateComponents(Section):
 class Reference(xmlmap.XmlObject):
     """Internal linking element that may contain text.
 
-    Expected dom_node element passed to constructor: `ref`.
+    Expected node element passed to constructor: `ref`.
     """
     type = xmlmap.StringField("@linktype")
     "link type"
@@ -218,7 +218,7 @@ class Reference(xmlmap.XmlObject):
 class PointerGroup(xmlmap.XmlObject):
     """Group of pointer or reference elements in an index entry
     
-    Expected dom_node element passed to constructor: `ptrgrp`.
+    Expected node element passed to constructor: `ptrgrp`.
     """
     ref = xmlmap.NodeListField("ref", Reference)
     "list of :class:`Reference` - references"
@@ -235,7 +235,7 @@ class IndexEntry(xmlmap.XmlObject):
 class Index(Section):
     """Index (index element); list of key terms and reference information.
 
-       Expected dom_node element passed to constructor: `ead/archdesc/index`.
+       Expected node element passed to constructor: `ead/archdesc/index`.
     """
     entry = xmlmap.NodeListField("indexentry", IndexEntry)
     "list of :class:`IndexEntry` - `index`; entry in the index"
@@ -245,7 +245,7 @@ class Index(Section):
 class ArchivalDescription(xmlmap.XmlObject):
     """Archival description, contains the bulk of the information in an EAD document.
 
-      Expected dom_node element passed to constructor: `ead/archdesc`.
+      Expected node element passed to constructor: `ead/archdesc`.
       """
     origination = xmlmap.StringField("did/origination", normalize=True)
     "origination - `did/origination`"
@@ -293,7 +293,7 @@ class ArchivalDescription(xmlmap.XmlObject):
 class Address(xmlmap.XmlObject):
     """Address information.
 
-      Expected dom_node element passed to constructor: `address`.
+      Expected node element passed to constructor: `address`.
     """
     lines = xmlmap.StringListField("addressline")
     "list of lines in an address - `line`"
@@ -301,7 +301,7 @@ class Address(xmlmap.XmlObject):
 class PublicationStatement(xmlmap.XmlObject):
     """Publication information for an EAD document.
 
-      Expected dom_node element passed to constructor: `ead/eadheader/filedesc/publicationstmt`.
+      Expected node element passed to constructor: `ead/eadheader/filedesc/publicationstmt`.
       """
     date = xmlmap.NodeField("date", DateField)
     ":class:`DateField` - `date`"
@@ -312,7 +312,7 @@ class PublicationStatement(xmlmap.XmlObject):
 
 class ProfileDescription(xmlmap.XmlObject):
     """Profile Descriptor for an EAD document.
-       Expected dom_node element passed to constructor: 'ead/eadheader/profiledesc'.
+       Expected node element passed to constructor: 'ead/eadheader/profiledesc'.
     """
     date = xmlmap.NodeField("creation/date", DateField)
     ":class:`DateField` - `creation/date`"
@@ -324,7 +324,7 @@ class ProfileDescription(xmlmap.XmlObject):
 class FileDescription(xmlmap.XmlObject):
     """Bibliographic information about this EAD document.
 
-      Expected dom_node element passed to constructor: `ead/eadheader/filedesc`.
+      Expected node element passed to constructor: `ead/eadheader/filedesc`.
       """
     publication = xmlmap.NodeField("publicationstmt", PublicationStatement)
     "publication information - `publicationstmt`"
@@ -333,7 +333,7 @@ class FileDescription(xmlmap.XmlObject):
 class EncodedArchivalDescription(xmlmap.XmlObject):
     """xmlmap object for an Encoded Archival Description (EAD) Finding Aid
 
-       Expects dom_node passed to constructor to be top-level `ead` element.
+       Expects node passed to constructor to be top-level `ead` element.
     """
     id = xmlmap.StringField('@id')
     "top-level id attribute - `@id`; preferable to use eadid"

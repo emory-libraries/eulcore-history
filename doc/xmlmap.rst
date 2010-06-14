@@ -5,7 +5,7 @@
 
 :mod:`eulcore.xmlmap` makes it easier to map XML to Python objects. The
 Python DOM does some of this, of course, but sometimes it's prettier to wrap
-a DOM node in a typed Python object and assign attributes on that object to
+an XML node in a typed Python object and assign attributes on that object to
 reference subnodes by XPath_ expressions. This module provides that
 functionality for read-only attributes, and in the future it aims to allow
 setting them as well.
@@ -64,7 +64,7 @@ this::
 Concepts
 --------
 
-:mod:`~eulcore.xmlmap` simplifies access to XML DOM data in Python. Programs
+:mod:`~eulcore.xmlmap` simplifies access to XML data in Python. Programs
 can define new :class:`~eulcore.xmlmap.XmlObject` subclasses representing a
 type of XML node with predictable structure. Members of these classes can be
 regular methods and values like in regular Python classes, but they can also be
@@ -79,7 +79,7 @@ Python value.
 Most programs will use :mod:`~eulcore.xmlmap` by defining a subclass of
 :class:`XmlObject` containing :ref:`field <xmlmap-field>` members.
 
-.. autoclass:: XmlObject([dom_node[, context]])
+.. autoclass:: XmlObject([node[, context]])
     :members:
 
     .. attribute:: _fields
@@ -102,9 +102,9 @@ Field types
 -----------
 
 There are several predefined field types. All of them evaluate XPath
-expressions and map the resultant DOM nodes to Python types. They differ
-primarily in how they map those DOM nodes to Python objects as well as in
-whether they expect their XPath expression to match a single DOM node or a
+expressions and map the resultant XML nodes to Python types. They differ
+primarily in how they map those XML nodes to Python objects as well as in
+whether they expect their XPath expression to match a single XML node or a
 whole collection of them.
 
 Field objects are typically created as part of an :class:`XmlObject`

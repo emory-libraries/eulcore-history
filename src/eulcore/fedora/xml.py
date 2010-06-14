@@ -174,10 +174,10 @@ class RepositoryDescription(xmlmap.XmlObject):
 class SearchResult(xmlmap.XmlObject):
     """:class:`~eulcore.xmlmap.XmlObject` for a single entry in the results
         returned by :meth:`REST_API.findObjects`"""
-    def __init__(self, dom_node, context=None):
+    def __init__(self, node, context=None):
         if context is None:
             context = {'namespaces' : {'res': 'http://www.fedora.info/definitions/1/0/types/'}}
-        xmlmap.XmlObject.__init__(self, dom_node, context)
+        xmlmap.XmlObject.__init__(self, node, context)
 
     pid = xmlmap.StringField('res:pid')
     "pid"
@@ -185,10 +185,10 @@ class SearchResult(xmlmap.XmlObject):
 class SearchResults(xmlmap.XmlObject):
     """:class:`~eulcore.xmlmap.XmlObject` for the results returned by
         :meth:`REST_API.findObjects`"""
-    def __init__(self, dom_node, context=None):
+    def __init__(self, node, context=None):
         if context is None:
             context = {'namespaces' : {'res': 'http://www.fedora.info/definitions/1/0/types/'}}
-        xmlmap.XmlObject.__init__(self, dom_node, context)
+        xmlmap.XmlObject.__init__(self, node, context)
 
     session_token = xmlmap.StringField('res:listSession/res:token')
     "session token"

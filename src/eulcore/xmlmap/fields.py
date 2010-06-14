@@ -1,7 +1,7 @@
 from datetime import datetime
 from lxml import etree
 from lxml.builder import ElementMaker
-# NOTE: using 4suite xpath to dynamically create nodes in the dom for
+# NOTE: using 4suite xpath to dynamically create nodes in the xml object for setting nodes
 from Ft.Xml.XPath import Compile #, Evaluate
 from Ft.Xml.XPath.ParsedNodeTest import LocalNameTest, QualifiedNameTest
 from Ft.Xml.XPath.ParsedRelativeLocationPath import ParsedRelativeLocationPath
@@ -142,7 +142,7 @@ class NodeMapper(object):
     def to_python(self, node):
         return self.node_class(node)
 
-# managers to map operations to either a single identified dom node or a
+# managers to map operations to either a single identified node or a
 # list of them
 
 class SingleNodeManager(object):

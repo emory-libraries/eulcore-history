@@ -90,41 +90,41 @@ class TestFields(unittest.TestCase):
 
         # set an existing string value
         obj.val = "forty-two"
-        # check that new value is set in the dom node
-        self.assertEqual(obj.dom_node.xpath('string(bar[1]/baz)'), "forty-two")
+        # check that new value is set in the node
+        self.assertEqual(obj.node.xpath('string(bar[1]/baz)'), "forty-two")
         # check that new value is accessible via descriptor        
         self.assertEqual(obj.val, 'forty-two')
 
         # set an attribute
         obj.id = 'z'
-        # check that new value is set in the dom node
-        self.assertEqual(obj.dom_node.xpath('string(@id)'), "z")
+        # check that new value is set in the node
+        self.assertEqual(obj.node.xpath('string(@id)'), "z")
         # check that new value is accessible via descriptor
         self.assertEqual(obj.id, 'z')
 
         # set value in an empty node
         obj.empty = "full"
-        self.assertEqual(obj.dom_node.xpath('string(empty_field)'), "full")
+        self.assertEqual(obj.node.xpath('string(empty_field)'), "full")
         # check that new value is accessible via descriptor
         self.assertEqual(obj.empty, 'full')
 
         # set missing fields
         obj.missing = 'not here'
-        self.assertEqual(obj.dom_node.xpath('string(missing)'), 'not here')
+        self.assertEqual(obj.node.xpath('string(missing)'), 'not here')
         # with ns
         obj.missing_ns = 'over there'
-        self.assertEqual(obj.dom_node.xpath('string(ex:missing)', namespaces=self.namespaces),
+        self.assertEqual(obj.node.xpath('string(ex:missing)', namespaces=self.namespaces),
                     'over there')
         # in attrib
         obj.missing_att = 'out to pasture'
-        self.assertEqual(obj.dom_node.xpath('string(@missing)'), 'out to pasture')
+        self.assertEqual(obj.node.xpath('string(@missing)'), 'out to pasture')
         # in attrib with ns
         obj.missing_att_ns = "can't find me!"
-        self.assertEqual(obj.dom_node.xpath('string(@ex:missing)',
+        self.assertEqual(obj.node.xpath('string(@ex:missing)',
                         namespaces=self.namespaces), "can't find me!")
         # in subelement
         obj.sub_missing = 'pining (for the fjords)'
-        self.assertEqual(obj.dom_node.xpath('string(bar/missing)'), 'pining (for the fjords)')
+        self.assertEqual(obj.node.xpath('string(bar/missing)'), 'pining (for the fjords)')
 
         # attempting to set a node that contains non-text nodes - error
         self.assertRaises(Exception, obj.__setattr__, "mixed", "whoops")
@@ -155,8 +155,8 @@ class TestFields(unittest.TestCase):
 
         # set an integer value
         obj.val = 14
-        # check that new value is set in the dom node
-        self.assertEqual(obj.dom_node.xpath('number(bar[2]/baz)'), 14)
+        # check that new value is set in the node
+        self.assertEqual(obj.node.xpath('number(bar[2]/baz)'), 14)
         # check that new value is accessible via descriptor
         self.assertEqual(obj.val, 14)
 
@@ -195,15 +195,15 @@ class TestFields(unittest.TestCase):
 
         # set text boolean
         obj.txt_bool1 = False
-        # check that new value is set in the dom node
-        self.assertEqual(obj.dom_node.xpath('string(boolean/text1)'), 'no')
+        # check that new value is set in the node
+        self.assertEqual(obj.node.xpath('string(boolean/text1)'), 'no')
         # check that new value is accessible via descriptor
         self.assertEqual(obj.txt_bool1, False)
 
         # set numeric boolean
         obj.num_bool1 = False
-        # check for new new value in the dom node and via descriptor
-        self.assertEqual(obj.dom_node.xpath('number(boolean/num1)'), 0)
+        # check for new new value in the node and via descriptor
+        self.assertEqual(obj.node.xpath('number(boolean/num1)'), 0)
         self.assertEqual(obj.num_bool1, False)
 
 

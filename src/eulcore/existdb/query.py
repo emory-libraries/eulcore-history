@@ -28,7 +28,7 @@ class QuerySet(object):
     """Lazy eXist database lookup for a set of objects.
 
     :param model: the type of object to return from :meth:`__getitem__`. If
-                  set, the result DOM nodes will be wrapped in objects of
+                  set, the resulting xml nodes will be wrapped in objects of
                   this type. Some methods, like :meth:`filter` and
                   :meth:`only` only make sense if this is set. While this
                   argument can be any callable object, it is typically a

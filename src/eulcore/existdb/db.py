@@ -402,9 +402,9 @@ class QueryResult(xmlmap.XmlObject):
 
     @property
     def results(self):
-        """The result documents themselves as DOM nodes, starting at
+        """The result documents themselves as nodes, starting at
         :attr:`start` and containing :attr:`count` members"""
-        return self.dom_node.xpath('*')
+        return self.node.xpath('*')
 
     # FIXME: Why do we have two properties here with the same value?
     # start == show_from. We should pick one and deprecate the other.
