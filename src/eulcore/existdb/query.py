@@ -436,9 +436,16 @@ class Xquery(object):
         xpath_parts = []
 
         if self.collection is not None:
-            xpath_parts.append('collection("/db/' + self.collection.lstrip('/') + '")')
+            xpath_collection = 'collection("/db/' + self.collection.lstrip('/') + '")'
+            xpath_parts.append(xpath_collection)
 
-        xpath_parts.append(self.xpath)
+        # if top-level path has multiple parts, add collection to each
+        # FIXME: this could be unreliable; there should be a better way to handle this...
+        if '|/' in self.xpath:
+            xpath = self.xpath.replace("|/", "|%s/" % xpath_collection)
+            xpath_parts.append(xpath)
+        else:
+            xpath_parts.append(self.xpath)
         xpath_parts += [ '[%s]' % (f,) for f in self.filters ]
 
         xpath = ''.join(xpath_parts)
