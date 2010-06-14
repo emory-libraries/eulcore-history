@@ -12,8 +12,8 @@ setting them as well.
 
 .. _XPath: http://www.w3.org/TR/xpath/
 
-Contents
---------
+:class:`XmlObject` Instances
+----------------------------
 
 .. toctree::
    :maxdepth: 1
@@ -79,21 +79,21 @@ Python value.
 Most programs will use :mod:`~eulcore.xmlmap` by defining a subclass of
 :class:`XmlObject` containing :ref:`field <xmlmap-field>` members.
 
-.. autoclass:: XmlObject(dom_node[, context])
+.. autoclass:: XmlObject([dom_node[, context]])
+    :members:
 
-   It has the following parameters and methods:
-
-   .. attribute:: dom_node
-
-      The DOM node wrapped by the object
-
-   .. automethod:: xslTransform([filename,[ xsl[, params]]])
-
-   .. attribute:: _fields
+    .. attribute:: _fields
 
       A dictionary mapping field names to :ref:`field <xmlmap-field>`
       members. This dictionary includes all of the fields defined on the
       class as well as those inherited from its parents.
+      
+
+:class:`~eulcore.xmlmap.core.XmlObjectType`
+-------------------------------------------
+
+.. autoclass:: eulcore.xmlmap.core.XmlObjectType
+    :members:
 
 
 .. _xmlmap-field:
@@ -130,18 +130,12 @@ as ``foo.bar``.
 Other facilities
 ----------------
 
-.. autofunction:: load_xmlobject_from_string(string[, xmlclass])
+.. autofunction:: load_xmlobject_from_string
 
-.. autofunction:: load_xmlobject_from_file(string[, xmlclass])
+.. autofunction:: load_xmlobject_from_file
 
-.. function:: parseString(string[, base_uri])
+.. autofunction:: parseString
 
-   Read an XML document provided as a byte string, and return a
-   :mod:`Ft.Xml.Domlette` document node. string cannot be a Unicode string.
+.. autofunction:: parseUri
 
-   base_uri should be provided for the calculation of relative URIs.
-
-.. function:: parseUri(uri)
-
-   Read an XML document from a URI, and return a :mod:`Ft.Xml.Domlette`
-   document node.
+.. autofunction:: loadSchema

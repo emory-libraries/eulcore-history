@@ -8,10 +8,17 @@ __all__ = [ 'XmlObject', 'parseUri', 'parseString', 'loadSchema',
     'load_xmlobject_from_string', 'load_xmlobject_from_file' ]
 
 def parseUri(stream, uri=None):
+    """Read an XML document from a URI, and return a :mod:`lxml.etree`
+    document."""
     return etree.parse(stream, base_url=uri)
 def parseString(string, uri=None):
+    """Read an XML document provided as a byte string, and return a
+    :mod:`lxml.etree` document. String cannot be a Unicode string.
+    Base_uri should be provided for the calculation of relative URIs."""
     return etree.fromstring(string, base_url=uri)
 def loadSchema(uri, base_uri=None):
+    """Load an XSD XML document (specified by filename or URL), and return a
+    :class:`lxml.etree.XMLSchema`."""
     return etree.XMLSchema(etree.parse(uri, base_url=base_uri))
 
 class _FieldDescriptor(object):
@@ -119,9 +126,13 @@ class XmlObject(object):
     evaluated in an XPath context containing the namespaces of the wrapped
     DOM node and no variables.
     """
+    # FIXME: context paragraph no longer accurate...
 
     __metaclass__ = XmlObjectType
 
+    dom_node = None
+    """The top-level xml node wrapped by the object"""
+    
     ROOT_NAME = None
     """A default root element name (with namespace prefix) used when an object
     of this type is created from scratch."""
@@ -148,9 +159,8 @@ class XmlObject(object):
 
         XSD_SCHEMA = "http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
         xmlschema = xmlmap.loadSchema(XSD_SCHEMA)     
-    """
-    # NOTE: lxml also supports RNG schemas
-    # DTD and RNG validation could be handled similarly to XSD validation logic
+    """    
+    # NOTE: DTD and RNG validation could be handled similarly to XSD validation logic
 
     def __init__(self, dom_node=None, context=None):
         if dom_node is None:
@@ -201,6 +211,9 @@ class XmlObject(object):
         """Serialize the contents of the XmlObject to a stream.
 
         If no stream is specified, returns a string.
+        :param stream: stream or other file-like object to write content to (optional)
+        :param pretty: pretty-print the XML output; boolean, defaults to False
+        :rtype: stream passed in or an instance of :class:`cStringIO.StringIO`
         """
         if stream is None:
             string_mode = True
@@ -224,6 +237,7 @@ class XmlObject(object):
         configured XSD Schema associated with this instance of :class:`XmlObject`.
 
         :rtype: boolean
+        :raises: Exception if no XSD schema is defined for this XmlObject instance
         """
         if self.xmlschema is not None:
             return self.xmlschema.validate(self.dom_node)
@@ -233,9 +247,10 @@ class XmlObject(object):
     def validation_errors(self):
         """
         Retrieve any validation errors that occured during schema validation
-        when calling :meth:`is_valid`.
+        done via :meth:`is_valid`.
         
         :returns: a list of :class:`lxml.etree._LogEntry` instances
+        :raises: Exception if no XSD schema is defined for this XmlObject instance
         """
         if self.xmlschema is not None:
             return self.xmlschema.error_log
@@ -251,7 +266,11 @@ def _get_xmlparser(xmlclass=XmlObject, validate=False):
     """
     if validate:
         if hasattr(xmlclass, 'XSD_SCHEMA') and xmlclass.XSD_SCHEMA is not None:
-            xmlschema = loadSchema(xmlclass.XSD_SCHEMA)
+            if xmlclass.xmlschema is not None:
+                # if the schema is already loaded, use that
+                xmlschema = xmlclass.xmlschema
+            else:         # otherwise, load the schema
+                xmlschema = loadSchema(xmlclass.XSD_SCHEMA)
             opts = {'schema': xmlschema}
         else:
             # if configured XmlObject does not have a schema defined, assume DTD validation
@@ -267,9 +286,18 @@ def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False):
     """Initialize an XmlObject from a string.
 
     If an xmlclass is specified, construct an instance of that class instead
-    of XmlObject. It should be a subclass of XmlObject. The constructor will
-    be passed a single DOM node.
-    
+    of :class:`~eulcore.xmlmap.XmlObject`. It should be a subclass of XmlObject.
+    The constructor will be passed a single DOM node.
+
+    If validation is requested and the specified subclass of :class:`XmlObject`
+    has an XSD_SCHEMA defined, the parser will be configured to validate against
+    the specified schema.  Otherwise, the parser will be configured to use DTD
+    validation, and expect a Doctype declaration in the xml content.
+
+    :param string: xml content to be loaded, as a string
+    :param xmlclass: subclass of :class:`~eulcore.xmlmap.XmlObject` to initialize
+    :param validate: boolean, enable validation; defaults to false
+    :rtype: instance of :class:`~eulcore.xmlmap.XmlObject` requested
     """
     parser = _get_xmlparser(xmlclass=xmlclass, validate=validate)
     element = etree.fromstring(string, parser)
@@ -279,10 +307,14 @@ def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False):
 def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False):
     """Initialize an XmlObject from a file.
 
-    If an xmlclass is specified, construct an instance of that class instead
-    of XmlObject. It should be a subclass of XmlObject. The constructor will
-    be passed a single DOM node.
-    
+    See :meth:`load_xmlobject_from_string` for more details; behaves exactly the
+    same, and accepts the same parameters, except that it takes a filename
+    instead of a string.
+
+    :param filename: name of the file that should be loaded as an xmlobject.
+        :meth:`etree.lxml.parse` will accept a file name/path, a file object, a
+        file-like object, or an HTTP or FTP url, however file path and URL are
+        recommended, as they are generally faster for lxml to handle.    
     """
     parser = _get_xmlparser(xmlclass=xmlclass, validate=validate)
 
