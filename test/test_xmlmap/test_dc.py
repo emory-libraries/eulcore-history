@@ -90,5 +90,16 @@ class TestDc(unittest.TestCase):
         self.assert_('xmlns:dc="http://purl.org/dc/elements/1.1/"' in dc_xml)
         self.assert_('xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"' in dc_xml)
 
+    def test_isvalid(self):
+        self.assertTrue(self.dc.is_valid())
+        
+        invalid = """<oai_dc:dc xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/">
+  <dc:title>Feet in the Fire</dc:title>
+        <not_a_dc_field>bogus</not_a_dc_field>
+        </oai_dc:dc>
+        """
+        invalid_dc = load_xmlobject_from_string(invalid, DublinCore)
+        self.assertFalse(invalid_dc.is_valid())
+
 if __name__ == '__main__':
     main()

@@ -12,9 +12,9 @@ class DublinCore(xmlmap.XmlObject):
     ROOT_NAME = 'dc'
     ROOT_NAMESPACES = { 'oai_dc' : ROOT_NS,
                         'dc': 'http://purl.org/dc/elements/1.1/'}
-    
-    # schema not used yet...
-    schema = "http://dublincore.org/schemas/xmls/simpledc20021212.xsd"
+
+    XSD_SCHEMA = "http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
+    xmlschema = xmlmap.loadSchema(XSD_SCHEMA)
 
     contributor = xmlmap.StringField("dc:contributor")
     contributor_list = xmlmap.StringListField("dc:contributor")

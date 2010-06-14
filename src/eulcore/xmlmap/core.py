@@ -4,13 +4,15 @@ from lxml.builder import ElementMaker
 
 from eulcore.xmlmap.fields import Field
 
-__all__ = [ 'XmlObject', 'parseUri', 'parseString',
+__all__ = [ 'XmlObject', 'parseUri', 'parseString', 'loadSchema',
     'load_xmlobject_from_string', 'load_xmlobject_from_file' ]
 
 def parseUri(stream, uri=None):
-    return etree.parse(string, base_url=uri)
+    return etree.parse(stream, base_url=uri)
 def parseString(string, uri=None):
-    return etree.fromstring(string, base_url=None)
+    return etree.fromstring(string, base_url=uri)
+def loadSchema(uri, base_uri=None):
+    return etree.XMLSchema(etree.parse(uri, base_url=base_uri))
 
 class _FieldDescriptor(object):
     def __init__(self, field):
@@ -131,6 +133,25 @@ class XmlObject(object):
     namespace URIs. These namespaces are added to the root element when an
     object of this type is created from scratch."""
 
+    XSD_SCHEMA = None
+    """URI or file path to the XSD schema associated with this :class:`XmlObject`,
+    if any.  If configured, will be used for optional validation when calling
+    :meth:`load_xmlobject_from_string` and :meth:`load_xmlobject_from_file`,
+    and with :meth:`is_valid`.
+    """
+    xmlschema = None 
+    """A parsed XSD schema instance of :class:`lxml.etree.XMLSchema`; will be
+    loaded at class initialization time if XSD_SCHEMA is set and xmlchema is None.
+    If you wish to load and parse the schema at class definition time, instead
+    of at class instance initialization time, you may want to define your schema
+    in your subclass like this::
+
+        XSD_SCHEMA = "http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
+        xmlschema = xmlmap.loadSchema(XSD_SCHEMA)     
+    """
+    # NOTE: lxml also supports RNG schemas
+    # DTD and RNG validation could be handled similarly to XSD validation logic
+
     def __init__(self, dom_node=None, context=None):
         if dom_node is None:
             dom_node = self._build_root_element()
@@ -140,6 +161,10 @@ class XmlObject(object):
         self.context = {'namespaces' : dom_node.nsmap}
         if context is not None:
             self.context.update(context)
+
+        if self.XSD_SCHEMA is not None and self.xmlschema is None:
+            # load xml schema if one is defined and has not already been loaded
+            self.xmlschema = loadSchema(self.XSD_SCHEMA)
 
     def _build_root_element(self):
         opts = {}
@@ -194,6 +219,49 @@ class XmlObject(object):
         
         return stream
 
+    def is_valid(self):
+        """Determine if the current document is schema-valid according to the
+        configured XSD Schema associated with this instance of :class:`XmlObject`.
+
+        :rtype: boolean
+        """
+        if self.xmlschema is not None:
+            return self.xmlschema.validate(self.dom_node)
+        else:
+            raise Exception('No XSD schema is defined, cannot validate document')
+
+    def validation_errors(self):
+        """
+        Retrieve any validation errors that occured during schema validation
+        when calling :meth:`is_valid`.
+        
+        :returns: a list of :class:`lxml.etree._LogEntry` instances
+        """
+        if self.xmlschema is not None:
+            return self.xmlschema.error_log
+        else:
+            raise Exception('No XSD schema is defined, cannot return validation errors')
+
+
+def _get_xmlparser(xmlclass=XmlObject, validate=False):
+    """Initialize an instance of :class:`lxml.etree.XMLParser` with appropriate
+    settings for validation.  If validation is requested and the specified
+    instance of :class:`XmlObject` has an XSD_SCHEMA defined, that will be used.
+    Otherwise, uses DTD validation.
+    """
+    if validate:
+        if hasattr(xmlclass, 'XSD_SCHEMA') and xmlclass.XSD_SCHEMA is not None:
+            xmlschema = loadSchema(xmlclass.XSD_SCHEMA)
+            opts = {'schema': xmlschema}
+        else:
+            # if configured XmlObject does not have a schema defined, assume DTD validation
+            opts = {'dtd_validation': True}
+    
+    else:
+        # if validation is not requested, no parser options are needed
+        opts = {}
+
+    return etree.XMLParser(**opts)
 
 def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False):
     """Initialize an XmlObject from a string.
@@ -203,17 +271,9 @@ def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False):
     be passed a single DOM node.
     
     """
-    if validate:
-        #parser = ValidatingReader.parseString
-        parser = etree.XMLParser(dtd_validation=True)
-    else:
-        parser = etree.XMLParser()
-        #parser = NonvalidatingReader.parseString
-    # parseString wants a uri, but context doesn't really matter for a string...
-    #parsed_str= parser(string, "urn:bogus")
+    parser = _get_xmlparser(xmlclass=xmlclass, validate=validate)
     element = etree.fromstring(string, parser)
     return xmlclass(element)
-    #return xmlclass(parsed_str.documentElement)
 
 
 def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False):
@@ -224,18 +284,10 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False):
     be passed a single DOM node.
     
     """
-    if validate:
-        parser = etree.XMLParser(dtd_validation=True)
-        #parser = ValidatingReader.parseUri
-    else:
-        parser = etree.XMLParser()
-        #parser = NonvalidatingReader.parseUri
+    parser = _get_xmlparser(xmlclass=xmlclass, validate=validate)
 
-    #file_uri = Uri.OsPathToUri(filename)
-    #parsed_file = parser(file_uri)
     tree = etree.parse(filename, parser)
     return xmlclass(tree.getroot())
-    #return xmlclass(parsed_file.documentElement)
 
 # Import these for backward compatibility. Should consider deprecating these
 # and asking new code to pull them from descriptor
