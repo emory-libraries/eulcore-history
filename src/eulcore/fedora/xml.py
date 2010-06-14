@@ -25,7 +25,16 @@ class FedoraDateField(xmlmap.fields.Field):
                 manager = xmlmap.fields.SingleNodeManager(),
                 mapper = FedoraDateMapper())
 
+class FedoraDateListField(xmlmap.fields.Field):
+    """Map an XPath expression to a list of Python `datetime.datetime`.
+    Assumes date-time format in use by Fedora, e.g. 2010-05-20T18:42:52.766Z.
+    If the XPath expression evaluates to an empty NodeList, evaluates to
+    an empty list."""
 
+    def __init__(self, xpath):
+        super(FedoraDateListField, self).__init__(xpath,
+                manager = xmlmap.fields.NodeListManager(),
+                mapper = FedoraDateMapper())
 
 
 # xml objects to wrap around xml returns from fedora
@@ -67,6 +76,20 @@ class ObjectProfile(xmlmap.XmlObject):
     # - object item index view url
     state = xmlmap.StringField('objState')
     "object state (A/I/D - Active, Inactive, Deleted)"
+
+class ObjectHistory(xmlmap.XmlObject):
+    ROOT_NAME = 'fedoraObjectHistory'
+    pid = xmlmap.StringField('@pid')
+    changed = FedoraDateListField('objectChangeDate')
+
+class ObjectMethodService(xmlmap.XmlObject):
+    ROOT_NAME = 'sDef'
+    pid = xmlmap.StringField('@pid')
+    methods = xmlmap.StringListField('method/@name')
+
+class ObjectMethods(xmlmap.XmlObject):
+    ROOT_NAME = 'objectMethods'
+    service_definitions = xmlmap.NodeListField('sDef', ObjectMethodService)
 
 class DatastreamProfile(xmlmap.XmlObject):
     """:class:`~eulcore.xmlmap.XmlObject` for datastream profile information

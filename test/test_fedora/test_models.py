@@ -474,6 +474,17 @@ class TestDigitalObject(FedoraTestCase):
         self.assertEqual("text datastream", text.label)
         self.assertEqual("text/plain", text.mimeType)
 
+    def test_history(self):
+        self.assert_(isinstance(self.obj.history, list))
+        self.assert_(isinstance(self.obj.history[0], datetime))
+        self.assert_(self.now < self.obj.history[0])
+
+    def test_methods(self):
+        methods = self.obj.methods
+        self.assert_('fedora-system:3' in methods)      # standard system sdef
+        self.assert_('viewMethodIndex' in methods['fedora-system:3'])
+
+
     def test_has_model(self):
         cmodel_uri = "info:fedora/control:ContentType"
         # FIXME: checking when rels-ext datastream does not exist causes an error

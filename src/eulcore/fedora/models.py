@@ -8,7 +8,9 @@ from lxml.builder import ElementMaker
 
 from eulcore import xmlmap
 from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed, datetime_to_fedoratime
-from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfile, NewPids
+from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfile, \
+    NewPids, ObjectHistory, ObjectMethods
+
 
 # FIXME: needed by both server and models, where to put?
 URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
@@ -457,6 +459,10 @@ class DigitalObject(object):
         
         # datastream list from fedora
         self._ds_list = None
+        
+        # object history
+        self._history = None
+        self._methods = None
 
         # a string pid is a live object in the repository. a callable pid
         # means a new object: we call that function to get our initial pid.
@@ -544,6 +550,18 @@ class DigitalObject(object):
         # NOTE: used by DatastreamObject
         data, url = self.api.getDatastream(self.pid, dsid)
         return parse_xml_object(DatastreamProfile, data, url)
+
+    @property
+    def history(self):
+        if self._history is None:
+            self.getHistory()
+        return self._history
+
+    def getHistory(self):
+        data, url = self.api.getObjectHistory(self.pid)
+        history = parse_xml_object(ObjectHistory, data, url)
+        self._history = [c for c in history.changed]
+        return history
 
     def getProfile(self):    
         """Get information about this object (label, owner, date created, etc.).
@@ -775,9 +793,28 @@ class DigitalObject(object):
 
         Only retrieved when requested; cached after first retrieval.
         """
+        # FIXME: how to make access to a versioned ds_list ?
+
         if self._ds_list is None:
             self._ds_list = self._get_datastreams()
         return self._ds_list
+
+    @property
+    def methods(self):
+        if self._methods is None:
+            self.get_methods()
+        return self._methods
+
+    def get_methods(self):
+        data, url = self.api.listMethods(self.pid)
+        methods = parse_xml_object(ObjectMethods, data, url)
+        self._methods = {}
+        for sdef in methods.service_definitions:
+            self._methods[sdef.pid] = sdef.methods
+        return self._methods
+
+    def getDissemination(self, service_pid, method, params={}):
+        return self.api.getDissemination(self.pid, service_pid, method, method_params=params)
 
     def add_relationship(self, rel_uri, object):
         """
