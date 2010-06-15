@@ -2,7 +2,6 @@
 
 import sys
 from django.core.management import setup_environ
-from django.test.simple import DjangoTestSuiteRunner
 
 def run_django_tests(argv=None, extras=None):
     # this code inlined (with simplifications) from relevant manage.py code
@@ -20,6 +19,8 @@ def run_django_tests(argv=None, extras=None):
     # FIXME: if we don't import existdb here, starting_tests doesn't get
     # triggered for some reason
     from django.test.utils import get_runner
+    from django.test.simple import DjangoTestSuiteRunner
+    
     from eulcore.django.testsetup import starting_tests, finished_tests
     import eulcore.django.existdb
 
