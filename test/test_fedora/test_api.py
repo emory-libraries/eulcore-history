@@ -561,7 +561,7 @@ class TestAPI_M(FedoraTestCase):
         self.assertEqual("text/xml", dc_info.MIMEType)
         # formatURI not set in test fixture
         self.assert_(self.now < dc_info.createDate)     # created after 'now' in setup
-        self.assertEqual(490, dc_info.size)     # NOTE: based on current fixture size; is this a useful test?
+        self.assertAlmostEqual(490, dc_info.size, 20)     # NOTE: based on current fixture size; is this a useful test?
         self.assertEqual('A', dc_info.state) 
         # location, checksumType, and checksum not set in current fixture
         
