@@ -7,11 +7,28 @@ from django.forms.models import ModelFormOptions
 
 from eulcore import xmlmap
 
-def fields_for_xmlobject(model, fields, exclude, widgets):
-    # generate a dictionary of formfields based on xmlobject xmlmap field types
+def fields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
+    """
+    Returns a dictionary of form fields based on the :class:`~eulcore.xmlmap.XmlObject`
+    instance fields and their types.
+
+    :param fields: optional list of field names; if specified, only the named fields
+    will be returned 
+    """
     formfields = {}
     
     for name, field in model._fields.iteritems():
+        if fields and not name in fields:
+            # if specific fields have been requested and this is not one of them, skip it
+            continue
+        if exclude and name in exclude:
+            # if exclude has been specified and this field is listed, skip it
+            continue
+        if widgets and name in widgets:
+            # if a widget has been specified for this field, pass as option to form field init
+            kwargs = {'widget': widgets[name] }
+        else:
+            kwargs = {}
         # get apppropriate form widget based on xmlmap field type
         field_type = None
         if isinstance(field, xmlmap.fields.StringField):
@@ -30,7 +47,7 @@ def fields_for_xmlobject(model, fields, exclude, widgets):
         # TODO: list variants (currently not settable in xmlobject)... use formsets ?
 
         if field_type is not None:
-            formfields[name] = field_type(label=name)   # use name as label for now
+            formfields[name] = field_type(label=name, **kwargs)   # use name as label for now
 
     # TODO: handle fields, exclude, widgets, sorting
     return formfields
@@ -126,12 +143,15 @@ class XmlObjectForm(BaseForm):
         #    error_class, label_suffix, empty_permitted
 
 
-def xmlobjectform_factory(model, form=XmlObjectForm):
+def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None):
     # dynamically generate an xmlobjectform from a specified xmlobject class
     # - based on django's modelform_factory
 
     attrs = {'model': model}
-    # fields, exclude...
+    if fields is not None:
+        attrs['fields'] = fields
+    if exclude is not None:
+        attrs['exclude'] = exclude
 
     # If parent form class already has an inner Meta, the Meta we're
     # creating needs to inherit from the parent's inner meta.
