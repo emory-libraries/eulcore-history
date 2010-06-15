@@ -41,4 +41,4 @@ Additional notes:
    something like this::
 	
 	import os
-	os.putenv('HTTP_PROXY', 'http://localhost:3128/')
+	os.putenv('HTTP_PROXY', 'http://localhost:3128/')  # local squid proxy on default port
