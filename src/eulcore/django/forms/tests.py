@@ -159,6 +159,35 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_(isinstance(form.base_fields['id'].widget, forms.TextInput),
             'StringField id form field has default TextInput widget')
 
+    def test_save_instance(self):
+        # simulate setting cleaned data (how does this actually get set?)
+        new_data = {
+            'longtext': 'completely new text content',
+            'int': 21,
+            'bool': False,
+            'id': 'b'
+            }
+
+        self.update_form.cleaned_data = new_data
+
+        instance = self.update_form.save()
+        self.assert_(isinstance(instance, TestObject))
+        self.assertEqual(21, instance.int)
+        self.assertEqual(False, instance.bool)
+        self.assertEqual('b', instance.id)
+        self.assertEqual('completely new text content', instance.longtext)
+        
+        # spot check that values were set properly in the xml
+        xml = instance.serialize()
+        self.assert_('id="b"' in xml)
+        self.assert_('<boolean>no</boolean>' in xml)
+
+        # test save on new form 
+        self.new_form.cleaned_data = new_data
+
+        # FIXME: this isn't working - test xml not simple enough to handle ?
+        # ... causes errors in xmlmap set
+        #  instance = self.new_form.save()
 
 
 

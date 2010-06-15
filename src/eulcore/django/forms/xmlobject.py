@@ -1,6 +1,8 @@
 # xmlobject-backed django form (analogous to django db model forms)
 # this code borrows heavily from django.forms.models
 
+from string import capwords
+
 from django.forms import BaseForm, CharField, IntegerField, BooleanField
 from django.forms.forms import get_declared_fields
 from django.forms.models import ModelFormOptions
@@ -47,6 +49,7 @@ def fields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
         # TODO: list variants (currently not settable in xmlobject)... use formsets ?
 
         if field_type is not None:
+            # FIXME: django fields have verbose_name; use capwords, do other default conversion for label?
             formfields[name] = field_type(label=name, **kwargs)   # use name as label for now
 
     # TODO: handle fields, exclude, widgets, sorting
@@ -85,6 +88,16 @@ def xmlobject_to_dict(instance, fields=None, exclude=None):
 
     return data
 
+
+def save_instance(form, instance, fields=None):
+    # save bound form data into a model instance
+    for name, field in instance._fields.iteritems():
+        if fields and name not in fields:
+            continue
+        if name in form.cleaned_data:
+            setattr(instance, name, form.cleaned_data[name])
+
+    return instance
 
 
 class XmlObjectFormType(type):
@@ -142,6 +155,8 @@ class XmlObjectForm(BaseForm):
         #    data, files, auto_id, prefix,  object_data,
         #    error_class, label_suffix, empty_permitted
 
+    def save(self):
+        return save_instance(self, self.instance, self._meta.fields)
 
 def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None):
     # dynamically generate an xmlobjectform from a specified xmlobject class
