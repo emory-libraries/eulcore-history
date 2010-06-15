@@ -19,8 +19,9 @@ if __name__ == '__main__':
     import eulcore.django.existdb
 
     starting_tests.send(None)
-    django_runner = get_runner(settings)
-    failures = django_runner(None, verbosity=1, interactive=True)
+    # in django 1.2, get_runner returns DjangoTestSuiteRunner
+    django_runner = get_runner(settings)(verbosity=1, interactive=True)
+    failures = django_runner.run_tests(test_labels=None)    # run all installed apps
     finished_tests.send(None)
 
     if failures:
