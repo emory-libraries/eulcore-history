@@ -78,6 +78,7 @@ TEMPLATE_DIRS = (
 INSTALLED_APPS = (
     'eulcore.django.existdb',
     'eulcore.django.testsetup',
+    'eulcore.django.forms',
 )
 
 try:
