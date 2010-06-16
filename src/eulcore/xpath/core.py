@@ -5,7 +5,7 @@ from ply import lex, yacc
 from eulcore.xpath import lexrules
 from eulcore.xpath import parserules
 
-__all__ = [ 'lexer', 'parser', 'ptokens', 'sprint' ]
+__all__ = [ 'lexer', 'parser', 'parse', 'ptokens', 'sprint' ]
 
 lexdir = os.path.dirname(lexrules.__file__)
 lexer = lex.lex(module=lexrules, optimize=1, outputdir=lexdir, reflags=re.UNICODE)
@@ -18,6 +18,7 @@ lexer.__class__ = LexerWrapper
 
 parsedir = os.path.dirname(parserules.__file__)
 parser = yacc.yacc(module=parserules, outputdir=parsedir)
+parse = parser.parse
 
 def ptokens(s):
     lexer.input(s)
