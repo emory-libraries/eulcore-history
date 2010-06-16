@@ -4,7 +4,7 @@ from ply import lex, yacc
 
 from eulcore.xpath import lexrules
 from eulcore.xpath import parserules
-from eulcore.xpath.ast import _serialize
+from eulcore.xpath.ast import serialize
 
 __all__ = [ 'lexer', 'parser', 'parse', 'serialize', 'ptokens', 'sprint' ]
 
@@ -20,9 +20,6 @@ lexer.__class__ = LexerWrapper
 parsedir = os.path.dirname(parserules.__file__)
 parser = yacc.yacc(module=parserules, outputdir=parsedir)
 parse = parser.parse
-
-def serialize(xp_ast):
-    return ''.join(_serialize(xp_ast))
 
 def ptokens(s):
     lexer.input(s)

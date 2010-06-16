@@ -1,5 +1,8 @@
 from itertools import chain
 
+def serialize(xp_ast):
+    return ''.join(_serialize(xp_ast))
+
 def _serialize(xp_ast):
     if hasattr(xp_ast, '_serialize'):
         for tok in xp_ast._serialize():
@@ -16,6 +19,10 @@ class UnaryExpression(object):
         self.op = op
         self.right = right
 
+    def __repr__(self):
+        return '<%s %s %s>' % (self.__class__.__name__,
+                self.op, serialize(self.right))
+
     def _serialize(self):
         yield self.op
         for tok in _serialize(self.right):
@@ -30,6 +37,10 @@ class BinaryExpression(object):
         self.left = left
         self.op = op
         self.right = right
+
+    def __repr__(self):
+        return '<%s %s %s %s>' % (self.__class__.__name__,
+                serialize(self.left), self.op, serialize(self.right))
 
     def _serialize(self):
         for tok in _serialize(self.left):
@@ -52,6 +63,10 @@ class PredicatedExpression(object):
     def __init__(self, base, predicates=None):
         self.base = base
         self.predicates = predicates or []
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__,
+                serialize(self))
 
     def append_predicate(self, pred):
         self.predicates.append(pred)
@@ -78,6 +93,10 @@ class AbsolutePath(object):
         self.op = op
         self.relative = relative
 
+    def __repr__(self):
+        return '<%s %s %s>' % (self.__class__.__name__,
+                self.op, serialize(self.relative))
+
     def _serialize(self):
         yield self.op
         for tok in _serialize(self.relative):
@@ -91,6 +110,10 @@ class Step(object):
         self.axis = axis
         self.node_test = node_test
         self.predicates = predicates
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__,
+                serialize(self))
 
     def _serialize(self):
         if self.axis == '@':
@@ -122,6 +145,10 @@ class NameTest(object):
         self.prefix = prefix
         self.name = name
 
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__,
+                serialize(self))
+
     def _serialize(self):
         if self.prefix:
             yield self.prefix
@@ -135,6 +162,10 @@ class NodeType(object):
     def __init__(self, name, literal=None):
         self.name = name
         self.literal = literal
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__,
+                serialize(self))
 
     def _serialize(self):
         yield self.name
@@ -151,6 +182,10 @@ class AbbreviatedStep(object):
     def __init__(self, abbr):
         self.abbr = abbr
 
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__,
+                serialize(self))
+
     def _serialize(self):
         yield self.abbr
 
@@ -160,6 +195,10 @@ class AbbreviatedStep(object):
 class VariableReference(object):
     def __init__(self, name):
         self.name = name
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__,
+                serialize(self))
 
     def _serialize(self):
         yield '$'
@@ -177,6 +216,10 @@ class FunctionCall(object):
         self.prefix = prefix
         self.name = name
         self.args = args
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__,
+                serialize(self))
 
     def _serialize(self):
         if self.prefix:
