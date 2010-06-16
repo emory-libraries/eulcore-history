@@ -2,8 +2,8 @@ import os
 import re
 from ply import lex, yacc
 
-import lexrules
-import parserules
+from eulcore.xpath import lexrules
+from eulcore.xpath import parserules
 
 __all__ = [ 'lexer', 'parser', 'ptokens', 'sprint' ]
 

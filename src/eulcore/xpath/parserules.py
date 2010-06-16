@@ -1,5 +1,5 @@
-import ast
-from lexrules import tokens
+from eulcore.xpath import ast
+from eulcore.xpath.lexrules import tokens
 
 precedence = (
     ('left', 'OR_OP'),

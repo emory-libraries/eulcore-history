@@ -1,1 +1,1 @@
-from core import *
+from eulcore.xpath.core import *
