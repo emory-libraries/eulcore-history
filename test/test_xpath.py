@@ -3,7 +3,7 @@
 import unittest
 
 from eulcore import xpath
-from eulcore.xpath import ast
+from eulcore.xpath import ast, serialize
 
 from testcore import main
 
@@ -89,6 +89,45 @@ class ParseTest(unittest.TestCase):
         self.assertEqual('/', xp.predicates[0].left.op)
         self.assertEqual('author', xp.predicates[0].left.left.node_test.name)
         self.assertEqual('last-name', xp.predicates[0].left.right.node_test.name)
+
+
+class TestSerializeRoundTrip(unittest.TestCase):
+    def round_trip(self, xpath_str):
+        xp = xpath.parse(xpath_str)
+        self.assertEqual(xpath_str, serialize(xp))
+
+    def test_nametest(self):
+        self.round_trip('''ancestor::lib:book''')
+
+    def test_attr_nametest(self):
+        self.round_trip('''@xml:lang''')
+
+    def test_nodetype(self):
+        self.round_trip('''node()''')
+
+    def test_predicates(self):
+        self.round_trip('''a[b][1]''')
+
+    def test_relative_path(self):
+        self.round_trip('''a/b//c/*/..//@d''')
+
+    def test_absolute_path(self):
+        self.round_trip('''//a/b/c''')
+
+    def test_unary(self):
+        self.round_trip('''.//a/@val[0]*-5''')
+
+    def test_predicated_expr(self):
+        self.round_trip('''(a or b)[2]''')
+
+    def test_variable(self):
+        self.round_trip('''a[@b<$threshold]''')
+
+    def test_function(self):
+        self.round_trip('''*[position() mod 2=1]''')
+
+    def test_function_multi_args(self):
+        self.round_trip('''substring-after(.,':')''')
 
 if __name__ == '__main__':
     main()

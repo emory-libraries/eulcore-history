@@ -143,7 +143,7 @@ def p_axis_specifier_abbrev(p):
     """
     AxisSpecifier : ABBREV_AXIS_AT
     """
-    p[0] = 'attribute'
+    p[0] = '@'
 
 #
 # node test
