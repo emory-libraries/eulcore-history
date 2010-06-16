@@ -159,6 +159,40 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_(isinstance(form.base_fields['id'].widget, forms.TextInput),
             'StringField id form field has default TextInput widget')
 
+    def test_field_order(self):
+        # form field order should correspond to field order in xmlobject, which is:
+        # id, int, bool, longtext, [children]
+        field_names = self.update_form.base_fields.keys()
+        self.assertEqual('id', field_names[0],
+            "first field in xmlobject ('id') is first in form fields")
+        self.assertEqual('int', field_names[1],
+            "second field in xmlobject ('int') is second in form fields")
+        self.assertEqual('bool', field_names[2],
+            "third field in xmlobject ('bool') is third in form fields")
+        self.assertEqual('longtext', field_names[3],
+            "fourth field in xmlobject ('longtext') is fourth in form fields")
+
+        class MyTestObject(xmlmap.XmlObject):
+            ROOT_NAME = 'foo'
+            a = xmlmap.StringField('a')
+            z = xmlmap.StringField('z')
+            b = xmlmap.StringField('b')
+            y = xmlmap.StringField('y')
+
+        myform = xmlobjectform_factory(MyTestObject)
+        form = myform()
+        field_names = form.base_fields.keys()
+        self.assertEqual('a', field_names[0],
+            "first field in xmlobject ('a') is first in form fields")
+        self.assertEqual('z', field_names[1],
+            "second field in xmlobject ('z') is second in form fields")
+        self.assertEqual('b', field_names[2],
+            "third field in xmlobject ('b') is third in form fields")
+        self.assertEqual('y', field_names[3],
+            "fourth field in xmlobject ('y') is fourth in form fields")
+
+        # OH - what happens to order on an xmlobject with inheritance?
+
     def test_save_instance(self):
         # simulate setting cleaned data (how does this actually get set?)
         new_data = {

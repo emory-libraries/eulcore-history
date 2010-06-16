@@ -20,6 +20,10 @@ __all__ = [
 # base class for all fields
 
 class Field(object):
+
+    # track each time a Field instance is created, to retain order
+    creation_counter = 0
+
     def __init__(self, xpath, manager, mapper):
         # compile xpath in order to catch an invalid xpath at load time
         etree.XPath(xpath)
@@ -28,6 +32,10 @@ class Field(object):
         self.xpath = xpath
         self.manager = manager
         self.mapper = mapper
+
+        # adjust creation counter, save local copy of current count
+        self.creation_counter = Field.creation_counter
+        Field.creation_counter += 1
 
         # determine parent xpath, node name, node type 
         effective_xpath = Compile(xpath)

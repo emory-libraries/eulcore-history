@@ -6,6 +6,7 @@ from string import capwords
 from django.forms import BaseForm, CharField, IntegerField, BooleanField
 from django.forms.forms import get_declared_fields
 from django.forms.models import ModelFormOptions
+from django.utils.datastructures  import SortedDict
 
 from eulcore import xmlmap
 
@@ -18,6 +19,7 @@ def fields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
     will be returned 
     """
     formfields = {}
+    formfield_order = {}
     
     for name, field in model._fields.iteritems():
         if fields and not name in fields:
@@ -51,9 +53,14 @@ def fields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
         if field_type is not None:
             # FIXME: django fields have verbose_name; use capwords, do other default conversion for label?
             formfields[name] = field_type(label=name, **kwargs)   # use name as label for now
+            formfield_order[field.creation_counter] = (name, formfields[name])
 
-    # TODO: handle fields, exclude, widgets, sorting
-    return formfields
+    ordered_fields = SortedDict(
+        [formfield_order[key] for key in sorted(formfield_order.keys())]
+    )
+    #return formfields
+    return ordered_fields
+
 
 def subforms_for_xmlobject(model, instance=None):
     # generate a sub-form for each nodefield in the model
