@@ -12,14 +12,18 @@ from eulcore import xmlmap
 
 def fields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
     """
-    Returns a dictionary of form fields based on the :class:`~eulcore.xmlmap.XmlObject`
-    instance fields and their types.
+    Returns a sorted dictionary (:class:`django.utils.datastructures.SortedDict`
+    of form fields based on the :class:`~eulcore.xmlmap.XmlObject` instance
+    fields and their types.  Default sorting is by xmlobject field creation order.
 
     :param fields: optional list of field names; if specified, only the named fields
-    will be returned 
+    will be returned
+    :param exclude: optional list of field names that should not be included on
+    the form; if a field is listed in fields and exclude, exclude overrides
+    :param widgets: optional dictionary of widget options to be passed to form
+    field constructor, keyed on field name
     """
     formfields = {}
-    formfield_order = {}
     
     for name, field in model._fields.iteritems():
         if fields and not name in fields:
@@ -52,13 +56,14 @@ def fields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
 
         if field_type is not None:
             # FIXME: django fields have verbose_name; use capwords, do other default conversion for label?
-            formfields[name] = field_type(label=name, **kwargs)   # use name as label for now
-            formfield_order[field.creation_counter] = (name, formfields[name])
+            # using name as label for now
+            # create a list indexed by field creation order, for default field ordering
+            formfields[field.creation_counter] = (name, field_type(label=name, **kwargs))
 
+    # sort on field creation counter and generate a django sorted dictionary
     ordered_fields = SortedDict(
-        [formfield_order[key] for key in sorted(formfield_order.keys())]
+        [formfields[key] for key in sorted(formfields.keys())]
     )
-    #return formfields
     return ordered_fields
 
 
