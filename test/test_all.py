@@ -9,6 +9,7 @@ non_django_test_modules = (
     'test_existdb',
     'test_fedora',
     'test_xmlmap', 
+    'test_xpath',
     )
 
 def non_django_tests():
