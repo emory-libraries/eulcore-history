@@ -3,7 +3,9 @@ import unittest
 from django import forms
 
 from eulcore import xmlmap
+from eulcore.xmlmap.fields import DateField     # not yet supported - testing for errors
 from eulcore.django.forms import XmlObjectForm, XmlObjectFormType, xmlobjectform_factory
+
 
 # test xmlobject and xml content to generate test form
 
@@ -44,8 +46,8 @@ class XmlObjectFormTest(unittest.TestCase):
         # instance of form with no test object
         self.new_form = TestForm()
         # instance of form with test object instance
-        testobj = xmlmap.load_xmlobject_from_string(FIXTURE_TEXT, TestObject)
-        self.update_form = TestForm(testobj)
+        self.testobj = xmlmap.load_xmlobject_from_string(FIXTURE_TEXT, TestObject)
+        self.update_form = TestForm(instance=self.testobj)
 
     def tearDown(self):
         pass
@@ -124,7 +126,8 @@ class XmlObjectFormTest(unittest.TestCase):
 
     def test_specified_fields(self):
         # if fields are specified, only they should be listed
-        myform = xmlobjectform_factory(TestObject, fields=['int', 'bool'])
+        myfields = ['int', 'bool']
+        myform = xmlobjectform_factory(TestObject, fields=myfields)
         form = myform()
         self.assert_('int' in form.base_fields,
             'int field is present in form fields when specified in field list')
@@ -132,6 +135,15 @@ class XmlObjectFormTest(unittest.TestCase):
             'bool field is present in form fields when specified in field list')
         self.assert_('id' not in form.base_fields,
             'id field is not present in form fields when not specified in field list')
+
+        # form field order should match order in fields list
+        self.assertEqual(myfields, form.base_fields.keys())
+
+        # second variant to confirm field order
+        myfields = ['longtext', 'int', 'bool']
+        myform = xmlobjectform_factory(TestObject, fields=myfields)
+        form = myform()
+        self.assertEqual(myfields, form.base_fields.keys())
 
     def test_exclude(self):
         # if exclude is specified, those fields should not be listed
@@ -159,7 +171,7 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_(isinstance(form.base_fields['id'].widget, forms.TextInput),
             'StringField id form field has default TextInput widget')
 
-    def test_field_order(self):
+    def test_default_field_order(self):
         # form field order should correspond to field order in xmlobject, which is:
         # id, int, bool, longtext, [children]
         field_names = self.update_form.base_fields.keys()
@@ -191,10 +203,11 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertEqual('y', field_names[3],
             "fourth field in xmlobject ('y') is fourth in form fields")
 
-        # OH - what happens to order on an xmlobject with inheritance?
+        # what happens to order on an xmlobject with inheritance?
 
-    def test_save_instance(self):
+    def test_update_instance(self):
         # simulate setting cleaned data (how does this actually get set?)
+        # NOTE: see if we can initialize data the same way a view processing a POST would
         new_data = {
             'longtext': 'completely new text content',
             'int': 21,
@@ -202,9 +215,11 @@ class XmlObjectFormTest(unittest.TestCase):
             'id': 'b'
             }
 
-        self.update_form.cleaned_data = new_data
+        update_form = TestForm(new_data, instance=self.testobj)
+        # check that form is valid - if no errors, this populates cleaned_data
+        self.assertTrue(update_form.is_valid())
 
-        instance = self.update_form.save()
+        instance = update_form.update_instance()
         self.assert_(isinstance(instance, TestObject))
         self.assertEqual(21, instance.int)
         self.assertEqual(False, instance.bool)
@@ -216,14 +231,41 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_('id="b"' in xml)
         self.assert_('<boolean>no</boolean>' in xml)
 
-        # test save on new form 
-        self.new_form.cleaned_data = new_data
+        # test save on form with no pre-existing xmlobject instance
+        class SimpleForm(XmlObjectForm):
+            class Meta:
+                model = TestObject
+                fields = ['id', 'bool', 'longtext'] # fields with simple, top-level xpaths
+                # creation for nested node not yet supported in xmlmap - excluding int
 
-        # FIXME: this isn't working - test xml not simple enough to handle ?
-        # ... causes errors in xmlmap set
-        #  instance = self.new_form.save()
+        new_form = SimpleForm({'id': 'A1', 'bool': True, 'longtext': 'la-di-dah'})
+        self.assertTrue(new_form.is_valid())
+        instance = new_form.update_instance()
+        self.assert_(isinstance(instance, TestObject),
+            "update_instance on unbound xmlobjectform returns correct xmlobject instance")
+        self.assertEqual(True, instance.bool)
+        self.assertEqual('A1', instance.id)
+        self.assertEqual('la-di-dah', instance.longtext)
+        # spot check values in created-from-scratch xml
+        xml = instance.serialize()
+        self.assert_('id="A1"' in xml)
+        self.assert_('<boolean>yes</boolean>' in xml)
 
 
+    def test_unsupported_fields(self):
+        # xmlmap fields that XmlObjectForm doesn't know how to convert into form fields
+        # should raise an exception
 
+        class DateObject(xmlmap.XmlObject):
+            ROOT_NAME = 'foo'
+            date = DateField('date')
+
+        self.assertRaises(Exception, xmlobjectform_factory, DateObject)
+
+        class ListObject(xmlmap.XmlObject):
+            ROOT_NAME = 'foo'
+            list = xmlmap.StringListField('bar')
+
+        self.assertRaises(Exception, xmlobjectform_factory, ListObject)
 
 

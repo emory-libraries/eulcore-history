@@ -1,7 +1,7 @@
 # xmlobject-backed django form (analogous to django db model forms)
 # this code borrows heavily from django.forms.models
 
-from string import capwords
+#from string import capwords    # unused - may want to use for variable name to field label conversion
 
 from django.forms import BaseForm, CharField, IntegerField, BooleanField
 from django.forms.forms import get_declared_fields
@@ -24,6 +24,7 @@ def fields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
     field constructor, keyed on field name
     """
     formfields = {}
+    field_order = {}
     
     for name, field in model._fields.iteritems():
         if fields and not name in fields:
@@ -44,26 +45,42 @@ def fields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
         elif isinstance(field, xmlmap.fields.IntegerField):
             field_type = IntegerField
         elif isinstance(field, xmlmap.fields.SimpleBooleanField):
+            # by default, fields are required - for a boolean, required means it must be checked
+            # since that seems nonsensical and not useful for a boolean,
+            # setting required to False to allow True or False values
+            kwargs['required'] = False
             field_type = BooleanField
-        # datefield?
-        else:
+            
+        # datefield ? - not yet well-supported; leaving out for now
+        # should probably distinguish between date and datetime field
+        
+        elif isinstance(field, xmlmap.fields.NodeField):
+            # not handled here, but not an error
             pass
-            # is there any possible sane fall back ? error or warn here?
-            # currently can't handle list fields...
-            # nodefields handled via subforms 
-
+        else:
+            # raise exception for unsupported fields
+            # currently doesn't handle list fields
+            raise Exception('XmlObjectForm does not yet support auto form field generation for %s.' \
+                            % field.__class__)
+           
         # TODO: list variants (currently not settable in xmlobject)... use formsets ?
 
         if field_type is not None:
-            # FIXME: django fields have verbose_name; use capwords, do other default conversion for label?
-            # using name as label for now
-            # create a list indexed by field creation order, for default field ordering
-            formfields[field.creation_counter] = (name, field_type(label=name, **kwargs))
+            # FIXME: django fields have verbose_name;
+            # should we use capwords, do some other default human-readable conversion for labels?
+            # using variable name as label for now
+            formfields[name] = field_type(label=name, **kwargs)
+            # create a dictionary indexed by field creation order, for default field ordering
+            field_order[field.creation_counter] = name
 
-    # sort on field creation counter and generate a django sorted dictionary
-    ordered_fields = SortedDict(
-        [formfields[key] for key in sorted(formfields.keys())]
-    )
+    # if fields were explicitly specified, return them in that order
+    if fields:
+        ordered_fields = SortedDict([(name, formfields[name]) for name in fields])
+    else:
+        # sort on field creation counter and generate a django sorted dictionary
+        ordered_fields = SortedDict(
+            [(field_order[key], formfields[field_order[key]]) for key in sorted(field_order.keys())]
+        )    
     return ordered_fields
 
 
@@ -100,20 +117,9 @@ def xmlobject_to_dict(instance, fields=None, exclude=None):
 
     return data
 
-
-def save_instance(form, instance, fields=None):
-    # save bound form data into a model instance
-    for name, field in instance._fields.iteritems():
-        if fields and name not in fields:
-            continue
-        if name in form.cleaned_data:
-            setattr(instance, name, form.cleaned_data[name])
-
-    return instance
-
-
 class XmlObjectFormType(type):
     # metaclass for xmlobjectform
+    # adds appropriate form fields to the Form object based on the XmlObject fields
 
     def __new__(cls, name, bases, attrs):
         # do we need to handle inheritance like django does?
@@ -140,11 +146,13 @@ class XmlObjectFormType(type):
 
 
 class XmlObjectForm(BaseForm):
+    """Django Form object based on an XmlObject, analogous to Django's ModelForm."""
+
     # django has a basemodelform with all the logic
     # and then a modelform with the metaclass declaration; do we need that?
     __metaclass__ = XmlObjectFormType
      
-    def __init__(self, instance=None, prefix=None):
+    def __init__(self, data=None, instance=None, prefix=None):
         opts = self._meta
         if instance is None:
             if opts.model is None:
@@ -162,17 +170,30 @@ class XmlObjectForm(BaseForm):
         # TODO: figure out how to handle nodefields properly
         self.subforms = subforms_for_xmlobject(opts.model, self.instance)
             
-        super(XmlObjectForm, self).__init__(initial=object_data, prefix=prefix)
+        super(XmlObjectForm, self).__init__(data=data, initial=object_data, prefix=prefix)
         # possible params to pass:
-        #    data, files, auto_id, prefix,  object_data,
+        #    data, files, auto_id, object_data,
         #    error_class, label_suffix, empty_permitted
 
-    def save(self):
-        return save_instance(self, self.instance, self._meta.fields)
+    def update_instance(self):
+        "Save bound form data into the model instance and return the instance."
+        for name, field in self.instance._fields.iteritems():
+            if self._meta.fields and name not in self._meta.fields:
+                continue
+            if name in self.cleaned_data:
+                setattr(self.instance, name, self.cleaned_data[name])
+                
+        return self.instance
+    
+        # NOTE: django model form has a save method - not applicable here,
+        # since an XmlObject by itself is not expected to have a save method
+        # (only likely to be saved in context of a fedora or exist object)
 
 def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None):
-    # dynamically generate an xmlobjectform from a specified xmlobject class
-    # - based on django's modelform_factory
+    """Dynamically generate a new XmlObjectForm class from a specified xmlobject class.
+    
+    Based on django's modelform_factory.
+    """
 
     attrs = {'model': model}
     if fields is not None:
