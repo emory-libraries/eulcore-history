@@ -38,13 +38,13 @@ class AbsolutePath(object):
         return [self.op, self.relative]
 
 class Step(object):
-    def __init__(self, axis, node, predicates):
+    def __init__(self, axis, node_test, predicates):
         self.axis = axis
-        self.node = node
+        self.node_test = node_test
         self.predicates = predicates
 
     def struct(self):
-        name = str(self.node)
+        name = str(self.node_test)
         if self.axis is not None:
             name = self.axis + '::' + name
         if self.predicates:
@@ -52,7 +52,7 @@ class Step(object):
         else:
             return name
 
-class NodeTest(object):
+class NameTest(object):
     def __init__(self, prefix, name):
         self.prefix = prefix
         self.name = name
@@ -62,6 +62,21 @@ class NodeTest(object):
             return '%s:%s' % (self.prefix, self.name)
         else:
             return self.name
+
+class NodeType(object):
+    def __init__(self, name, literal=None):
+        self.name = name
+        self.literal = literal
+
+    def __str__(self):
+        if self.literal is None:
+            literal = ''
+        else:
+            # FIXME: There are probably some edge cases where this is
+            # incorrect.
+            literal = repr(self.literal)
+        return '%s(%s)' % (self.name, literal)
+
 
 class AbbreviatedStep(object):
     def __init__(self, abbr):

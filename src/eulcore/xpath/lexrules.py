@@ -28,6 +28,7 @@ tokens = [
         'FLOAT',
         'INTEGER',
         'NCNAME',
+        'NODETYPE',
         'COLON',
         'DOLLAR',
     ] + list(reserved.values())
@@ -68,18 +69,19 @@ def t_INTEGER(t):
     t.value = int(t.value)
     return t
 
-# Monster regex derived from:
-#  http://www.w3.org/TR/REC-xml/#NT-NameStartChar
-#  http://www.w3.org/TR/REC-xml/#NT-NameChar
-# EXCEPT:
-# Technically those productions allow ':'. NCName, on the other hand:
-#  http://www.w3.org/TR/REC-xml-names/#NT-NCName
-# explicitly excludes those names that have ':'. We implement this by
-# simply removing ':' from our regexes.
-#
-# This long line (370 chars!) sucks. There's probably a better way to break
-# this down and still have it work in ply, but I'm missing it.
+NODE_TYPES = set(['comment', 'text', 'processing-instruction', 'node'])
 def t_NCNAME(t):
+    # Monster regex derived from:
+    #  http://www.w3.org/TR/REC-xml/#NT-NameStartChar
+    #  http://www.w3.org/TR/REC-xml/#NT-NameChar
+    # EXCEPT:
+    # Technically those productions allow ':'. NCName, on the other hand:
+    #  http://www.w3.org/TR/REC-xml-names/#NT-NCName
+    # explicitly excludes those names that have ':'. We implement this by
+    # simply removing ':' from our regexes.
+    #
+    # This long line (370 chars!) sucks. There's probably a better way to break
+    # this down and still have it work in ply, but I'm missing it.
     ur'[A-Z_a-z\xc0-\xd6\xd8-\xf6\xf8-\u02ff\u0370-\u037d\u037f-\u1fff\u200c-\u200d\u2070-\u218f\u2c00-\u2fef\u2001-\ud7ff\uf900-\ufdcf\ufdf0-\ufffd\U00010000-\U000EFFFF][A-Z_a-z\xc0-\xd6\xd8-\xf6\xf8-\u02ff\u0370-\u037d\u037f-\u1fff\u200c-\u200d\u2070-\u218f\u2c00-\u2fef\u2001-\ud7ff\uf900-\ufdcf\ufdf0-\ufffd\U00010000-\U000EFFFF.0-9\xb7\u0300-\u036f\u203f-\u2040-]*'
 
     # I coulda sworn ply would recognize reserved keywords automatically.
@@ -87,6 +89,11 @@ def t_NCNAME(t):
     kwtoken = reserved.get(t.value, None)
     if kwtoken:
         t.type = kwtoken
+    elif t.value in NODE_TYPES:
+        # FIXME: technically foo:node is a QNname. We'll lex it as
+        # NCNAME COLON FNNAME, which is not a valid construction in our
+        # grammar.
+        t.type = 'NODETYPE'
     return t
 
 # Per http://www.w3.org/TR/xpath/#exprlex : 

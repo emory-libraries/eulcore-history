@@ -149,33 +149,53 @@ def p_axis_specifier_abbrev(p):
 # node test
 #
 
-def p_node_test_star(p):
+def p_node_test_name_test(p):
     """
-    NodeTest : STAR_OP
+    NodeTest : NameTest
     """
-    p[0] = ast.NodeTest(None, p[1])
+    p[0] = p[1]
 
-def p_node_test_prefix_star(p):
+def p_node_test_type_simple(p):
     """
-    NodeTest : NCNAME COLON STAR_OP
+    NodeTest : NODETYPE OPEN_PAREN CLOSE_PAREN
     """
-    p[0] = ast.NodeTest(p[1], p[3])
+    # NOTE: Strictly speaking p[1] must come from a list of recognized
+    # NodeTypes. Since we don't actually do anything with them, we don't
+    # need to recognize them. 
+    p[0] = ast.NodeType(p[1])
 
-def p_node_test_qname(p):
+def p_node_test_type_literal(p):
     """
-    NodeTest : QName
+    NodeTest : NODETYPE OPEN_PAREN LITERAL CLOSE_PAREN
+    """
+    # NOTE: Technically this only allows 'processing-instruction' for p[1].
+    # We'll go light on that restriction since we don't actually need it for
+    # processing.
+    p[0] = ast.NodeType(p[1], p[3])
+
+#
+# name test
+#
+
+def p_name_test_star(p):
+    """
+    NameTest : STAR_OP
+    """
+    p[0] = ast.NameTest(None, p[1])
+
+def p_name_test_prefix_star(p):
+    """
+    NameTest : NCNAME COLON STAR_OP
+    """
+    p[0] = ast.NameTest(p[1], p[3])
+
+def p_name_test_qname(p):
+    """
+    NameTest : QName
     """
     qname = p[1]
-    p[0] = ast.NodeTest(qname[0], qname[1])
+    p[0] = ast.NameTest(qname[0], qname[1])
 
-def p_node_test_type(p):
-    """
-    NodeTest : FunctionCall
-    """
-    # Strictly speaking a NodeTest may only be NodeType() or
-    # processing-instruction("literal"). Since we're not worried about
-    # evaluation, though, this is close enough for now.
-    p[0] = p[1]
 
 #
 # qname
@@ -202,6 +222,7 @@ def p_filter_expr_simple(p):
     FilterExpr : VariableReference
                | LITERAL
                | Number
+               | FunctionCall
     """
     # FIXME: | FunctionCall moved so as not to conflict with NodeTest :
     # FunctionCall
