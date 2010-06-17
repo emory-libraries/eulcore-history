@@ -275,7 +275,7 @@ class XmlObjectFormTest(unittest.TestCase):
 
     def test_subforms(self):
         # nodefields should be created as subforms on the object
-        subform = self.new_form.subforms[0]
+        subform = self.new_form.subforms['children']
         self.assert_(isinstance(subform, XmlObjectForm),
             'form has an XmlObjectForm subform')
 
@@ -294,7 +294,7 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_('id2' in subform.base_fields, 'int field is present in subform fields')
 
         # subform is initialized with appropriate instance data
-        subform = self.update_form.subforms[0]
+        subform = self.update_form.subforms['children']
         # initial values from subobject portion of test fixture
         expected, got = 'forty-two', subform.initial['id2']
         self.assertEqual(expected, got,
@@ -307,7 +307,7 @@ class XmlObjectFormTest(unittest.TestCase):
 
         # initialize with request data to test subform validation / instance update
         update_form = TestForm(self.post_data, instance=self.testobj)
-        subform = update_form.subforms[0]
+        subform = update_form.subforms['children']
         self.assertTrue(update_form.is_valid()) 
         # nodefield instance should be set by main form update
         instance = update_form.update_instance()        

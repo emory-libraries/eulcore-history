@@ -3,7 +3,6 @@
 
 .. automodule:: eulcore.django
 
-
 :mod:`eulcore.django.existdb` -- Django tie-ins for :mod:`eulcore.existdb`
 --------------------------------------------------------------------------
 
@@ -88,6 +87,16 @@ For more details on these commands, use ``manage.py <command> help``
 
    .. autoclass:: Repository
 
+
+:mod:`eulcore.django.forms` - Django Form extensions
+----------------------------------------------------
+
+.. automodule:: eulcore.django.forms
+
+.. autoclass:: eulcore.django.forms.XmlObjectForm
+    :members:
+
+.. automethod:: eulcore.django.forms.xmlobjectform_factory
 
 :mod:`eulcore.django.test` - Django test extensions
 ---------------------------------------------------
