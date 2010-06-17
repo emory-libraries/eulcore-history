@@ -27,6 +27,7 @@ def _serialize(xp_ast):
     else:
         yield str(xp_ast)
 
+
 class UnaryExpression(object):
     def __init__(self, op, right):
         self.op = op
@@ -41,8 +42,6 @@ class UnaryExpression(object):
         for tok in _serialize(self.right):
             yield tok
 
-    def struct(self):
-        return [self.op, self.right]
 
 KEYWORDS = set(['or', 'and', 'div', 'mod'])
 class BinaryExpression(object):
@@ -69,8 +68,6 @@ class BinaryExpression(object):
         for tok in _serialize(self.right):
             yield tok
 
-    def struct(self):
-        return [self.op, self.left, self.right]
 
 class PredicatedExpression(object):
     def __init__(self, base, predicates=None):
@@ -95,11 +92,6 @@ class PredicatedExpression(object):
                 yield tok
             yield ']'
 
-    def struct(self):
-        if self.predicates:
-            return [ '()[]', self.base ] + self.predicates
-        else:
-            return self.base
 
 class AbsolutePath(object):
     def __init__(self, op='/', relative=None):
@@ -115,8 +107,6 @@ class AbsolutePath(object):
         for tok in _serialize(self.relative):
             yield tok
 
-    def struct(self):
-        return [self.op, self.relative]
 
 class Step(object):
     def __init__(self, axis, node_test, predicates):
@@ -144,14 +134,6 @@ class Step(object):
                 yield tok
             yield ']'
 
-    def struct(self):
-        name = str(self.node_test)
-        if self.axis is not None:
-            name = self.axis + '::' + name
-        if self.predicates:
-            return [name + '[]'] + self.predicates
-        else:
-            return name
 
 class NameTest(object):
     def __init__(self, prefix, name):
@@ -202,8 +184,6 @@ class AbbreviatedStep(object):
     def _serialize(self):
         yield self.abbr
 
-    def struct(self):
-        return self.abbr
 
 class VariableReference(object):
     def __init__(self, name):
@@ -221,8 +201,6 @@ class VariableReference(object):
             yield ':'
         yield localname
 
-    def struct(self):
-        return '$' + self.name
 
 class FunctionCall(object):
     def __init__(self, prefix, name, args):
@@ -249,6 +227,3 @@ class FunctionCall(object):
                 for tok in _serialize(arg):
                     yield tok
         yield ')'
-
-    def struct(self):
-        return [self.name + '()'] + self.args

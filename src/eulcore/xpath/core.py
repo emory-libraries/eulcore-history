@@ -58,26 +58,3 @@ def ptokens(s):
     lexer.input(s)
     for tok in lexer:
             print tok
-
-def sprint(obj, stm=None):
-    '''Parse a string, and output a simple tree representation to a stream
-    (defaults to sys.stdout). This is used primarily for debugging. You
-    probably don't want this function.'''
-
-    if isinstance(obj, basestring):
-        obj = parser.parse(obj, lexer=lexer)
-
-    if stm is None:
-        import sys
-        stm = sys.stdout
-    _sprint(obj, '', stm)
-
-def _sprint(obj, indent, stm):
-    if hasattr(obj, 'struct'):
-        obj = obj.struct()
-    if isinstance(obj, (list, tuple)):
-        print >>stm, indent + str(obj[0])
-        for item in obj[1:]:
-            _sprint(item, indent + '. ', stm)
-    else:
-        print >>stm, indent + str(obj)
