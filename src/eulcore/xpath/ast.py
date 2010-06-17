@@ -1,5 +1,19 @@
 from itertools import chain
 
+__all__ = [
+    'serialize',
+    'UnaryExpression',
+    'BinaryExpression',
+    'PredicatedExpression',
+    'AbsolutePath',
+    'Step',
+    'NameTest',
+    'NodeType',
+    'AbbreviatedStep',
+    'VariableReference',
+    'FunctionCall',
+    ]
+
 def serialize(xp_ast):
     return ''.join(_serialize(xp_ast))
 
@@ -8,8 +22,7 @@ def _serialize(xp_ast):
         for tok in xp_ast._serialize():
             yield tok
     elif isinstance(xp_ast, basestring):
-        # FIXME: There are probably some edge cases where this is
-        # incorrect.
+        # FIXME: There are several interesting cases where this is wrong.
         yield repr(xp_ast)
     else:
         yield str(xp_ast)
