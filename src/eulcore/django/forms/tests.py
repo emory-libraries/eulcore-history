@@ -4,7 +4,8 @@ from django import forms
 
 from eulcore import xmlmap
 from eulcore.xmlmap.fields import DateField     # not yet supported - testing for errors
-from eulcore.django.forms import XmlObjectForm, XmlObjectFormType, xmlobjectform_factory
+from eulcore.django.forms import XmlObjectForm, xmlobjectform_factory
+from eulcore.django.forms.xmlobject import XmlObjectFormType
 
 
 # test xmlobject and xml content to generate test form
