@@ -34,7 +34,7 @@ logger.addHandler(NullHandler)
 # problem then I welcome a fix.
 lexdir = os.path.dirname(lexrules.__file__)
 lexer = lex.lex(module=lexrules, optimize=1, outputdir=lexdir, 
-    debuglog=logger, errorlog=logger, reflags=re.UNICODE)
+    reflags=re.UNICODE)
 
 class LexerWrapper(lex.Lexer):
     def token(self):
