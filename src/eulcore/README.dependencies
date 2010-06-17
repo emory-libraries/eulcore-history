@@ -4,12 +4,14 @@ by the applications they're installing.
 
 Among released packages:
 
- * :mod:`eulcore.xmlmap` depends on 4suite-xml_ and lxml_. Debian/Ubuntu users can
-   ``apt-get install python-4suite-xml python-lxml``.
- * :mod:`eulcore.existdb` depends on 4suite-xml_ and lxml_.
- * :mod:`eulcore.django.existdb` depends on 4suite-xml_, lxml_, and Django_.
+ * :mode`eulcore.xpath` depends on ply_. Debian/Ubuntu users can
+   ``apt-get install python-ply``.
+ * :mod:`eulcore.xmlmap` depends on ply_ and lxml_. Debian/Ubuntu users can
+   ``apt-get install python-ply python-lxml``.
+ * :mod:`eulcore.existdb` depends on ply_ and lxml_.
+ * :mod:`eulcore.django.existdb` depends on ply_, lxml_, and Django_.
 
-.. _4suite-xml: http://4suite.org/
+.. _ply: http://www.dabeaz.com/ply/
 .. _lxml: http://codespeak.net/lxml/
 .. _Django: http://www.djangoproject.com/
 

@@ -120,11 +120,8 @@ class XmlObject(object):
     optional: Programs may then create instances directly with no
     constructor arguments.
 
-    Programs can also pass an optional :class:`Ft.Xml.XPath.Context`
-    argument to the constructor to specify an XPath evaluation context with
-    alternate namespace or variable definitions. By default, fields are
-    evaluated in an XPath context containing the namespaces of the wrapped
-    node and no variables.
+    Programs can also pass an optional dictionary to the constructor to
+    specify an alternate namespaces for XPath evaluation.
     """
     # FIXME: context paragraph no longer accurate...
 

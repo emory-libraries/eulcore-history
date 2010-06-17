@@ -1,5 +1,3 @@
-from Ft.Xml.XPath.Context import Context
-
 from eulcore import xmlmap
 
 # FIXME: DateField still needs significant improvements before we can make

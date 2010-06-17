@@ -1,11 +1,7 @@
 from datetime import datetime
 from lxml import etree
 from lxml.builder import ElementMaker
-# NOTE: using 4suite xpath to dynamically create nodes in the xml object for setting nodes
-from Ft.Xml.XPath import Compile #, Evaluate
-from Ft.Xml.XPath.ParsedNodeTest import LocalNameTest, QualifiedNameTest
-from Ft.Xml.XPath.ParsedRelativeLocationPath import ParsedRelativeLocationPath
-from Ft.Xml.XPath.ParsedStep import ParsedStep
+from eulcore.xpath import ast, parse, serialize
 
 __all__ = [
     'StringField', 'StringListField',
@@ -38,17 +34,21 @@ class Field(object):
         Field.creation_counter += 1
 
         # determine parent xpath, node name, node type 
-        effective_xpath = Compile(xpath)
+        effective_xpath = parse(xpath)
         self.node_info = {}
         
-        if isinstance(effective_xpath, ParsedRelativeLocationPath):
-            self.node_info['parent_xpath'] = effective_xpath._left
-            effective_xpath = effective_xpath._right
+        if isinstance(effective_xpath, ast.BinaryExpression) and \
+                effective_xpath.op == '/':
+            self.node_info['parent_xpath'] = serialize(effective_xpath.left)
+            effective_xpath = effective_xpath.right
             
-        if isinstance(effective_xpath, ParsedStep):
-            self.node_info['type'] = repr(effective_xpath._axis)  # child or attribute
-            self.node_info['name'], self.node_info['prefix'] = \
-                        self._get_name_parts(effective_xpath._nodeTest)
+        if isinstance(effective_xpath, ast.Step) and \
+                isinstance(effective_xpath.node_test, ast.NameTest):
+            self.node_info['type'] = effective_xpath.axis or 'child'
+            if self.node_info['type'] == '@':
+                self.node_info['type'] = 'attribute'
+            self.node_info['prefix'] = effective_xpath.node_test.prefix
+            self.node_info['name'] = effective_xpath.node_test.name
 
     def get_for_node(self, node, context):
         return self.manager.get(self.xpath, node, context, self.mapper.to_python)
@@ -56,16 +56,6 @@ class Field(object):
     def set_for_node(self, node, context, value):
         return self.manager.set(self.xpath, node, context, self.mapper.to_xml, value, self.node_info)
 
-    def _get_name_parts(self, node_name_test):
-        # NOTE: namespace URI must currently be determined via context,
-        # which is only passed in on get/set and not available on initialization
-        node_name = repr(node_name_test)
-        if isinstance(node_name_test, LocalNameTest):
-            prefix = None
-        elif isinstance(node_name_test, QualifiedNameTest):
-            prefix = node_name_test._prefix
-            node_name = node_name_test._localName
-        return node_name, prefix
 
 # data mappers to translate between identified xml nodes and Python values
 
@@ -177,7 +167,7 @@ class SingleNodeManager(object):
 
         # relative path and the parent node exists
         if 'parent_xpath' in node_info:
-            parent_nodeset = node.xpath(repr(node_info['parent_xpath']), **context)
+            parent_nodeset = node.xpath(node_info['parent_xpath'], **context)
             if len(parent_nodeset) != 1:
                 msg = ("Missing element for '%s', and node creation is " + \
                        "supported only when parent xpath '%s' evaluates " + \
