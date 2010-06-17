@@ -16,6 +16,7 @@ Contents
    :maxdepth: 3
 
    xmlmap
+   xpath
    existdb
    django
    fedora

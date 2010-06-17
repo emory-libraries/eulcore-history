@@ -1,3 +1,9 @@
+"""XPath lexing rules.
+
+To understand how this module works, it is valuable to have a strong
+understanding of the `ply <http://www.dabeaz.com/ply/>` module.
+"""
+
 reserved = {
     'or': 'OR_OP',
     'and': 'AND_OP',
@@ -90,9 +96,8 @@ def t_NCNAME(t):
     if kwtoken:
         t.type = kwtoken
     elif t.value in NODE_TYPES:
-        # FIXME: technically foo:node is a QNname. We'll lex it as
-        # NCNAME COLON FNNAME, which is not a valid construction in our
-        # grammar.
+        # FIXME: technically foo:node is a QNname. We'll lex it as NCNAME
+        # COLON NODETYPE, which is not a valid construction in our grammar.
         t.type = 'NODETYPE'
     return t
 

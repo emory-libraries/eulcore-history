@@ -1,3 +1,13 @@
+"""Core XPath parsing glue.
+
+This module builds a lexer and parser for XPath expressions for import into
+eulcore.xpath. To understand how this module builds the lexer and parser, it
+is helpful to understand how the `ply <http://www.dabeaz.com/ply/>`_ module
+works.
+
+Node that most client applications will import these objects from
+eulcore.xpath, not directly from here."""
+
 import os
 import re
 from ply import lex, yacc
