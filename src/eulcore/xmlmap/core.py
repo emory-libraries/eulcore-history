@@ -121,25 +121,26 @@ class XmlObject(object):
     constructor arguments.
 
     Programs can also pass an optional dictionary to the constructor to
-    specify an alternate namespaces for XPath evaluation.
+    specify namespaces for XPath evaluation.
     """
-    # FIXME: context paragraph no longer accurate...
 
     __metaclass__ = XmlObjectType
 
     node = None
     """The top-level xml node wrapped by the object"""
-    
+
     ROOT_NAME = None
-    """A default root element name (with namespace prefix) used when an object
+    """A default root element name (without namespace prefix) used when an object
     of this type is created from scratch."""
     ROOT_NS = None
     """The default namespace used when an object of this type is created from
     scratch."""
-    EXTRA_ROOT_NAMESPACES = {}
+    ROOT_NAMESPACES = {}
     """A dictionary whose keys are namespace prefixes and whose values are
-    namespace URIs. These namespaces are added to the root element when an
-    object of this type is created from scratch."""
+    namespace URIs. These namespaces are used to create the root element when an
+    object of this type is created from scratch; should include the namespace
+    and prefix for the root element, if it has one. Any additional namespaces
+    will be added to the root element."""
 
     XSD_SCHEMA = None
     """URI or file path to the XSD schema associated with this :class:`XmlObject`,
