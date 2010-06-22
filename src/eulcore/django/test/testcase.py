@@ -59,6 +59,8 @@ class TestCase(DjangoTestCase):
                 for file in self.exist_fixtures['files']:
                     self._remove_file_from_exist(file)
 
+        return super(TestCase, self)._fixture_teardown()
+
     def _load_file_to_exist(self, file):
         db = ExistDB()
         fname = path.split(file)[-1]
@@ -75,5 +77,3 @@ class TestCase(DjangoTestCase):
         except ExistDBException, e:
             # any way to determine if error ever needs to be reported?
             pass
-
-        return super(TestCase, self)._fixture_teardown()
