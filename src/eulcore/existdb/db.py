@@ -52,7 +52,8 @@ class ExistDB:
                 uri=server_url,
                 encoding=encoding,
                 verbose=verbose,
-                allow_none=True
+                allow_none=True,
+                use_datetime=True,
             )
 
     def getDocument(self, name, **kwargs):
