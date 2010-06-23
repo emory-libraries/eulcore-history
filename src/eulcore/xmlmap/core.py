@@ -256,7 +256,7 @@ class XmlObject(object):
             raise Exception('No XSD schema is defined, cannot return validation errors')
 
 
-def _get_xmlparser(xmlclass=XmlObject, validate=False):
+def _get_xmlparser(xmlclass=XmlObject, validate=False, resolver=None):
     """Initialize an instance of :class:`lxml.etree.XMLParser` with appropriate
     settings for validation.  If validation is requested and the specified
     instance of :class:`XmlObject` has an XSD_SCHEMA defined, that will be used.
@@ -272,15 +272,20 @@ def _get_xmlparser(xmlclass=XmlObject, validate=False):
             opts = {'schema': xmlschema}
         else:
             # if configured XmlObject does not have a schema defined, assume DTD validation
-            opts = {'dtd_validation': True}
-    
+            opts = {'dtd_validation': True}    
     else:
         # if validation is not requested, no parser options are needed
         opts = {}
 
-    return etree.XMLParser(**opts)
+    parser = etree.XMLParser(**opts)
+    
+    if resolver is not None:
+        parser.resolvers.add(resolver)
+        
+    return parser
 
-def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False):
+def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False,
+        resolver=None):
     """Initialize an XmlObject from a string.
 
     If an xmlclass is specified, construct an instance of that class instead
@@ -297,12 +302,13 @@ def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False):
     :param validate: boolean, enable validation; defaults to false
     :rtype: instance of :class:`~eulcore.xmlmap.XmlObject` requested
     """
-    parser = _get_xmlparser(xmlclass=xmlclass, validate=validate)
+    parser = _get_xmlparser(xmlclass=xmlclass, validate=validate, resolver=resolver)    
     element = etree.fromstring(string, parser)
     return xmlclass(element)
 
 
-def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False):
+def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False,
+        resolver=None):
     """Initialize an XmlObject from a file.
 
     See :meth:`load_xmlobject_from_string` for more details; behaves exactly the
@@ -314,7 +320,7 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False):
         file-like object, or an HTTP or FTP url, however file path and URL are
         recommended, as they are generally faster for lxml to handle.    
     """
-    parser = _get_xmlparser(xmlclass=xmlclass, validate=validate)
+    parser = _get_xmlparser(xmlclass=xmlclass, validate=validate, resolver=resolver)
 
     tree = etree.parse(filename, parser)
     return xmlclass(tree.getroot())
