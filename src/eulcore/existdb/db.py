@@ -449,6 +449,15 @@ class QueryResult(xmlmap.XmlObject):
 class ExistDBException(Exception):
     """A handy wrapper for all errors returned by the eXist server."""
 
+    def message(self):
+        "Rough conversion of xmlrpc fault string into something human-readable."
+        preamble, message = str(self).strip("""'<>""").split('RpcConnection: ')
+        # xmldb and xpath calls may have additional error strings:
+        message = message.replace('org.exist.xquery.XPathException: ', '')
+        message = message.replace('XMLDB exception caught: ', '')
+        message = message.replace('[at line 1, column 1]', '')
+        return message
+ 
 # possible sub- exception types:
 # document not found (getDoc,remove)
 # collection not found 
