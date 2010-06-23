@@ -101,7 +101,7 @@ class DescriptiveIdentification(xmlmap.XmlObject):
     unittitle = xmlmap.NodeField("unittitle", xmlmap.XmlObject)
     "unit title - `unittitle`"
     unitdate = xmlmap.NodeField(".//unitdate", DateField)
-    "unit date - `.//unitdate' can be anywhere under did"
+    "unit date - `.//unitdate` can be anywhere under the DescriptiveIdentification"
     physdesc = xmlmap.StringField("physdesc")
     "physical description - `physdesc`"
     abstract = xmlmap.NodeField('abstract', xmlmap.XmlObject)
@@ -194,7 +194,7 @@ class SubordinateComponents(Section):
 
            :rtype: boolean
         """
-        if self.c[0].level == 'series' or (self.c[0].c and self.c[0].c[0]):
+        if len(self.c) and (self.c[0].level == 'series' or (self.c[0].c and self.c[0].c[0])):
             return True
         else:
             return False
@@ -328,7 +328,6 @@ class FileDescription(xmlmap.XmlObject):
       """
     publication = xmlmap.NodeField("publicationstmt", PublicationStatement)
     "publication information - `publicationstmt`"
-
 
 class EncodedArchivalDescription(xmlmap.XmlObject):
     """xmlmap object for an Encoded Archival Description (EAD) Finding Aid
