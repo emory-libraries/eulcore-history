@@ -4,7 +4,7 @@ by the applications they're installing.
 
 Among released packages:
 
- * :mode`eulcore.xpath` depends on ply_. Debian/Ubuntu users can
+ * :mod:`eulcore.xpath` depends on ply_. Debian/Ubuntu users can
    ``apt-get install python-ply``.
  * :mod:`eulcore.xmlmap` depends on ply_ and lxml_. Debian/Ubuntu users can
    ``apt-get install python-ply python-lxml``.
