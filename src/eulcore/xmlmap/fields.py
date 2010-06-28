@@ -172,7 +172,8 @@ class SingleNodeManager(object):
                 msg = ("Missing element for '%s', and node creation is " + \
                        "supported only when parent xpath '%s' evaluates " + \
                        "to a single node. Instead, it evaluates to %d.") % \
-                       (repr(xpath), repr(parent_xpath), len(parent_nodeset))
+                       (repr(xpath), repr(node_info['parent_xpath']), \
+                        len(parent_nodeset))
                 raise Exception(msg)
             # otherwise, we found the parent.
             parent_node = parent_nodeset[0]
