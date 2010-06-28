@@ -166,7 +166,12 @@ class XmlObject(object):
 
         self.node = node
         # FIXME: context probably needs work
-        self.context = {'namespaces' : node.nsmap}
+        if hasattr(node, 'nsmap'):
+            self.context = {'namespaces' : node.nsmap}
+        elif hasattr(node, 'getParent'):
+            print "node has getParent, using parent namespaces"
+            self.context = {'namespaces' : node.getparent().nsmap }
+            
         if context is not None:
             self.context.update(context)
 
@@ -203,6 +208,8 @@ class XmlObject(object):
         return transform(self.node)
 
     def __unicode__(self):
+        if isinstance(self.node, basestring):
+            return self.node
         return self.node.xpath("normalize-space(.)")
 
     def serialize(self, stream=None, pretty=False):
