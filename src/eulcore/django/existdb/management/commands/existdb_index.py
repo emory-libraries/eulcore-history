@@ -11,6 +11,7 @@ Available subcommands:
   show-info - show information about index configuration file in eXist (owner, date modified, etc.)
   remove    - remove index configuration from eXist
             """
+    args = 'load | show | show-info | remove'
     
     def handle(self, *args, **options):
         if not len(args) or args[0] == 'help':

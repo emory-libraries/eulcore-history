@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = """Reindex the configured eXist-db collection."""
 
     def handle(self, *args, **options):
-        # check for required settings (used in all modes)
+        # check for required settings
         if not hasattr(settings, 'EXISTDB_ROOT_COLLECTION') or not settings.EXISTDB_ROOT_COLLECTION:
             raise CommandError("EXISTDB_ROOT_COLLECTION setting is missing")
             return
