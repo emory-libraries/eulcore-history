@@ -98,7 +98,7 @@ NameStartChar = ur'[A-Z]|_|[a-z]|\xc0-\xd6]|[\xd8-\xf6]|[\xf8-\u02ff]|' + \
     ur'[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|' + \
     ur'[\u2c00-\u2fef]|[\u3001-\uD7FF]|[\uF900-\uFDCF]|[\uFDF0-\uFFFD]'
 # complete NameStartChar regex
-Full_NameStartChar = ur'(' + NameStartChar + ur'| [\U00010000-\U000EFFFF]' + r')'
+Full_NameStartChar = ur'(' + NameStartChar + ur'|[\U00010000-\U000EFFFF]' + r')'
 # additional characters allowed in NCNames after the first character
 NameChar_extras = ur'[-.0-9\xb7\u0300-\u036f\u203f-\u2040]'
 
@@ -120,8 +120,6 @@ NODE_TYPES = set(['comment', 'text', 'processing-instruction', 'node'])
 
 @TOKEN(NCNAME_REGEX)
 def t_NCNAME(t):
-#    ur'[A-Z_a-z\xc0-\xd6\xd8-\xf6\xf8-\u02ff\u0370-\u037d\u037f-\u1fff\u200c-\u200d\u2070-\u218f\u2c00-\u2fef\u2001-\ud7ff\uf900-\ufdcf\ufdf0-\ufffd\U00010000-\U000EFFFF][A-Z_a-z\xc0-\xd6\xd8-\xf6\xf8-\u02ff\u0370-\u037d\u037f-\u1fff\u200c-\u200d\u2070-\u218f\u2c00-\u2fef\u2001-\ud7ff\uf900-\ufdcf\ufdf0-\ufffd\U00010000-\U000EFFFF.0-9\xb7\u0300-\u036f\u203f-\u2040-]*'
-
     # I coulda sworn ply would recognize reserved keywords automatically.
     # Apparently not, so here we check for them ourselves.
     kwtoken = reserved.get(t.value, None)
