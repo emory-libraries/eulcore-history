@@ -16,6 +16,7 @@ Contents
    :maxdepth: 3
 
    xmlmap
+   xpath
    existdb
    django
    fedora
@@ -23,7 +24,7 @@ Contents
 Dependencies
 ------------
 
-.. include:: ../README.dependencies
+.. include:: ../src/eulcore/README.dependencies
 
 Indices and tables
 ------------------

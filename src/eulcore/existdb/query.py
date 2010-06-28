@@ -10,7 +10,7 @@ stand-in replacement in any context that expects one.
 
 import re
 from eulcore.xmlmap import load_xmlobject_from_string
-from eulcore.xmlmap.fields import StringField, NodeField, NodeListField
+from eulcore.xmlmap.fields import StringField, DateField, NodeField, NodeListField
 from eulcore.xmlmap.core import XmlObjectType
 from eulcore.existdb.exceptions import DoesNotExist, ReturnedMultiple
 
@@ -28,7 +28,7 @@ class QuerySet(object):
     """Lazy eXist database lookup for a set of objects.
 
     :param model: the type of object to return from :meth:`__getitem__`. If
-                  set, the result DOM nodes will be wrapped in objects of
+                  set, the resulting xml nodes will be wrapped in objects of
                   this type. Some methods, like :meth:`filter` and
                   :meth:`only` only make sense if this is set. While this
                   argument can be any callable object, it is typically a
@@ -169,7 +169,10 @@ class QuerySet(object):
 
         Special fields available:
          * fulltext_score (should only be used in combination with fulltext search)
-         * document_name 
+         * document_name
+         * hash - generate and return a SHA-1 checksum of the root element being queried
+         * last_modified - :class:`eulcore.xmlmap.fields.DateField` for the date
+                the document the root element belongs to was last modified
         """
         field_objs = {}
         field_xpath = {}
@@ -355,7 +358,9 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None):
         else:
             # field with the same type as the original model field, but with xpath of the variable
             # name, to match how additional field results are constructed by Xquery object
-            if fields is None or isinstance(fields, basestring):	
+            if name == 'last_modified':     # special case field
+                field_type = DateField
+            elif fields is None or isinstance(fields, basestring):
                 field_type = StringField	# handle special cases like fulltext score
             else:
                 field_type = type(fields[-1])
@@ -431,9 +436,16 @@ class Xquery(object):
         xpath_parts = []
 
         if self.collection is not None:
-            xpath_parts.append('collection("/db/' + self.collection.lstrip('/') + '")')
+            xpath_collection = 'collection("/db/' + self.collection.lstrip('/') + '")'
+            xpath_parts.append(xpath_collection)
 
-        xpath_parts.append(self.xpath)
+        # if top-level path has multiple parts, add collection to each
+        # FIXME: this could be unreliable; there should be a better way to handle this...
+        if '|/' in self.xpath:
+            xpath = self.xpath.replace("|/", "|%s/" % xpath_collection)
+            xpath_parts.append(xpath)
+        else:
+            xpath_parts.append(self.xpath)
         xpath_parts += [ '[%s]' % (f,) for f in self.filters ]
 
         xpath = ''.join(xpath_parts)
@@ -553,6 +565,9 @@ class Xquery(object):
                     rblocks.append('element %s {util:collection-name(%s)}' % (name, self.xq_var))
                 elif name == 'hash':
                     rblocks.append('element %s {$hash}' % name)
+                elif name == 'last_modified':
+                    rblocks.append('element %s {xmldb:last-modified(util:collection-name(%s), util:document-name(%s))}' \
+                            % (name, self.xq_var, self.xq_var))
                 else:
                     if re.search('@[^/,]+$', xpath):     # last element in path is an attribute node
                         # returning attributes as elements to avoid attribute conflict

@@ -87,7 +87,35 @@ class ExistDBTest(unittest.TestCase):
         self.assertTrue(result)
         # attempting to retrieve the deleted file should cause an exception
         self.assertRaises(Exception, self.db.getDocument, self.COLLECTION + "/hello.xml")
-        
+
+    def test_moveDocument(self):
+        "Test moving a document from one eXist collection to another"
+        new_collection = '%s-tmp' % self.COLLECTION
+        self.db.createCollection(new_collection, True)
+        self.db.moveDocument(self.COLLECTION, new_collection, 'hello.xml')
+
+        self.assertEqual({}, self.db.describeDocument('%s/hello.xml' % self.COLLECTION),
+            "describeDocument returns nothing for document in original collection after move")
+        new_name = '%s/hello.xml' % new_collection
+        desc = self.db.describeDocument(new_name)
+        self.assertEqual(desc['name'], new_name,
+            "describeDocument returns details for document in new location after move")
+
+        # move to a non-existent colletion
+        self.assertRaises(Exception, self.db.moveDocument, self.COLLECTION,
+            'my/bogus/collection', 'xqry_test.xml')
+
+        # move from a non-existent collection
+        self.assertRaises(Exception, self.db.moveDocument, 'my/bogus/collection',
+            new_collection, 'hello.xml')
+
+        # move a non-existent file
+        self.assertRaises(Exception, self.db.moveDocument, self.COLLECTION,
+            new_collection, 'not-here.xml')
+
+        # remove temporary collection where document was moved
+        self.db.removeCollection(new_collection)
+
     def test_hasCollection(self):
         """Check collections can be found in eXist"""
         #test collection created in setup

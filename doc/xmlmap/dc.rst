@@ -19,6 +19,6 @@ been mapped as a single element (:class:`eulcore.xmlmap.StringField`) and as a l
 Because the DC elements are thoroughly and clearly documented at http://dublincore.org,
 element descriptions have not been repeated here.
 
-  .. autoclass:: eulcore.xmlmap.dc.DublinCore([dom_node[, context]])
+  .. autoclass:: eulcore.xmlmap.dc.DublinCore([node[, context]])
     :members:
     :undoc-members:

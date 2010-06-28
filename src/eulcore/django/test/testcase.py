@@ -3,7 +3,7 @@ from glob import glob
 from os import path
 from django.test import TestCase as DjangoTestCase
 from django.conf import settings
-from eulcore.django.existdb.db import ExistDB
+from eulcore.django.existdb.db import ExistDB, ExistDBException
 
 class TestCase(DjangoTestCase):
     """Customization of :class:`django.test.TestCase`
@@ -18,6 +18,7 @@ class TestCase(DjangoTestCase):
       any other fixture files, and removed in fixture teardown
     * *directory* - path to a fixture directory; all .xml files in the directory
       will be loaded to eXist
+    * *files* - list of files to be loaded (filenames should include path)
 
     """
 
@@ -39,9 +40,10 @@ class TestCase(DjangoTestCase):
                         open(self.exist_fixtures['index']))
             if 'directory' in self.exist_fixtures:
                 for file in glob(path.join(self.exist_fixtures['directory'], '*.xml')):
-                    fname = path.split(file)[-1]
-                    exist_path= path.join(settings.EXISTDB_ROOT_COLLECTION, fname)
-                    db.load(open(file), exist_path, True)
+                    self._load_file_to_exist(file)
+            if 'files' in self.exist_fixtures:
+                for file in self.exist_fixtures['files']:
+                    self._load_file_to_exist(file)
 
         return super(TestCase, self)._fixture_setup()
 
@@ -50,5 +52,28 @@ class TestCase(DjangoTestCase):
             db = ExistDB()
             if 'index' in self.exist_fixtures:
                 db.removeCollectionIndex(settings.EXISTDB_ROOT_COLLECTION)
+            if 'directory' in self.exist_fixtures:
+                for file in glob(path.join(self.exist_fixtures['directory'], '*.xml')):
+                    self._remove_file_from_exist(file)
+            if 'files' in self.exist_fixtures:
+                for file in self.exist_fixtures['files']:
+                    self._remove_file_from_exist(file)
 
         return super(TestCase, self)._fixture_teardown()
+
+    def _load_file_to_exist(self, file):
+        db = ExistDB()
+        fname = path.split(file)[-1]
+        exist_path= path.join(settings.EXISTDB_ROOT_COLLECTION, fname)
+        db.load(open(file), exist_path, True)
+
+    def _remove_file_from_exist(self, file):
+        db = ExistDB()
+        fname = path.split(file)[-1]
+        exist_path= path.join(settings.EXISTDB_ROOT_COLLECTION, fname)
+        # tests could remove fixtures, so an exception here is not a problem
+        try:
+            db.removeDocument(exist_path)
+        except ExistDBException, e:
+            # any way to determine if error ever needs to be reported?
+            pass

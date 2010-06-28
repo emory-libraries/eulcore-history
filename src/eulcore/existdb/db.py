@@ -52,7 +52,8 @@ class ExistDB:
                 uri=server_url,
                 encoding=encoding,
                 verbose=verbose,
-                allow_none=True
+                allow_none=True,
+                use_datetime=True,
             )
 
     def getDocument(self, name, **kwargs):
@@ -190,6 +191,22 @@ class ExistDB:
 
         """
         return self.server.remove(name)
+
+    @_wrap_xmlrpc_fault
+    def moveDocument(self, from_collection, to_collection, document):
+        """Move a document in eXist from one collection to another.
+
+        :param from_collection: collection where the document currently exists
+        :param to_collection: collection where the document should be moved
+        :param document: name of the document in eXist
+        :rtype: boolean
+        """
+        self.query("xmldb:move('%s', '%s', '%s')" % \
+                            (from_collection, to_collection, document))
+        # query result does not return any meaningful content,
+        # but any failure (missing collection, document, etc) should result in
+        # an exception, so return true if the query completed successfully
+        return True
 
     @_wrap_xmlrpc_fault
     def query(self, xquery, start=1, how_many=10, **kwargs):
@@ -386,9 +403,9 @@ class QueryResult(xmlmap.XmlObject):
 
     @property
     def results(self):
-        """The result documents themselves as DOM nodes, starting at
+        """The result documents themselves as nodes, starting at
         :attr:`start` and containing :attr:`count` members"""
-        return self.dom_node.xpath('*')
+        return self.node.xpath('*')
 
     # FIXME: Why do we have two properties here with the same value?
     # start == show_from. We should pick one and deprecate the other.
@@ -432,6 +449,15 @@ class QueryResult(xmlmap.XmlObject):
 class ExistDBException(Exception):
     """A handy wrapper for all errors returned by the eXist server."""
 
+    def message(self):
+        "Rough conversion of xmlrpc fault string into something human-readable."
+        preamble, message = str(self).strip("""'<>""").split('RpcConnection: ')
+        # xmldb and xpath calls may have additional error strings:
+        message = message.replace('org.exist.xquery.XPathException: ', '')
+        message = message.replace('XMLDB exception caught: ', '')
+        message = message.replace('[at line 1, column 1]', '')
+        return message
+ 
 # possible sub- exception types:
 # document not found (getDoc,remove)
 # collection not found 

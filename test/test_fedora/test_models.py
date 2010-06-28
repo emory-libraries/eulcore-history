@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 from datetime import datetime
 from dateutil.tz import tzutc
+import os
 from rdflib.Graph import Graph as RdfGraph
 import rdflib
 import tempfile
 
 from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject, \
         XmlDatastream, XmlDatastreamObject, RdfDatastream, RdfDatastreamObject, \
-        DigitalObjectSaveFailure
+        FileDatastream, FileDatastreamObject, DigitalObjectSaveFailure
 from eulcore.fedora.server import URI_HAS_MODEL
 from eulcore.fedora.xml import ObjectDatastream
 from eulcore.xmlmap.dc import DublinCore
 
-from test_fedora.base import FedoraTestCase, TEST_PIDSPACE
+from test_fedora.base import FedoraTestCase, TEST_PIDSPACE, FIXTURE_ROOT
 from testcore import main
 
 class MyDigitalObject(DigitalObject):
@@ -33,6 +34,9 @@ class MyDigitalObject(DigitalObject):
             'mimetype': 'application/xml',
             'versionable': True,
         })
+    image = FileDatastream('IMAGE', 'managed binary image datastream', defaults={
+                'mimetype': 'image/png'
+        })
 
 TEXT_CONTENT = "Here is some text content for a non-xml datastream."
 def _add_text_datastream(obj):    
@@ -48,6 +52,7 @@ def _add_text_datastream(obj):
         ds['mimeType'], ds['logMessage'], ds['controlGroup'], filename=FILE.name,
         checksumType=ds['checksumType'], versionable=ds['versionable'])
     FILE.close()
+    
 
 
 class TestDatastreams(FedoraTestCase):
@@ -141,6 +146,29 @@ class TestDatastreams(FedoraTestCase):
         self.assert_(isinstance(self.obj.rels_ext, RdfDatastreamObject))
         self.assert_(isinstance(self.obj.rels_ext.content, RdfGraph))
         self.assert_("isMemberOf" in self.obj.rels_ext.content.serialize())
+
+    def test_file_datastream(self):
+        # add file datastream to test object
+        filename = os.path.join(FIXTURE_ROOT, 'test.png')
+        defaults = self.obj.image.defaults
+        self.obj.api.addDatastream(self.obj.pid, self.obj.image.id, defaults['label'],
+            defaults['mimetype'], controlGroup=defaults['control_group'],
+            versionable=defaults['versionable'], filename=filename)
+
+        # access via file datastream descriptor
+        self.assert_(isinstance(self.obj.image, FileDatastreamObject))
+        self.assertEqual(self.obj.image.content.read(), open(filename).read())
+
+        # update via descriptor
+        self.assertFalse(self.obj.image.isModified())
+        new_file = os.path.join(FIXTURE_ROOT, 'test.jpeg')
+        self.obj.image.content = open(new_file)
+        self.assertTrue(self.obj.image.isModified())
+        self.obj.save()
+
+        # grab a new copy from fedora, confirm contents match
+        obj = MyDigitalObject(self.api, self.pid)
+        self.assertEqual(obj.image.content.read(), open(new_file).read())
 
     def test_undo_last_save(self):
         # test undoing profile and content changes        
@@ -318,6 +346,16 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(fetched.text.format, 'http://example.com/')
         self.assertEqual(fetched.text.content, 'We are controlling transmission.')
 
+    def test_new_file_datastream(self):
+        obj = self.repo.get_object(type=MyDigitalObject)
+        obj.image.content = open(os.path.join(FIXTURE_ROOT, 'test.png'))
+        obj.save()
+        self.append_test_pid(obj.pid)
+
+        fetched = self.repo.get_object(obj.pid, type=MyDigitalObject)
+        file = open(os.path.join(FIXTURE_ROOT, 'test.png'))
+        self.assertEqual(fetched.image.content.read(), file.read())        
+
 
 class TestDigitalObject(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
@@ -435,6 +473,17 @@ class TestDigitalObject(FedoraTestCase):
         text = self.obj.ds_list["TEXT"]
         self.assertEqual("text datastream", text.label)
         self.assertEqual("text/plain", text.mimeType)
+
+    def test_history(self):
+        self.assert_(isinstance(self.obj.history, list))
+        self.assert_(isinstance(self.obj.history[0], datetime))
+        self.assert_(self.now < self.obj.history[0])
+
+    def test_methods(self):
+        methods = self.obj.methods
+        self.assert_('fedora-system:3' in methods)      # standard system sdef
+        self.assert_('viewMethodIndex' in methods['fedora-system:3'])
+
 
     def test_has_model(self):
         cmodel_uri = "info:fedora/control:ContentType"

@@ -35,7 +35,7 @@ class TestEad(unittest.TestCase):
     def test_ArchivalDescription(self):
         self.assert_(isinstance(self.ead.archdesc, ArchivalDescription))
         ad = self.ead.archdesc
-        self.assert_("Heaney, Seamus, 1939-" in ad.origination)  #whitespace variance
+        self.assertEqual("Heaney, Seamus, 1939-", ad.origination) 
         self.assertEqual("Manuscript Collection No.653", ad.unitid)
         self.assertEqual("Manuscript Collection No.653", ad.unitid)
         self.assertEqual("1 linear ft.", ad.extent[0])
@@ -201,6 +201,10 @@ class TestEad(unittest.TestCase):
         self.assert_(isinstance(profiledesc, ProfileDescription))
         self.assertEqual("English", profiledesc.languages[0])
         self.assertEqual("eng", profiledesc.language_codes[0])
+        # profile creation date
+        self.assert_(isinstance(profiledesc.date, DateField))
+        self.assertEqual(u'May 5, 2005', unicode(profiledesc.date))
+        self.assertEqual('2005-05-05', profiledesc.date.normalized)
     
     def test_DateField(self):
         date = self.ead.file_desc.publication.date
@@ -213,7 +217,6 @@ class TestEad(unittest.TestCase):
         unitdate = self.ead.dsc.c[1].c[0].did.unitdate
         self.assert_(isinstance(unitdate, DateField))
         self.assertEqual("1974/1986", unitdate.normalized)
-
 
         
 if __name__ == '__main__':

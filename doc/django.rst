@@ -3,7 +3,6 @@
 
 .. automodule:: eulcore.django
 
-
 :mod:`eulcore.django.existdb` -- Django tie-ins for :mod:`eulcore.existdb`
 --------------------------------------------------------------------------
 
@@ -75,6 +74,29 @@ For more details on these commands, use ``manage.py <command> help``
  * **existdb_index** - update, remove, and show information about the index configuration
    for a collection index
  * **existdb_reindex** - reindex a collection index in exist
+
+
+:mod:`eulcore.django.fedora` -- Django tie-ins for :mod:`eulcore.fedora`
+--------------------------------------------------------------------------
+
+.. include:: ../src/eulcore/django/fedora/README
+
+.. automodule:: eulcore.django.fedora
+
+.. automodule:: eulcore.django.fedora.server
+
+   .. autoclass:: Repository
+
+
+:mod:`eulcore.django.forms` - Django Form extensions
+----------------------------------------------------
+
+.. automodule:: eulcore.django.forms
+
+.. autoclass:: eulcore.django.forms.XmlObjectForm
+    :members:
+
+.. automethod:: eulcore.django.forms.xmlobjectform_factory
 
 :mod:`eulcore.django.test` - Django test extensions
 ---------------------------------------------------

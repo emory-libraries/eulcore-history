@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from lxml import etree
 import unittest
 import tempfile
 
@@ -34,7 +35,6 @@ class TestXsl(unittest.TestCase):
     def setUp(self):
         # parseString wants a url. let's give it a proper one.
         url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'FIXTURE_TEXT')
-
         self.fixture = xmlmap.parseString(self.FIXTURE_TEXT, url)
 
     def test_xslTransform(self):
@@ -43,9 +43,10 @@ class TestXsl(unittest.TestCase):
             nobar_baz = xmlmap.StringField('baz[1]')
 
         # xsl in string
-        obj = TestObject(self.fixture.documentElement)
+        #obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         result = obj.xslTransform(xsl=self.FIXTURE_XSL)
-        newobj = xmlmap.load_xmlobject_from_string(result, TestObject)
+        newobj = xmlmap.load_xmlobject_from_string(str(result), TestObject)
         self.assertEqual('42', newobj.nobar_baz)
         self.assertEqual(None, newobj.bar_baz)
 
@@ -54,9 +55,10 @@ class TestXsl(unittest.TestCase):
         self.FILE.write(self.FIXTURE_XSL)
         self.FILE.flush()
 
-        obj = TestObject(self.fixture.documentElement)
+        #obj = TestObject(self.fixture.documentElement)
+        obj = TestObject(self.fixture)
         result = obj.xslTransform(filename=self.FILE.name)
-        newobj = xmlmap.load_xmlobject_from_string(result, TestObject)
+        newobj = xmlmap.load_xmlobject_from_string(str(result), TestObject)
         self.assertEqual('42', newobj.nobar_baz)
         self.assertEqual(None, newobj.bar_baz)
 
@@ -103,7 +105,7 @@ class TestXmlObjectStringInit(unittest.TestCase):
         obj = xmlmap.load_xmlobject_from_string(self.VALID_XML)
         self.assert_(isinstance(obj, xmlmap.XmlObject))
 
-
+        
 class TestXmlObjectFileInit(unittest.TestCase):
     
     def setUp(self):
@@ -166,7 +168,48 @@ class TestXmlObject(unittest.TestCase):
         self.assert_("<baz>13</baz>" in FILE.read())
         FILE.close()
 
+    def test_isvalid(self):
+        # validating xmlobject with no schema should raise an exception
+        self.assertRaises(Exception, self.obj.is_valid)
 
+        # very simple xsd schema and valid/invalid xml taken from lxml docs:
+        #   http://codespeak.net/lxml/validation.html#xmlschema
+        xsd = '''<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <xsd:element name="a" type="AType"/>
+            <xsd:complexType name="AType">
+                <xsd:sequence>
+                    <xsd:element name="b" type="xsd:string" />
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:schema>
+        '''
+        FILE = tempfile.NamedTemporaryFile(mode="w")
+        FILE.write(xsd)
+        FILE.flush()
+
+        valid_xml = '<a><b></b></a>'
+        invalid_xml = '<a foo="1"><c></c></a>'
+
+        class TestSchemaObject(xmlmap.XmlObject):
+            XSD_SCHEMA = FILE.name
+        
+        valid = xmlmap.load_xmlobject_from_string(valid_xml, TestSchemaObject)
+        self.assertTrue(valid.is_valid())        
+
+        invalid = xmlmap.load_xmlobject_from_string(invalid_xml, TestSchemaObject)        
+        self.assertFalse(invalid.is_valid())
+        invalid.is_valid()
+        self.assertEqual(2, len(invalid.validation_errors()))
+
+        # do schema validation at load time
+        valid = xmlmap.load_xmlobject_from_string(valid_xml, TestSchemaObject,
+            validate=True)
+        self.assert_(isinstance(valid, TestSchemaObject))
+
+        self.assertRaises(etree.XMLSyntaxError, xmlmap.load_xmlobject_from_string,
+            invalid_xml, TestSchemaObject, validate=True)
+
+        FILE.close()
 
 if __name__ == '__main__':
     main()

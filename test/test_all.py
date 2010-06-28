@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
 import unittest
-import sys
-from django.core.management import setup_environ
+
+from test_django import run_django_tests
 
 # add any non-django modules to be tested here
 non_django_test_modules = (
     'test_existdb',
     'test_fedora',
     'test_xmlmap', 
+    'test_xpath',
     )
 
 def non_django_tests():
@@ -17,24 +18,4 @@ def non_django_tests():
         yield unittest.findTestCases(module)
 
 if __name__ == '__main__':
-    # this code inlined (with simplifications) from relevant manage.py code
-
-    # use our settings file to bootstrap the test environment, then switch
-    # to the official one.
-    from django_tester import settings
-    setup_environ(settings)
-    from django.conf import settings
-
-    # FIXME: if we don't import existdb here, starting_tests doesn't get
-    # triggered for some reason
-    from django.test.utils import get_runner
-    from eulcore.django.testsetup import starting_tests, finished_tests
-    import eulcore.django.existdb
-
-    starting_tests.send(None)
-    django_runner = get_runner(settings)
-    failures = django_runner(None, verbosity=1, interactive=True,
-            extra_tests=non_django_tests())
-    finished_tests.send(None)
-    if failures:
-        sys.exit(failures)
+    run_django_tests(extras=non_django_tests())

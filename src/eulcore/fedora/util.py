@@ -184,7 +184,7 @@ def parse_rdf(data, url, format=None):
 
 def parse_xml_object(cls, data, url):
     doc = xmlmap.parseString(data, url)
-    return cls(doc.documentElement)
+    return cls(doc)
 
 def datetime_to_fedoratime(datetime):
     # format a date-time in a format fedora can handle

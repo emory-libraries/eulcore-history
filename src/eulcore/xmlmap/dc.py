@@ -4,16 +4,17 @@ class DublinCore(xmlmap.XmlObject):
     """
     XmlObject for Simple (unqualified) Dublin Core metadata.
 
-    If no domnode is specified when initialized, a new, empty Dublin Core
+    If no node is specified when initialized, a new, empty Dublin Core
     XmlObject will be created.
     """    
 
     ROOT_NS = 'http://www.openarchives.org/OAI/2.0/oai_dc/'
-    ROOT_NAME = 'oai_dc:dc'
-    EXTRA_ROOT_NAMESPACES = { 'dc': 'http://purl.org/dc/elements/1.1/'}
-    
-    # schema not used yet...
-    schema = "http://dublincore.org/schemas/xmls/simpledc20021212.xsd"
+    ROOT_NAME = 'dc'
+    ROOT_NAMESPACES = { 'oai_dc' : ROOT_NS,
+                        'dc': 'http://purl.org/dc/elements/1.1/'}
+
+    XSD_SCHEMA = "http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
+    xmlschema = xmlmap.loadSchema(XSD_SCHEMA)
 
     contributor = xmlmap.StringField("dc:contributor")
     contributor_list = xmlmap.StringListField("dc:contributor")

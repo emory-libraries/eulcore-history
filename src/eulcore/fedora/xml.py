@@ -1,5 +1,3 @@
-from Ft.Xml.XPath.Context import Context
-
 from eulcore import xmlmap
 
 # FIXME: DateField still needs significant improvements before we can make
@@ -10,7 +8,7 @@ from eulcore.fedora.util import datetime_to_fedoratime, fedoratime_to_datetime
 
 class FedoraDateMapper(xmlmap.fields.DateMapper):
     def to_python(self, node):
-        rep = node.xpath(self.XPATH)
+        rep = self.XPATH(node)
         return fedoratime_to_datetime(rep)
 
     def to_xml(self, dt):
@@ -25,7 +23,16 @@ class FedoraDateField(xmlmap.fields.Field):
                 manager = xmlmap.fields.SingleNodeManager(),
                 mapper = FedoraDateMapper())
 
+class FedoraDateListField(xmlmap.fields.Field):
+    """Map an XPath expression to a list of Python `datetime.datetime`.
+    Assumes date-time format in use by Fedora, e.g. 2010-05-20T18:42:52.766Z.
+    If the XPath expression evaluates to an empty NodeList, evaluates to
+    an empty list."""
 
+    def __init__(self, xpath):
+        super(FedoraDateListField, self).__init__(xpath,
+                manager = xmlmap.fields.NodeListManager(),
+                mapper = FedoraDateMapper())
 
 
 # xml objects to wrap around xml returns from fedora
@@ -67,6 +74,20 @@ class ObjectProfile(xmlmap.XmlObject):
     # - object item index view url
     state = xmlmap.StringField('objState')
     "object state (A/I/D - Active, Inactive, Deleted)"
+
+class ObjectHistory(xmlmap.XmlObject):
+    ROOT_NAME = 'fedoraObjectHistory'
+    pid = xmlmap.StringField('@pid')
+    changed = FedoraDateListField('objectChangeDate')
+
+class ObjectMethodService(xmlmap.XmlObject):
+    ROOT_NAME = 'sDef'
+    pid = xmlmap.StringField('@pid')
+    methods = xmlmap.StringListField('method/@name')
+
+class ObjectMethods(xmlmap.XmlObject):
+    ROOT_NAME = 'objectMethods'
+    service_definitions = xmlmap.NodeListField('sDef', ObjectMethodService)
 
 class DatastreamProfile(xmlmap.XmlObject):
     """:class:`~eulcore.xmlmap.XmlObject` for datastream profile information
@@ -151,10 +172,10 @@ class RepositoryDescription(xmlmap.XmlObject):
 class SearchResult(xmlmap.XmlObject):
     """:class:`~eulcore.xmlmap.XmlObject` for a single entry in the results
         returned by :meth:`REST_API.findObjects`"""
-    def __init__(self, dom_node, context=None):
+    def __init__(self, node, context=None):
         if context is None:
-            context = Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
-        xmlmap.XmlObject.__init__(self, dom_node, context)
+            context = {'namespaces' : {'res': 'http://www.fedora.info/definitions/1/0/types/'}}
+        xmlmap.XmlObject.__init__(self, node, context)
 
     pid = xmlmap.StringField('res:pid')
     "pid"
@@ -162,10 +183,10 @@ class SearchResult(xmlmap.XmlObject):
 class SearchResults(xmlmap.XmlObject):
     """:class:`~eulcore.xmlmap.XmlObject` for the results returned by
         :meth:`REST_API.findObjects`"""
-    def __init__(self, dom_node, context=None):
+    def __init__(self, node, context=None):
         if context is None:
-            context = Context(dom_node, processorNss={'res': 'http://www.fedora.info/definitions/1/0/types/'})
-        xmlmap.XmlObject.__init__(self, dom_node, context)
+            context = {'namespaces' : {'res': 'http://www.fedora.info/definitions/1/0/types/'}}
+        xmlmap.XmlObject.__init__(self, node, context)
 
     session_token = xmlmap.StringField('res:listSession/res:token')
     "session token"

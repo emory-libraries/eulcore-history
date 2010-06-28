@@ -5,15 +5,15 @@
 
 :mod:`eulcore.xmlmap` makes it easier to map XML to Python objects. The
 Python DOM does some of this, of course, but sometimes it's prettier to wrap
-a DOM node in a typed Python object and assign attributes on that object to
+an XML node in a typed Python object and assign attributes on that object to
 reference subnodes by XPath_ expressions. This module provides that
 functionality for read-only attributes, and in the future it aims to allow
 setting them as well.
 
 .. _XPath: http://www.w3.org/TR/xpath/
 
-Contents
---------
+:class:`XmlObject` Instances
+----------------------------
 
 .. toctree::
    :maxdepth: 1
@@ -64,7 +64,7 @@ this::
 Concepts
 --------
 
-:mod:`~eulcore.xmlmap` simplifies access to XML DOM data in Python. Programs
+:mod:`~eulcore.xmlmap` simplifies access to XML data in Python. Programs
 can define new :class:`~eulcore.xmlmap.XmlObject` subclasses representing a
 type of XML node with predictable structure. Members of these classes can be
 regular methods and values like in regular Python classes, but they can also be
@@ -79,21 +79,21 @@ Python value.
 Most programs will use :mod:`~eulcore.xmlmap` by defining a subclass of
 :class:`XmlObject` containing :ref:`field <xmlmap-field>` members.
 
-.. autoclass:: XmlObject(dom_node[, context])
+.. autoclass:: XmlObject([node[, context]])
+    :members:
 
-   It has the following parameters and methods:
-
-   .. attribute:: dom_node
-
-      The DOM node wrapped by the object
-
-   .. automethod:: xslTransform([filename,[ xsl[, params]]])
-
-   .. attribute:: _fields
+    .. attribute:: _fields
 
       A dictionary mapping field names to :ref:`field <xmlmap-field>`
       members. This dictionary includes all of the fields defined on the
       class as well as those inherited from its parents.
+      
+
+:class:`~eulcore.xmlmap.core.XmlObjectType`
+-------------------------------------------
+
+.. autoclass:: eulcore.xmlmap.core.XmlObjectType
+    :members:
 
 
 .. _xmlmap-field:
@@ -102,9 +102,9 @@ Field types
 -----------
 
 There are several predefined field types. All of them evaluate XPath
-expressions and map the resultant DOM nodes to Python types. They differ
-primarily in how they map those DOM nodes to Python objects as well as in
-whether they expect their XPath expression to match a single DOM node or a
+expressions and map the resultant XML nodes to Python types. They differ
+primarily in how they map those XML nodes to Python objects as well as in
+whether they expect their XPath expression to match a single XML node or a
 whole collection of them.
 
 Field objects are typically created as part of an :class:`XmlObject`
@@ -130,18 +130,12 @@ as ``foo.bar``.
 Other facilities
 ----------------
 
-.. autofunction:: load_xmlobject_from_string(string[, xmlclass])
+.. autofunction:: load_xmlobject_from_string
 
-.. autofunction:: load_xmlobject_from_file(string[, xmlclass])
+.. autofunction:: load_xmlobject_from_file
 
-.. function:: parseString(string[, base_uri])
+.. autofunction:: parseString
 
-   Read an XML document provided as a byte string, and return a
-   :mod:`Ft.Xml.Domlette` document node. string cannot be a Unicode string.
+.. autofunction:: parseUri
 
-   base_uri should be provided for the calculation of relative URIs.
-
-.. function:: parseUri(uri)
-
-   Read an XML document from a URI, and return a :mod:`Ft.Xml.Domlette`
-   document node.
+.. autofunction:: loadSchema

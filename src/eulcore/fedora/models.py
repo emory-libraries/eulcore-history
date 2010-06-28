@@ -1,14 +1,16 @@
+import cStringIO
 import hashlib
 import rdflib
-from cStringIO import StringIO
 from rdflib.Graph import Graph as RdfGraph
 
-from Ft.Xml.Domlette import CanonicalPrint, PrettyPrint, \
-        implementation as DomImplementation
+from lxml import etree
+from lxml.builder import ElementMaker
 
 from eulcore import xmlmap
 from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed, datetime_to_fedoratime
-from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfile, NewPids
+from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfile, \
+    NewPids, ObjectHistory, ObjectMethods
+
 
 # FIXME: needed by both server and models, where to put?
 URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
@@ -116,12 +118,16 @@ class DatastreamObject(object):
     def _bootstrap_content(self):
         return None
 
-    def _content_as_dom(self):
+    def _content_as_node(self):
         # used for serializing inline xml datastreams at ingest
         return None
 
-    def _content_as_string(self):
-        # used for serializing managed binary datastreams at ingest
+    def _raw_content(self):
+        # return datastream content in the appropriate format to be saved to Fedora
+        # (normally, either a string or a file); used for serializing
+        # managed datastreams for ingest and save and generating a hash
+        # NOTE: if you override so this does not return a string, you may
+        # also need to override _content_digest and/or isModified
         if self.content is None:
             return None
         if hasattr(self.content, 'serialize'):
@@ -139,7 +145,7 @@ class DatastreamObject(object):
 
     def _content_digest(self):
         # generate a hash of the content so we can easily check if it has changed and should be saved
-        return hashlib.sha1(self._content_as_text()).hexdigest()
+        return hashlib.sha1(self._raw_content()).hexdigest()
 
     ### access to datastream profile fields; tracks if changes are made for saving to Fedora
 
@@ -193,20 +199,13 @@ class DatastreamObject(object):
     def modified(self):
         return self.info.modified
 
-    def _content_as_text(self):
-        # return datastream content as text
-        if hasattr(self.content, 'serialize'):
-            return self.content.serialize()
-        else:
-            return str(self.content)
-    
     def save(self, logmessage=None):
         """Save datastream content and any changed datastream profile
         information to Fedora.
 
         :rtype: boolean for success
         """
-        data = self._content_as_text()
+        data = self._raw_content()
         
         modify_opts = {}
         if self.info_modified:
@@ -330,8 +329,8 @@ class XmlDatastreamObject(DatastreamObject):
     def _bootstrap_content(self):
         return self.objtype()
 
-    def _content_as_dom(self):
-        return self.content.dom_node
+    def _content_as_node(self):
+        return self.content.node
 
 
 class XmlDatastream(Datastream):
@@ -370,11 +369,11 @@ class RdfDatastreamObject(DatastreamObject):
     def _bootstrap_content(self):
         return RdfGraph()
 
-    def _content_as_dom(self):
+    def _content_as_node(self):
         graph = self.content
         data = graph.serialize()
         obj = xmlmap.load_xmlobject_from_string(data)
-        return obj.dom_node
+        return obj.node
 
 
 class RdfDatastream(Datastream):
@@ -387,6 +386,56 @@ class RdfDatastream(Datastream):
             rels_ext = RdfDatastream("RELS-EXT", "External Relations")
     """
     _datastreamClass = RdfDatastreamObject
+
+
+class FileDatastreamObject(DatastreamObject):
+    """Extends :class:`DatastreamObject` in order to allow setting and reading
+    datastream content as a file. To update contents, set datastream content
+    property to a new file object. For example::
+
+        class ImageObject(DigitalObject):
+            image = FileDatastream('IMAGE', 'image datastream', defaults={
+                'mimetype': 'image/png'
+            })
+    
+    Then, with an instance of ImageObject::
+
+        obj.image.content = open('/path/to/my/file')
+        obj.save()
+    """
+
+    _content_modified = False
+
+    def _raw_content(self):  
+        return self.content     # return the file itself (handled by upload/save API calls)
+
+    def _convert_content(self, data, url):
+        # for now, using stringio to return a file-like object
+        # NOTE: will require changes (here and in APIs) to handle large files
+        return cStringIO.StringIO(data)
+
+    # redefine content property to override set_content to set a flag when modified
+    def _get_content(self):
+        super(FileDatastreamObject, self)._get_content()
+        return self._content    
+    def _set_content(self, val):
+        super(FileDatastreamObject, self)._set_content(val)
+        self._content_modified = True        
+    content = property(_get_content, _set_content, None,
+        "contents of the datastream; only pulled from Fedora when accessed, cached after first access")
+
+    def _content_digest(self):
+        # don't attempt to create a checksum of the file content
+        pass
+    
+    def isModified(self):
+        return self.info_modified or self._content_modified
+
+class FileDatastream(Datastream):
+    """File-based content version of :class:`Datastream`.  Datastreams are
+    initialized as instances of :class:`FileDatastreamObject`.
+    """
+    _datastreamClass = FileDatastreamObject
 
 
 class DigitalObject(object):
@@ -410,6 +459,10 @@ class DigitalObject(object):
         
         # datastream list from fedora
         self._ds_list = None
+        
+        # object history
+        self._history = None
+        self._methods = None
 
         # a string pid is a live object in the repository. a callable pid
         # means a new object: we call that function to get our initial pid.
@@ -497,6 +550,18 @@ class DigitalObject(object):
         # NOTE: used by DatastreamObject
         data, url = self.api.getDatastream(self.pid, dsid)
         return parse_xml_object(DatastreamProfile, data, url)
+
+    @property
+    def history(self):
+        if self._history is None:
+            self.getHistory()
+        return self._history
+
+    def getHistory(self):
+        data, url = self.api.getObjectHistory(self.pid)
+        history = parse_xml_object(ObjectHistory, data, url)
+        self._history = [c for c in history.changed]
+        return history
 
     def getProfile(self):    
         """Get information about this object (label, owner, date created, etc.).
@@ -598,25 +663,22 @@ class DigitalObject(object):
     def _build_foxml_for_ingest(self, pid, pretty=False):
         doc = self._build_foxml_doc(pid)
 
-        sio = StringIO()
+        print_opts = {'encoding' : 'UTF-8'}
         if pretty: # for easier debug
-            PrettyPrint(doc, stream=sio)
-        else:
-            CanonicalPrint(doc, stream=sio)
-
-        return sio.getvalue()
+            print_opts['pretty_print'] = True
+        
+        return etree.tostring(doc, **print_opts)
 
     FOXML_NS = "info:fedora/fedora-system:def/foxml#"
 
     def _build_foxml_doc(self, pid):
-        doc = DomImplementation.createDocument(self.FOXML_NS, 'foxml:digitalObject', None)
-        obj = doc.documentElement
-        obj.setAttributeNS(None, 'VERSION', '1.1')
-        obj.setAttributeNS(None, 'PID', pid)
-
-        props = self._build_foxml_properties(doc)
-        obj.appendChild(props)
-
+        # make an lxml element builder - default namespace is foxml, display with foxml prefix
+        E = ElementMaker(namespace=self.FOXML_NS, nsmap={'foxml' : self.FOXML_NS })
+        doc = E('digitalObject')
+        doc.set('VERSION', '1.1')
+        doc.set('PID', pid)
+        doc.append(self._build_foxml_properties(E))
+        
         # collect datastream definitions for ingest.
         # FIXME: this method of identifying datastreams doesn't address
         # inheritance.
@@ -627,85 +689,81 @@ class DigitalObject(object):
             ds = fval # ds is the Datastream
             dsobj = getattr(self, fname) # dsobj is the DatastreamObject
 
-            dsnode = self._build_foxml_datastream(doc, ds.id, dsobj)
-            if dsnode:
-                obj.appendChild(dsnode)
-
+            dsnode = self._build_foxml_datastream(E, ds.id, dsobj)
+            if dsnode is not None:
+                doc.append(dsnode)
+        
         return doc
 
-    def _build_foxml_properties(self, doc):
-        props = doc.createElementNS(self.FOXML_NS, 'foxml:objectProperties')
-
-        state = doc.createElementNS(self.FOXML_NS, 'foxml:property')
-        state.setAttributeNS(None, 'NAME', 'info:fedora/fedora-system:def/model#state')
-        state.setAttributeNS(None, 'VALUE', self.state or 'A')
-        props.appendChild(state)
+    def _build_foxml_properties(self, E):
+        props = E('objectProperties')
+        state = E('property')
+        state.set('NAME', 'info:fedora/fedora-system:def/model#state')
+        state.set('VALUE', self.state or 'A')
+        props.append(state)
 
         if self.label:
-            label = doc.createElementNS(self.FOXML_NS, 'foxml:property')
-            label.setAttributeNS(None, 'NAME', 'info:fedora/fedora-system:def/model#label')
-            label.setAttributeNS(None, 'VALUE', self.label)
-            props.appendChild(label)
-
+            label = E('property')
+            label.set('NAME', 'info:fedora/fedora-system:def/model#label')
+            label.set('VALUE', self.label)
+            props.append(label)
+        
         if self.owner:
-            owner = doc.createElementNS(self.FOXML_NS, 'foxml:property')
-            owner.setAttributeNS(None, 'NAME', 'info:fedora/fedora-system:def/model#ownerId')
-            owner.setAttributeNS(None, 'VALUE', self.owner)
-            props.appendChild(owner)
+            owner = E('property')
+            owner.set('NAME', 'info:fedora/fedora-system:def/model#ownerId')
+            owner.set('VALUE', self.owner)
+            props.append(owner)
 
         return props
 
-    def _build_foxml_datastream(self, doc, dsid, dsobj):
+    def _build_foxml_datastream(self, E, dsid, dsobj):
 
         # if we can't construct a content node then bail before constructing
-        # any other dom
+        # any other nodes
         content_node = None
         if dsobj.control_group == 'X':
-            content_node = self._build_foxml_inline_content(doc, dsobj)
+            content_node = self._build_foxml_inline_content(E, dsobj)
         elif dsobj.control_group == 'M':
-            content_node = self._build_foxml_managed_content(doc, dsobj)
+            content_node = self._build_foxml_managed_content(E, dsobj)
         if content_node is None:
             return
 
-        ds_xml = doc.createElementNS(self.FOXML_NS, 'foxml:datastream')
-        ds_xml.setAttributeNS(None, 'ID', dsid)
-        ds_xml.setAttributeNS(None, 'CONTROL_GROUP', dsobj.control_group)
-        ds_xml.setAttributeNS(None, 'STATE', dsobj.state)
-        ds_xml.setAttributeNS(None, 'VERSIONABLE',
-                str(dsobj.versionable).lower())
+        ds_xml = E('datastream')
+        ds_xml.set('ID', dsid)
+        ds_xml.set('CONTROL_GROUP', dsobj.control_group)
+        ds_xml.set('STATE', dsobj.state)
+        ds_xml.set('VERSIONABLE', str(dsobj.versionable).lower())
 
-        ver_xml = doc.createElementNS(self.FOXML_NS, 'foxml:datastreamVersion')
-        ver_xml.setAttributeNS(None, 'ID', dsid + '.0')
-        ver_xml.setAttributeNS(None, 'MIMETYPE', dsobj.mimetype)
+        ver_xml = E('datastreamVersion')
+        ver_xml.set('ID', dsid + '.0')
+        ver_xml.set('MIMETYPE', dsobj.mimetype)
         if dsobj.format:
-            ver_xml.setAttributeNS(None, 'FORMAT_URI', dsobj.format)
+            ver_xml.set('FORMAT_URI', dsobj.format)
         if dsobj.label:
-            ver_xml.setAttributeNS(None, 'LABEL', dsobj.label)
-        ds_xml.appendChild(ver_xml)
+            ver_xml.set('LABEL', dsobj.label)
+        ds_xml.append(ver_xml)
 
-        ver_xml.appendChild(content_node)
+        ver_xml.append(content_node)
         return ds_xml
 
-    def _build_foxml_inline_content(self, doc, dsobj):
-        orig_content_dom = dsobj._content_as_dom()
-        if not orig_content_dom:
+    def _build_foxml_inline_content(self, E, dsobj):
+        orig_content_node = dsobj._content_as_node()
+        if orig_content_node is None:
             return
 
-        content_container_xml = doc.createElementNS(self.FOXML_NS, 'foxml:xmlContent')
-        content_xml = doc.importNode(orig_content_dom, True)
-        content_container_xml.appendChild(content_xml)
-        
+        content_container_xml = E('xmlContent')
+        content_container_xml.append(orig_content_node)
         return content_container_xml
 
-    def _build_foxml_managed_content(self, doc, dsobj):
-        content_s = dsobj._content_as_string()
+    def _build_foxml_managed_content(self, E, dsobj):
+        content_s = dsobj._raw_content()
         if content_s is None:
             return
 
         upload_id = self.api.upload(content_s)
-        content_location = doc.createElementNS(self.FOXML_NS, 'foxml:contentLocation')
-        content_location.setAttributeNS(None, 'REF', upload_id)
-        content_location.setAttributeNS(None, 'TYPE', 'INTERNAL_ID')
+        content_location = E('contentLocation')
+        content_location.set('REF', upload_id)
+        content_location.set('TYPE', 'INTERNAL_ID')
         return content_location
 
     def _get_datastreams(self):
@@ -735,9 +793,28 @@ class DigitalObject(object):
 
         Only retrieved when requested; cached after first retrieval.
         """
+        # FIXME: how to make access to a versioned ds_list ?
+
         if self._ds_list is None:
             self._ds_list = self._get_datastreams()
         return self._ds_list
+
+    @property
+    def methods(self):
+        if self._methods is None:
+            self.get_methods()
+        return self._methods
+
+    def get_methods(self):
+        data, url = self.api.listMethods(self.pid)
+        methods = parse_xml_object(ObjectMethods, data, url)
+        self._methods = {}
+        for sdef in methods.service_definitions:
+            self._methods[sdef.pid] = sdef.methods
+        return self._methods
+
+    def getDissemination(self, service_pid, method, params={}):
+        return self.api.getDissemination(self.pid, service_pid, method, method_params=params)
 
     def add_relationship(self, rel_uri, object):
         """
