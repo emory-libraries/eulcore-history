@@ -74,21 +74,21 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_('int' in formfields, 'int field is present in form fields')
         self.assert_(isinstance(formfields['int'], forms.IntegerField),
             "xmlmap.IntegerField 'int' initialized as IntegerField")
-        expected, got = 'int', formfields['int'].label
+        expected, got = 'Int', formfields['int'].label
         self.assertEqual(expected, got, "form field label should be set to " + \
             "xmlmap field name; expected %s, got %s" % (expected, got))
 
         self.assert_('id' in formfields, 'id field is present in form fields')
         self.assert_(isinstance(formfields['id'], forms.CharField),
             "xmlmap.StringField 'id' field initialized as CharField")
-        expected, got = 'id', formfields['id'].label
+        expected, got = 'Id', formfields['id'].label
         self.assertEqual(expected, got, "form field label should be set to " + \
             "xmlmap field name; expected %s, got %s" % (expected, got))
 
         self.assert_('bool' in formfields, 'bool field is present in form fields')
         self.assert_(isinstance(formfields['bool'], forms.BooleanField),
             "xmlmap.SimpleBooleanField 'bool' field initialized as BooleanField")
-        expected, got = 'bool', formfields['bool'].label
+        expected, got = 'Bool', formfields['bool'].label
         self.assertEqual(expected, got, "form field label should be set to " + \
             "xmlmap field name; expected %s, got %s" % (expected, got))
 

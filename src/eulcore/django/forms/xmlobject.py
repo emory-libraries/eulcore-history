@@ -1,7 +1,7 @@
 # xmlobject-backed django form (analogous to django db model forms)
 # this code borrows heavily from django.forms.models
 
-#from string import capwords    # unused - may want to use for variable name to field label conversion
+from string import capwords
 
 from django.forms import BaseForm, CharField, IntegerField, BooleanField
 from django.forms.forms import get_declared_fields
@@ -10,6 +10,15 @@ from django.utils.datastructures  import SortedDict
 from django.utils.safestring  import mark_safe
 
 from eulcore import xmlmap
+
+def fieldname_to_label(name):
+    """Default conversion from xmlmap Field variable name to Form field label:
+    convert '_' to ' ' and capitalize words."""
+    # NOTE: xmlmap fields have nothing analogous to django model fields verbose_name
+    # Doing a rough-conversion from variable name to a default
+    # human-readable version for formfield labels
+    return capwords(name.replace('_', ' '))
+
 
 def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
     """
@@ -66,7 +75,13 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
         
         elif isinstance(field, xmlmap.fields.NodeField):
             # define a new xmlobject form for the nodefield class
-            subforms[name] = xmlobjectform_factory(field.node_class)
+            # grab any options passed in for fields under this one
+            subform_opts = {
+                'fields': fields[name] if fields and name in fields else None,
+                'exclude': exclude[name] if exclude and name in exclude else None,
+                'widgets': widgets[name] if widgets and name in widgets else None,
+            }
+            subforms[name] = xmlobjectform_factory(field.node_class, **subform_opts)
         else:
             # raise exception for unsupported fields
             # currently doesn't handle list fields
@@ -76,10 +91,7 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
         # TODO: list variants (currently not settable in xmlobject)... use formsets ?
 
         if field_type is not None:
-            # FIXME: django fields have verbose_name;
-            # should we use capwords, do some other default human-readable conversion for labels?
-            # using variable name as label for now
-            formfields[name] = field_type(label=name, **kwargs)
+            formfields[name] = field_type(label=fieldname_to_label(name), **kwargs)
             
         # create a dictionary indexed by field creation order, for default field ordering
         field_order[field.creation_counter] = name
@@ -248,10 +260,13 @@ class XmlObjectForm(BaseForm):
                                             if k.startswith(id_prefix) ])
             else:
                 field_data = None
+    
+            # FIXME: do prefixes need to be nested?
+            # e.g., subform prefix = my prefix + name
 
             # instantiate the subform class with field data and model instance
             # - setting prefix based on field name, to distinguish similarly named fields
-            self.subforms[name] = subform(data=field_data, instance=subinstance, prefix=name)
+            self.subforms[name] = subform(data=data, instance=subinstance, prefix=name)
 
     def update_instance(self):
         """Save bound form data into the XmlObject model instance and return the
@@ -290,13 +305,14 @@ class XmlObjectForm(BaseForm):
         parts.append(super(XmlObjectForm, self)._html_output(normal_row, error_row, row_ender,
                 help_text_html, errors_on_separate_row))
         for name, subform in self.subforms.iteritems():
+            # pass the configured html section to subform in case of any sub-subforms
+            subform._html_section = self._html_section
             subform_html = subform._html_output(normal_row, error_row, row_ender,
                     help_text_html, errors_on_separate_row)
             # if html section is configured, add section label and wrapper for
-            # FIXME: subform name/label ?
             if self._html_section is not None:
                 parts.append(self._html_section %
-                    {'label': name, 'content': subform_html} )
+                    {'label': fieldname_to_label(name), 'content': subform_html} )
             else:
                 parts.append(subform_html)
 
@@ -311,7 +327,8 @@ class XmlObjectForm(BaseForm):
         Subforms, if any, will be grouped in a <tbody> labeled with a heading
         based on the label of the field.
         """
-        self._html_section = u'<tbody><tr><th colspan="2">%(label)s</th></tr>\n%(content)s</tbody>'
+        self._html_section = u'<tbody><tr><th colspan="2" class="section">%(label)s</th></tr><tr><td colspan="2"><table class="subform">\n%(content)s</table></td></tr></tbody>'
+        #self._html_section = u'<tbody><tr><th class="section" colspan="2">%(label)s</th></tr>\n%(content)s</tbody>'
         return super(XmlObjectForm, self).as_table()
 
     def as_p(self):
@@ -337,7 +354,8 @@ class XmlObjectForm(BaseForm):
         return super(XmlObjectForm, self).as_ul()
 
 
-def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None):
+def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None,
+                            widgets=None):
     """Dynamically generate a new :class:`XmlObjectForm` class using the
     specified :class:`eulcore.xmlmap.XmlObject` class.
     
@@ -349,7 +367,9 @@ def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None):
         attrs['fields'] = fields
     if exclude is not None:
         attrs['exclude'] = exclude
-
+    if widgets is not None:
+        attrs['widgets'] = widgets
+    
     # If parent form class already has an inner Meta, the Meta we're
     # creating needs to inherit from the parent's inner meta.
     parent = (object,)
