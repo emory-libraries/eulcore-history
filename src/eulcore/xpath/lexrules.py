@@ -6,7 +6,7 @@ understanding of the `ply <http://www.dabeaz.com/ply/>` module.
 
 from ply.lex import TOKEN
 
-reserved = {
+operator_names = {
     'or': 'OR_OP',
     'and': 'AND_OP',
     'div': 'DIV_OP',
@@ -37,9 +37,11 @@ tokens = [
         'INTEGER',
         'NCNAME',
         'NODETYPE',
+        'FUNCNAME',
+        'AXISNAME',
         'COLON',
         'DOLLAR',
-    ] + list(reserved.values())
+    ] + list(operator_names.values())
 
 t_PATH_SEP = r'/'
 t_ABBREV_PATH_SEP = r'//'
@@ -59,30 +61,15 @@ t_MINUS_OP = r'-'
 t_COMMA = r','
 t_COLON = r':'
 t_DOLLAR = r'\$'
+t_STAR_OP = r'\*'
 
 t_ignore = ' \t\r\n'
-
-def t_LITERAL(t):
-    r""""[^"]*"|'[^']*'"""
-    t.value = t.value[1:-1]
-    return t
-
-def t_FLOAT(t):
-    r'\d+\.\d*|\.\d+'
-    t.value = float(t.value)
-    return t
-    
-def t_INTEGER(t):
-    r'\d+'
-    t.value = int(t.value)
-    return t
 
 # NOTE: some versions of python cannot compile regular expressions that
 # contain unicode characters above U+FFFF, which are allowable in NCNames.
 # These characters can be used in Python 2.6.4, but can NOT be used in 2.6.2
 # (status in 2.6.3 is unknown).  The code below accounts for that and excludes
 # the higher character range if Python can't handle it.
-
 
 # Monster regex derived from:
 #  http://www.w3.org/TR/REC-xml/#NT-NameStartChar
@@ -118,48 +105,22 @@ NCNAME_REGEX = r'(' + NameStartChar + r')(' + \
                       
 NODE_TYPES = set(['comment', 'text', 'processing-instruction', 'node'])
 
-@TOKEN(NCNAME_REGEX)
-def t_NCNAME(t):
-    # I coulda sworn ply would recognize reserved keywords automatically.
-    # Apparently not, so here we check for them ourselves.
-    kwtoken = reserved.get(t.value, None)
-    if kwtoken:
-        t.type = kwtoken
-    elif t.value in NODE_TYPES:
-        # FIXME: technically foo:node is a QNname. We'll lex it as NCNAME
-        # COLON NODETYPE, which is not a valid construction in our grammar.
-        t.type = 'NODETYPE'
+t_NCNAME = NCNAME_REGEX
+
+def t_LITERAL(t):
+    r""""[^"]*"|'[^']*'"""
+    t.value = t.value[1:-1]
     return t
 
-
-# Per http://www.w3.org/TR/xpath/#exprlex : 
-#   "If there is a preceding token and the preceding token is not one of @,
-#    ::, (, [, , or an Operator, then a * must be recognized as a
-#    MultiplyOperator...."
-#   "Otherwise, the token must not be recognized as a MultiplyOperator...."
-#
-# Note that the spec doesn't list ':' but we do. They can remove it because
-# in the lexical structure defined by that section, ':' never exists on its
-# own: It is always part of a NameTest or QName. Instead, we break QName
-# down into NCName ':' NCName and put the parts together in the parser. That
-# means that we need to pass the parser a STAR_OP for NCName ':' '*', not a
-# MULT_OP. That means ':' needs to force the next '*' to be a STAR_OP not a
-# MULT_OP. That means ':' needs to be in this list.
-#
-# We implement this by making the lexer keep track of its last token. Note
-# that the ply lexer doesn't do this by default. This only works because
-# core.py tweaks the token() logic to do so.
-STAR_FORCERS = set([
-    '@', '::', '(', '[', ',', 'and', 'or', 'mod', 'div', '*', '/', '//',
-    '|', '+', '-', '=', '!=', '<', '<=', '>', '>=', ':',
-])
-def t_MULT_OP(t):
-    r'\*'
-    last = getattr(t.lexer, 'last', None)
-    if last is None or last.value in STAR_FORCERS:
-        t.type = 'STAR_OP'
-    # else stick with MULT_OP
+def t_FLOAT(t):
+    r'\d+\.\d*|\.\d+'
+    t.value = float(t.value)
     return t
     
+def t_INTEGER(t):
+    r'\d+'
+    t.value = int(t.value)
+    return t
+
 def t_error(t):
     raise TypeError("Unknown text '%s'" % (t.value,))

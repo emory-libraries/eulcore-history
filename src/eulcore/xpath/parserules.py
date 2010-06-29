@@ -139,10 +139,8 @@ def p_step_abbrev(p):
 
 def p_axis_specifier_full(p):
     """
-    AxisSpecifier : NCNAME AXIS_SEP
+    AxisSpecifier : AXISNAME AXIS_SEP
     """
-    # FIXME: technically the NCNAME must be chosen from a short list of
-    # valid axis names
     p[0] = p[1]
 
 def p_axis_specifier_abbrev(p):
@@ -216,6 +214,18 @@ def p_qname_prefixed(p):
 def p_qname_unprefixed(p):
     """
     QName : NCNAME
+    """
+    p[0] = (None, p[1])
+
+def p_funcqname_prefixed(p):
+    """
+    FuncQName : NCNAME COLON FUNCNAME
+    """
+    p[0] = (p[1], p[3])
+
+def p_funcqname_unprefixed(p):
+    """
+    FuncQName : FUNCNAME
     """
     p[0] = (None, p[1])
 
@@ -299,7 +309,7 @@ def p_number(p):
 
 def p_function_call(p):
     """
-    FunctionCall : QName FormalArguments
+    FunctionCall : FuncQName FormalArguments
     """
     # FIXME: This production also matches NodeType() or
     # processing-instruction("foo"), which are technically NodeTest

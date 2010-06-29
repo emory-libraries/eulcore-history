@@ -90,6 +90,52 @@ class ParseTest(unittest.TestCase):
         self.assertEqual('author', xp.predicates[0].left.left.node_test.name)
         self.assertEqual('last-name', xp.predicates[0].left.right.node_test.name)
 
+    def test_lex_exceptions(self):
+        # http://www.w3.org/TR/xpath/#exprlex describes several unusual
+        # lexing rules. Verify them here.
+        xp = xpath.parse('''***''')
+        self.assert_(isinstance(xp, ast.BinaryExpression))
+        self.assertEqual('*', xp.op)
+        self.assert_(isinstance(xp.left, ast.Step))
+        self.assert_(isinstance(xp.left.node_test, ast.NameTest))
+        self.assertEqual('*', xp.left.node_test.name)
+        self.assert_(isinstance(xp.right, ast.Step))
+        self.assert_(isinstance(xp.right.node_test, ast.NameTest))
+        self.assertEqual('*', xp.right.node_test.name)
+
+        xp = xpath.parse('''div div div''')
+        self.assert_(isinstance(xp, ast.BinaryExpression))
+        self.assertEqual('div', xp.op)
+        self.assert_(isinstance(xp.left, ast.Step))
+        self.assert_(isinstance(xp.left.node_test, ast.NameTest))
+        self.assertEqual('div', xp.left.node_test.name)
+        self.assert_(isinstance(xp.right, ast.Step))
+        self.assert_(isinstance(xp.right.node_test, ast.NameTest))
+        self.assertEqual('div', xp.right.node_test.name)
+
+        xp = xpath.parse('''node/node()''')
+        self.assert_(isinstance(xp, ast.BinaryExpression))
+        self.assertEqual('/', xp.op)
+        self.assert_(isinstance(xp.left, ast.Step))
+        self.assert_(isinstance(xp.left.node_test, ast.NameTest))
+        self.assertEqual('node', xp.left.node_test.name)
+        self.assert_(isinstance(xp.right, ast.Step))
+        self.assert_(isinstance(xp.right.node_test, ast.NodeType))
+        self.assertEqual('node', xp.right.node_test.name)
+
+        xp = xpath.parse('''boolean(boolean)''')
+        self.assert_(isinstance(xp, ast.FunctionCall))
+        self.assertEqual('boolean', xp.name)
+        self.assertEqual(1, len(xp.args))
+        self.assert_(isinstance(xp.args[0], ast.Step))
+        self.assertEqual('boolean', xp.args[0].node_test.name)
+
+        xp = xpath.parse('''parent::parent/parent:parent''')
+        self.assertEqual('parent', xp.left.axis)
+        self.assertEqual('parent', xp.left.node_test.name)
+        self.assertEqual('parent', xp.right.node_test.prefix)
+        self.assertEqual('parent', xp.right.node_test.name)
+
 
 class TestSerializeRoundTrip(unittest.TestCase):
     def round_trip(self, xpath_str):

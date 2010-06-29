@@ -131,8 +131,11 @@ class AbsolutePath(object):
         '''the relative path after the absolute root operator'''
 
     def __repr__(self):
-        return '<%s %s %s>' % (self.__class__.__name__,
-                self.op, serialize(self.relative))
+        if self.relative:
+            return '<%s %s %s>' % (self.__class__.__name__,
+                    self.op, serialize(self.relative))
+        else:
+            return '<%s %s>' % (self.__class__.__name__, self.op)
 
     def _serialize(self):
         yield self.op
