@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import tempfile
 import unittest
 
 import eulcore.xmlmap.core as xmlmap
@@ -216,6 +217,45 @@ class TestFields(unittest.TestCase):
     # FIXME: DateField and DateListField are hacked together. Until we
     #   work up some proper parsing and good testing for them, they should
     #   be considered untested and undocumented features.
+
+
+    def testSchemaField(self):
+        # very simple xsd schema and valid/invalid xml based on the one from lxml docs:
+        #   http://codespeak.net/lxml/validation.html#xmlschema
+        xsd = '''<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <xsd:element name="a" type="AType"/>
+            <xsd:complexType name="AType">
+                <xsd:sequence>
+                    <xsd:element name="b" type="BType" />
+                </xsd:sequence>
+            </xsd:complexType>
+            <xsd:simpleType name="BType">
+                <xsd:restriction base="xsd:string">
+                    <xsd:enumeration value="c"/>
+                    <xsd:enumeration value="d"/>
+                    <xsd:enumeration value="e"/>
+                </xsd:restriction>
+            </xsd:simpleType>
+        </xsd:schema>
+        '''
+        FILE = tempfile.NamedTemporaryFile(mode="w")
+        FILE.write(xsd)
+        FILE.flush()
+
+        valid_xml = '<a><b>some text</b></a>'
+
+        class TestSchemaObject(xmlmap.XmlObject):
+            XSD_SCHEMA = FILE.name
+            txt = xmlmap.SchemaField('/a/b', 'BType')
+
+        valid = xmlmap.load_xmlobject_from_string(valid_xml, TestSchemaObject)
+        self.assertEqual('some text', valid.txt, 'schema field value is accessible as text')
+        self.assert_(isinstance(valid._fields['txt'], xmlmap.StringField),
+                'txt SchemaField with base string in schema initialized as StringField')
+        self.assertEqual(['c', 'd', 'e'], valid._fields['txt'].choices,
+                'txt SchemaField has choices based on restriction enumeration in schema')
+
+        FILE.close()
 
 
 if __name__ == '__main__':

@@ -7,10 +7,11 @@ __all__ = [
     'StringField', 'StringListField',
     'IntegerField', 'IntegerListField',
     'NodeField', 'NodeListField',
-    'ItemField', 'SimpleBooleanField'
+    'ItemField', 'SimpleBooleanField',
 # NOTE: DateField and DateListField are undertested and underdocumented. If
 #   you really need them, you should import them explicitly. Or even better,
 #   flesh them out so they can be properly released.
+    'SchemaField',
 ]
 
 # base class for all fields
@@ -235,8 +236,8 @@ class SingleNodeManager(object):
         
 
 class NodeListManager(object):
-    def get(self, xpath, node, context, to_python):        
-        matches = node.xpath(xpath, **context) 
+    def get(self, xpath, node, context, to_python):
+        matches = node.xpath(xpath, **context)
         return [ to_python(match) for match in matches ]
 
 # finished field classes mixing a manager and a mapper
@@ -250,10 +251,15 @@ class StringField(Field):
     Takes an optional parameter to indicate that the string contents should have
     whitespace normalized.  By default, does not normalize.
 
+    Takes an optional list of choices to restrict possible values.
+
     Supports setting values for attributes, empty nodes, or text-only nodes.
     """
-
-    def __init__(self, xpath, normalize=False):
+    
+    def __init__(self, xpath, normalize=False, choices=None):
+        self.choices = choices
+        # FIXME: handle at a higher level, common to all/more field types?
+        #        does choice list need to be checked in the python ?
         super(StringField, self).__init__(xpath,
                 manager = SingleNodeManager(),
                 mapper = StringMapper(normalize=normalize))
@@ -400,3 +406,39 @@ class ItemField(Field):
         super(ItemField, self).__init__(xpath,
                 manager = SingleNodeManager(),
                 mapper = NullMapper())
+
+class SchemaField(Field):
+    """Schema-based field.  At class definition time, a SchemaField will be
+    **replaced** with the appropriate :class:`eulcore.xmlmap.fields.Field` type
+    based on the schema type definition.
+
+    Takes an xpath (which will be passed on to the real Field init) and a schema
+    type definition name.  If the schema type has enumerated restricted values,
+    those will be passed as choices to the Field.
+
+    Currently only supports simple string-based schema types.
+    """
+    def __init__(self, xpath, schema_type):
+        self.xpath = xpath
+        self.schema_type = schema_type
+
+    def get_field(self, schema):
+        """Get the requested type definition from the schema and return the
+        appropriate :class:`~eulcore.xmlmap.fields.Field`.
+
+        :param schema: instance of :class:`eulcore.xmlmap.core.XsdSchema`
+        :rtype: :class:`eulcore.xmlmap.fields.Field`
+        """
+        type = schema.get_type(self.schema_type)
+        kwargs = {}
+        if type.restricted_values:
+            # field has a restriction with enumerated values - pass as choices to field
+            kwargs['choices'] = type.restricted_values
+        # TODO: possibly also useful to look for pattern restrictions
+        
+        basetype = type.base_type()
+        if basetype == 'string':            
+            return StringField(self.xpath, **kwargs)
+        else:
+            raise Exception("basetype %s is not yet supported by SchemaField" % basetype)
+

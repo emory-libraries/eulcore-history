@@ -72,6 +72,12 @@ class XmlObjectType(type):
             # XXX: not a fan of isintance here. maybe use something like
             # django's contribute_to_class?
             if isinstance(attr_val, Field):
+                if isinstance(attr_val, SchemaField):
+                    # special case: schema field will look at the schema and return appropriate field type
+                    if 'XSD_SCHEMA' in defined_attrs:
+                        # FIXME: currently reloading schema every time...
+                        schema_obj = load_xmlobject_from_file(defined_attrs['XSD_SCHEMA'], XsdSchema)
+                        attr_val = attr_val.get_field(schema_obj)
                 field = attr_val
                 fields[attr_name] = field
                 use_attrs[attr_name] = _FieldDescriptor(field)
@@ -157,7 +163,7 @@ class XmlObject(object):
 
         XSD_SCHEMA = "http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
         xmlschema = xmlmap.loadSchema(XSD_SCHEMA)     
-    """    
+    """
     # NOTE: DTD and RNG validation could be handled similarly to XSD validation logic
 
     def __init__(self, node=None, context=None):
@@ -166,14 +172,22 @@ class XmlObject(object):
 
         self.node = node
         # FIXME: context probably needs work
+        # get namespaces from current node OR its parent (in case of an lxml 'smart' string)
         if hasattr(node, 'nsmap'):
-            self.context = {'namespaces' : node.nsmap}
+            nsmap = node.nsmap
         elif hasattr(node, 'getParent'):
-            print "node has getParent, using parent namespaces"
-            self.context = {'namespaces' : node.getparent().nsmap }
-            
+            nsmap = node.nsmap
+        else:
+            nsmap = {}
+
+        # xpath has no notion of a default namespace - omit any namespace with no prefix
+        self.context = {'namespaces': dict([(prefix, ns) for prefix, ns in nsmap.iteritems() if prefix ]) }
+
         if context is not None:
             self.context.update(context)
+        if hasattr(self, 'ROOT_NAMESPACES'):
+            # also include any root namespaces to guarantee that expected prefixes are available
+            self.context['namespaces'].update(self.ROOT_NAMESPACES)
 
         if self.XSD_SCHEMA is not None and self.xmlschema is None:
             # load xml schema if one is defined and has not already been loaded
@@ -335,3 +349,44 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False,
 # Import these for backward compatibility. Should consider deprecating these
 # and asking new code to pull them from descriptor
 from eulcore.xmlmap.fields import *
+
+# XSD schema xmlobjects - used in XmlObjectType to process SchemaFields
+# FIXME: where should these actually go? depends on both XmlObject and fields
+
+class XsdType(XmlObject):
+    ROOT_NAME = 'simpleType'
+    name = StringField('@name')
+    base = StringField('xs:restriction/@base')
+    restricted_values = StringListField('xs:restriction/xs:enumeration/@value')
+
+    def base_type(self):
+        # for now, only supports simple types - eventually, may want logic to
+        # traverse extended types to get to base XSD type
+        if ':' in self.base:    # for now, ignore prefix (could be xsd, xs, etc. - how to know which?)
+            prefix, basetype = self.base.split(':')
+        else:
+            basetype = self.base
+        return basetype
+    
+
+class XsdSchema(XmlObject):
+    ROOT_NAME = 'schema'
+    ROOT_NS = 'http://www.w3.org/2001/XMLSchema'
+    ROOT_NAMESPACES = {'xs': ROOT_NS }
+
+    def get_type(self, name=None, xpath=None):
+        if xpath is None:
+            if name is None:
+                raise Exception("Must specify either name or xpath")
+            xpath = '//*[@name="%s"]' % name
+
+        result = self.node.xpath(xpath)
+        if len(result) == 0:
+            raise Exception("No Schema type definition found for xpath '%s'" % xpath)
+        elif len(result) > 1:
+            raise Exception("Too many schema type definitions found for xpath '%s' (found %d)" \
+                        % (xpath, len(result)))
+        return XsdType(result[0], context=self.context) # pass in namespaces
+
+
+
