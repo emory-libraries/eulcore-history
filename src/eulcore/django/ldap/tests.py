@@ -28,7 +28,7 @@ class MockServer(object):
         if self.auth_exception is not None:
             raise self.auth_exception
 
-    def find_usernames(self, username):
+    def find_username(self, username):
         return self.find_results
 
 
