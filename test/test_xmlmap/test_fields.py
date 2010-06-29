@@ -74,6 +74,7 @@ class TestFields(unittest.TestCase):
             missing_att = xmlmap.StringField('@missing')
             missing_att_ns = xmlmap.StringField('@ex:missing')
             sub_missing = xmlmap.StringField('bar[1]/missing')
+            multilevel_missing = xmlmap.StringField('missing_parent/missing_child')
             mixed = xmlmap.StringField('bar[1]')
             id = xmlmap.StringField('@id')
             spacey = xmlmap.StringField('spacey')
@@ -125,6 +126,10 @@ class TestFields(unittest.TestCase):
         # in subelement
         obj.sub_missing = 'pining (for the fjords)'
         self.assertEqual(obj.node.xpath('string(bar/missing)'), 'pining (for the fjords)')
+
+        # in subelement which is itself missing
+        obj.multilevel_missing = 'so, so gone'
+        self.assertEqual(obj.node.xpath('string(missing_parent/missing_child)'), 'so, so gone')
 
         # attempting to set a node that contains non-text nodes - error
         self.assertRaises(Exception, obj.__setattr__, "mixed", "whoops")

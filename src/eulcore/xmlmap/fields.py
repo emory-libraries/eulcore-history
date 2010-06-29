@@ -29,32 +29,18 @@ class Field(object):
         self.manager = manager
         self.mapper = mapper
 
+        # pre-parse the xpath for setters, etc
+        self.parsed_xpath = parse(xpath)
+
         # adjust creation counter, save local copy of current count
         self.creation_counter = Field.creation_counter
         Field.creation_counter += 1
-
-        # determine parent xpath, node name, node type 
-        effective_xpath = parse(xpath)
-        self.node_info = {}
-        
-        if isinstance(effective_xpath, ast.BinaryExpression) and \
-                effective_xpath.op == '/':
-            self.node_info['parent_xpath'] = serialize(effective_xpath.left)
-            effective_xpath = effective_xpath.right
-            
-        if isinstance(effective_xpath, ast.Step) and \
-                isinstance(effective_xpath.node_test, ast.NameTest):
-            self.node_info['type'] = effective_xpath.axis or 'child'
-            if self.node_info['type'] == '@':
-                self.node_info['type'] = 'attribute'
-            self.node_info['prefix'] = effective_xpath.node_test.prefix
-            self.node_info['name'] = effective_xpath.node_test.name
 
     def get_for_node(self, node, context):
         return self.manager.get(self.xpath, node, context, self.mapper.to_python)
 
     def set_for_node(self, node, context, value):
-        return self.manager.set(self.xpath, node, context, self.mapper.to_xml, value, self.node_info)
+        return self.manager.set(self.xpath, self.parsed_xpath, node, context, self.mapper.to_xml, value)
 
 
 # data mappers to translate between identified xml nodes and Python values
@@ -149,102 +135,101 @@ class SingleNodeManager(object):
         if match is not None:
             return to_python(match)
 
-    def set(self, xpath, node, context, to_xml, value, node_info):
+    def set(self, xpath, xast, node, context, to_xml, value):
+        xvalue = to_xml(value)
         match = self.find_xml_node(xpath, node, context)
-        if match == None:
-            match = self.create_xml_node(xpath, node, context, node_info)
-            # create_xml_node() throws an exception on failure
+        terminal_step = None
+        if match is None:
+            match = self.create_xml_node(xast, node, context)
+        # terminal (rightmost) step informs how we update the xml
+        step = self.find_terminal_step(xast)
+        self.set_in_xml(match, xvalue, context, step)
 
-        return self.set_in_xml(match, to_xml(value), context, node_info)
+    def find_terminal_step(self, xast):
+        if isinstance(xast, ast.Step):
+            return xast
+        elif isinstance(xast, ast.BinaryExpression):
+            if xast.op in ('/', '//'):
+                return self.find_terminal_step(xast.right)
+        return None
 
     def find_xml_node(self, xpath, node, context):
         matches = node.xpath(xpath, **context)
         if matches:
             return matches[0]
 
-    def create_xml_node(self, xpath, node, context, node_info):
-        # a node can be created if:
-
-        # relative path and the parent node exists
-        if 'parent_xpath' in node_info:
-            parent_nodeset = node.xpath(node_info['parent_xpath'], **context)
-            if len(parent_nodeset) != 1:
-                msg = ("Missing element for '%s', and node creation is " + \
-                       "supported only when parent xpath '%s' evaluates " + \
-                       "to a single node. Instead, it evaluates to %d.") % \
-                       (repr(xpath), repr(node_info['parent_xpath']), \
-                        len(parent_nodeset))
-                raise Exception(msg)
-            # otherwise, we found the parent.
-            parent_node = parent_nodeset[0]
-        else:
-            # if there is no parent xpath, create missing node under the current node
-            parent_node = node
-
-        # and if the last part of the path is a simple, unpredicated child
-        # or attribute
-        if 'type' in node_info:            
-            if node_info['type'] == 'child':
-                return self.create_child_node(parent_node, context, node_info)
-            elif node_info['type'] == 'attribute':
-                return self.create_attribute_node(parent_node, context, node_info)
+    def create_xml_node(self, xast, node, context):
+        if isinstance(xast, ast.Step):
+            if isinstance(xast.node_test, ast.NameTest) and \
+                    len(xast.predicates) == 0:
+                if xast.axis in (None, 'child'):
+                    return self.create_child_node(node, context, xast)
+                elif xast.axis in ('@', 'attribute'):
+                    return self.create_attribute_node(node, context, xast)
+        elif isinstance(xast, ast.BinaryExpression):
+            if xast.op == '/':
+                left_xpath = serialize(xast.left)
+                left_node = self.find_xml_node(left_xpath, node, context)
+                if left_node is None:
+                    left_node = self.create_xml_node(xast.left, node, context)
+                return self.create_xml_node(xast.right, left_node, context)
 
         # anything else, throw an exception:
         msg = ("Missing element for '%s', and node creation is supported " + \
-               "only for simple child and attribute nodes.") % (repr(xpath),)
+               "only for simple child and attribute nodes.") % (serialize(xast),)
         raise Exception(msg)
 
-    def create_child_node(self, node, context, node_info):
+    def create_child_node(self, node, context, step):
         opts = {}
         ns_uri = None
         if 'namespaces' in context:
             opts['nsmap'] = context['namespaces']
-            if node_info['prefix'] is not None:
-                ns_uri = context['namespaces'][node_info['prefix']]
+            if step.node_test.prefix:
+                ns_uri = context['namespaces'][step.node_test.prefix]
         E = ElementMaker(namespace=ns_uri, **opts)
-        new_node = E(node_info['name'])
+        new_node = E(step.node_test.name)
         node.append(new_node)
         return new_node
 
-    def create_attribute_node(self, node, context, node_info):
-        node_name, node_xpath, nsmap = self._get_attribute_name(node_info, context)        
+    def create_attribute_node(self, node, context, step):
+        node_name, node_xpath, nsmap = self._get_attribute_name(step, context)
         # create an empty attribute node
         node.set(node_name, '')
         # find via xpath so a 'smart' string can be returned and set normally
         result = node.xpath(node_xpath, namespaces=nsmap)
         return result[0]
 
-    def set_in_xml(self, node, val, context, node_info):
+    def set_in_xml(self, node, val, context, step):
         if isinstance(node, etree._Element):
             if not list(node):      # no child elements
                 node.text = val
             else:                 
                 raise Exception("Cannot set string value - not a text node!")
-        elif node_info['type'] == 'attribute':
+        elif hasattr(node, 'getparent'):
             # by default, etree returns a "smart" string for attribute result;
-            # determine attribute name and set on parent node            
-            attribute, node_xpath, nsmap = self._get_attribute_name(node_info, context)
+            # determine attribute name and set on parent node
+            attribute, node_xpath, nsmap = self._get_attribute_name(step, context)
             node.getparent().set(attribute, val)
 
-    def _get_attribute_name(self, node_info, context):
+    def _get_attribute_name(self, step, context):
         # calculate attribute name, xpath, and nsmap based on node info and context namespaces
-        if node_info['prefix'] is None:
+        if not step.node_test.prefix:
             nsmap = {}
             ns_uri = None
-            node_name = node_info['name']
+            node_name = step.node_test.name
             node_xpath = '@%s' % node_name
         else:
             # if node has a prefix, the namespace *should* be defined in context
-            if 'namespaces' in context and node_info['prefix'] in context['namespaces']:
-                ns_uri = context['namespaces'][node_info['prefix']]
+            if 'namespaces' in context and step.node_test.prefix in context['namespaces']:
+                ns_uri = context['namespaces'][step.node_test.prefix]
             else:
                 ns_uri = None
                 # we could throw an exception here if ns_uri wasn't found, but
                 # for now assume the user knows what he's doing...
 
-            node_xpath = '@%s:%s' % (node_info['prefix'], node_info['name'])
-            node_name = '{%s}%s' % (ns_uri, node_info['name'])
-            nsmap = {node_info['prefix']: ns_uri}
+            node_xpath = '@%s:%s' % (step.node_test.prefix, step.node_test.name)
+            node_name = '{%s}%s' % (ns_uri, step.node_test.name)
+            nsmap = {step.node_test.prefix: ns_uri}
 
         return node_name, node_xpath, nsmap
         

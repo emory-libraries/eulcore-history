@@ -8,7 +8,7 @@ REPO_ROOT = 'https://dev11.library.emory.edu:8643/fedora/'
 REPO_ROOT_NONSSL = 'http://dev11.library.emory.edu:8280/fedora/'
 REPO_USER = 'fedoraAdmin'
 REPO_PASS = 'fedoraAdmin'
-TEST_PIDSPACE = 'eulcoretest'
+TEST_PIDSPACE = 'eulcoretest-ben'
 
 FIXTURE_ROOT = os.path.join(os.path.dirname(__file__), 'fixtures')
 def fixture_path(fname):
