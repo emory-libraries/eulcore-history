@@ -23,6 +23,7 @@ class TestObject(xmlmap.XmlObject):
     longtext = xmlmap.StringField('longtext', normalize=True)
     #children = xmlmap.NodeListField('bar', TestSubobject)      # lists not handled yet
     children = xmlmap.NodeField('bar', TestSubobject)
+    my_opt = xmlmap.StringField('opt', choices=['a', 'b', 'c'])
 
 FIXTURE_TEXT = '''
     <foo id='a'>
@@ -52,6 +53,7 @@ class XmlObjectFormTest(unittest.TestCase):
         'int': 21,
         'bool': False,
         'id': 'b',
+        'my_opt': 'c',
         }
 
 
@@ -91,6 +93,15 @@ class XmlObjectFormTest(unittest.TestCase):
         expected, got = 'Bool', formfields['bool'].label
         self.assertEqual(expected, got, "form field label should be set to " + \
             "xmlmap field name; expected %s, got %s" % (expected, got))
+
+        # choice field
+        self.assert_('my_opt' in formfields, 'my_opt field is present in form fields')
+        self.assert_(isinstance(formfields['my_opt'], forms.ChoiceField),
+            "xmlmap.StringField 'my_opt' with choices form field initialized as ChoiceField")
+        expected, got = 'My Opt', formfields['my_opt'].label
+        self.assertEqual(expected, got, "form field label should be set to " + \
+            "xmlmap field name; expected %s, got %s" % (expected, got))
+
 
     def test_field_value_from_instance(self):
         # when form is initialized from an xmlobject instance, form should 
@@ -317,7 +328,7 @@ class XmlObjectFormTest(unittest.TestCase):
 
     def test_is_valid(self):
         # missing required fields for main form but not subform
-        form = TestForm({'int': 21, 'children-id2': 'two', 'children-val': 2 }) 
+        form = TestForm({'int': 21, 'children-id2': 'two', 'children-val': 2 })
         self.assertFalse(form.is_valid(),
             "form is not valid when required top-level fields are missing")
         # no subform fields

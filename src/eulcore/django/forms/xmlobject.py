@@ -3,7 +3,8 @@
 
 from string import capwords
 
-from django.forms import BaseForm, CharField, IntegerField, BooleanField
+from django.forms import BaseForm, CharField, IntegerField, BooleanField, \
+        DateField, ChoiceField
 from django.forms.forms import get_declared_fields
 from django.forms.models import ModelFormOptions
 from django.utils.datastructures  import SortedDict
@@ -59,7 +60,11 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
             kwargs = {}
         # get apppropriate form widget based on xmlmap field type
         field_type = None
-        if isinstance(field, xmlmap.fields.StringField):
+        if hasattr(field, 'choices') and field.choices:
+            # if a field has choices defined, use a choice field (no matter what base type)
+            field_type = ChoiceField
+            kwargs['choices'] = [(val, val) for val in field.choices]
+        elif isinstance(field, xmlmap.fields.StringField):
             field_type = CharField
         elif isinstance(field, xmlmap.fields.IntegerField):
             field_type = IntegerField
@@ -71,6 +76,9 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
             field_type = BooleanField
             
         # datefield ? - not yet well-supported; leaving out for now
+        #elif isinstance(field, xmlmap.fields.DateField):
+        #    field_type = DateField
+        
         # should probably distinguish between date and datetime field
         
         elif isinstance(field, xmlmap.fields.NodeField):
