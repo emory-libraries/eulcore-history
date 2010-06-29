@@ -28,6 +28,7 @@ implementations.
 from django.conf import settings
 from django.contrib.auth.models import User, SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
+from ldap.filter import escape_filter_chars
 import ldap
 
 # originally inspired by http://www.carthage.edu/webdev/?p=12
@@ -95,7 +96,7 @@ class LDAPBackend(object):
             return None
 
     def find_user(self, username):
-        username_results = self.server.find_usernames(username)
+        username_results = self.server.find_username(username)
         # If the user does not exist in LDAP, of if somehow there are
         # multiple matches, fail.
         if len(username_results) != 1:
@@ -146,5 +147,5 @@ class LDAPServer(object):
         self.server.simple_bind_s(user_dn, password)
 
     def find_username(self, username):
-        filter = settings.AUTH_LDAP_SEARCH_FILTER % (ldap.filter.escape_filter_chars(username),)
+        filter = settings.AUTH_LDAP_SEARCH_FILTER % (escape_filter_chars(username),)
         return self.server.search_s(settings.AUTH_LDAP_SEARCH_SUFFIX, ldap.SCOPE_SUBTREE, filter, ['*'])
