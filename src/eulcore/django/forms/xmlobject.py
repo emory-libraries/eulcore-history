@@ -209,6 +209,10 @@ class XmlObjectForm(BaseForm):
     using the built-in form display functions, be aware that if your XmlObject
     has any fields of type :class:`~eulcore.xmlmap.fields.NodeField`, you should
     make sure to display the subforms for those fields.
+
+    NOTE: If your XmlObject includes NodeField elements and you want to be able
+    to dynamically add xml fields under those NodeFields, you must currently set
+    instantiate_on_get to True when declaring your NodeFields.
     """
 
     # django has a basemodelform with all the logic
@@ -229,7 +233,9 @@ class XmlObjectForm(BaseForm):
             if opts.model is None:
                 raise ValueError('XmlObjectForm has no XmlObject model class specified')
             # if we didn't get an instance, instantiate a new one
-            self.instance = opts.model()            
+            # NOTE: if this is a subform, the data won't go anywhere useful
+            # currently requires that instantiate_on_get param be set to True for NodeFields
+            self.instance = opts.model()
             # track adding new instance instead of updating existing?
 
             object_data = {}    # no initial data
@@ -255,7 +261,7 @@ class XmlObjectForm(BaseForm):
             # instantiate the new form with the current field as instance, if available
             if self.instance is not None:
                 # get the relevant instance for the current NodeField variable
-                subinstance = getattr(self.instance, name) or None
+                subinstance = getattr(self.instance, name, None)
             else:
                 subinstance = None
 

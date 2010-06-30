@@ -53,6 +53,13 @@ class TestFields(unittest.TestCase):
         self.assertEqual(obj.missing, None)
         # undefined if >1 matched nodes
 
+        # test instantiate on get hack
+        class GetTestObject(xmlmap.XmlObject):
+            missing = xmlmap.NodeField('missing', TestSubobject, instantiate_on_get=True)
+        obj = GetTestObject(self.fixture)
+        self.assert_(isinstance(obj.missing, TestSubobject),
+            "non-existent nodefield is created on get when 'instantiate_on_get' flag is set")
+
     def testNodeListField(self):
         class TestSubobject(xmlmap.XmlObject):
             val = xmlmap.IntegerField('baz')

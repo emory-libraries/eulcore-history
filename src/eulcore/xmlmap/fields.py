@@ -38,7 +38,7 @@ class Field(object):
         Field.creation_counter += 1
 
     def get_for_node(self, node, context):
-        return self.manager.get(self.xpath, node, context, self.mapper.to_python)
+        return self.manager.get(self.xpath, node, context, self.mapper.to_python, self.parsed_xpath)
 
     def set_for_node(self, node, context, value):
         return self.manager.set(self.xpath, self.parsed_xpath, node, context, self.mapper.to_xml, value)
@@ -131,10 +131,16 @@ class NodeMapper(object):
 # list of them
 
 class SingleNodeManager(object):
-    def get(self, xpath, node, context, to_python):
+
+    def __init__(self, instantiate_on_get=False):
+        self.instantiate_on_get = instantiate_on_get
+
+    def get(self, xpath, node, context, to_python, xast):
         match = self.find_xml_node(xpath, node, context)
         if match is not None:
             return to_python(match)
+        elif self.instantiate_on_get:
+            return to_python(self.create_xml_node(xast, node, context))
 
     def set(self, xpath, xast, node, context, to_xml, value):
         xvalue = to_xml(value)
@@ -236,7 +242,7 @@ class SingleNodeManager(object):
         
 
 class NodeListManager(object):
-    def get(self, xpath, node, context, to_python):
+    def get(self, xpath, node, context, to_python, xast):
         matches = node.xpath(xpath, **context)
         return [ to_python(match) for match in matches ]
 
@@ -362,11 +368,16 @@ class NodeField(Field):
     Normally a ``NodeField``'s ``node_class`` is a class. As a special
     exception, it may be the string ``"self"``, in which case it recursively
     refers to objects of its containing :class:`XmlObject` class.
+
+    Optional ``instantiate_on_get`` flag: set to True if you need a non-existent
+    node to be created when the NodeField is accessed.  (Currently needed for
+    :class:`eulcore.django.forms.xmlobject.XmlObjectForm` if you want to dynamically
+    add missing fields under a NodeField to XML.)
     """
 
-    def __init__(self, xpath, node_class):
+    def __init__(self, xpath, node_class, instantiate_on_get=False):
         super(NodeField, self).__init__(xpath,
-                manager = SingleNodeManager(),
+                manager = SingleNodeManager(instantiate_on_get=instantiate_on_get),
                 mapper = NodeMapper(node_class))
 
     def _get_node_class(self):
