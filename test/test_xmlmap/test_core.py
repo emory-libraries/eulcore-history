@@ -169,8 +169,11 @@ class TestXmlObject(unittest.TestCase):
         FILE.close()
 
     def test_isvalid(self):
-        # validating xmlobject with no schema should raise an exception
-        self.assertRaises(Exception, self.obj.is_valid)
+        # attempting schema-validation on an xmlobject with no schema should raise an exception
+        self.assertRaises(Exception, self.obj.schema_valid)
+
+        # generic validation with no schema -- assumed True
+        self.assertTrue(self.obj.is_valid())
 
         # very simple xsd schema and valid/invalid xml taken from lxml docs:
         #   http://codespeak.net/lxml/validation.html#xmlschema
@@ -194,7 +197,8 @@ class TestXmlObject(unittest.TestCase):
             XSD_SCHEMA = FILE.name
         
         valid = xmlmap.load_xmlobject_from_string(valid_xml, TestSchemaObject)
-        self.assertTrue(valid.is_valid())        
+        self.assertTrue(valid.is_valid())
+        self.assertTrue(valid.schema_valid())
 
         invalid = xmlmap.load_xmlobject_from_string(invalid_xml, TestSchemaObject)        
         self.assertFalse(invalid.is_valid())

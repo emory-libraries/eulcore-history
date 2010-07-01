@@ -252,6 +252,29 @@ class XmlObject(object):
         return stream
 
     def is_valid(self):
+        """Determine if the current document is valid as far as we can determine.
+        If there is a schema associated, check for schema validity.  Otherwise,
+        return True.
+
+        :rtype: boolean
+        """
+        # valid if there are no validation errors
+        return self.validation_errors() == []
+
+    def validation_errors(self):
+        """Return a list of validation errors.  Returns an empty list if the xml
+        is schema valid or no schema is defined.
+        
+        Currently only supports schema validation.
+
+        :rtype: list
+        """
+        # if we add other types of validation (DTD, RNG), incorporate them here
+        if self.xmlschema and not self.schema_valid():
+            return self.schema_validation_errors()
+        return []
+
+    def schema_valid(self):
         """Determine if the current document is schema-valid according to the
         configured XSD Schema associated with this instance of :class:`XmlObject`.
 
@@ -263,7 +286,7 @@ class XmlObject(object):
         else:
             raise Exception('No XSD schema is defined, cannot validate document')
 
-    def validation_errors(self):
+    def schema_validation_errors(self):
         """
         Retrieve any validation errors that occured during schema validation
         done via :meth:`is_valid`.
