@@ -4,7 +4,8 @@
 from string import capwords
 
 from django.forms import BaseForm, CharField, IntegerField, BooleanField, \
-        DateField, ChoiceField
+        ChoiceField
+from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.forms import get_declared_fields
 from django.forms.models import ModelFormOptions
 from django.utils.datastructures  import SortedDict
@@ -75,11 +76,8 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
             kwargs['required'] = False
             field_type = BooleanField
             
-        # datefield ? - not yet well-supported; leaving out for now
-        #elif isinstance(field, xmlmap.fields.DateField):
-        #    field_type = DateField
-        
-        # should probably distinguish between date and datetime field
+        # datefield ? - not yet well-supported; leaving out for now        
+        # ... should probably distinguish between date and datetime field
         
         elif isinstance(field, xmlmap.fields.NodeField):
             # define a new xmlobject form for the nodefield class
@@ -246,8 +244,6 @@ class XmlObjectForm(BaseForm):
 
         # initialize subforms for all nodefields that belong to the xmlobject model
         self._init_subforms(data)
-        # TODO:
-        # - document so custom form output can be done reasonably with subforms
             
         super(XmlObjectForm, self).__init__(data=data, initial=object_data, prefix=prefix)
         # possible additional params :
@@ -280,7 +276,7 @@ class XmlObjectForm(BaseForm):
 
             # instantiate the subform class with field data and model instance
             # - setting prefix based on field name, to distinguish similarly named fields
-            self.subforms[name] = subform(data=data, instance=subinstance, prefix=name)
+            self.subforms[name] = subform(data=field_data, instance=subinstance, prefix=name)
 
     def update_instance(self):
         """Save bound form data into the XmlObject model instance and return the
@@ -302,9 +298,41 @@ class XmlObjectForm(BaseForm):
     # (only likely to be saved in context of a fedora or exist object)
 
     def is_valid(self):
-        "Returns True if this form and all subforms (if any) are valid."
-        return super(XmlObjectForm, self).is_valid() and \
-                    all([s.is_valid() for s in self.subforms.itervalues()])
+        """Returns True if this form and all subforms (if any) are valid.
+        
+        If all standard form-validation tests pass, uses :class:`~eulcore.xmlmap.XmlObject`
+        validation methods to check for schema-validity (if a schema is associated)
+        and reporting errors.  Additonal notes:
+        
+         * schema validation requires that the :class:`~eulcore.xmlmap.XmlObject`
+           be initialized with the cleaned form data, so if normal validation
+           checks pass, the associated :class:`~eulcore.xmlmap.XmlObject` instance
+           will be updated with data via :meth:`update_instance`
+         * schema validation errors SHOULD NOT happen in a production system
+
+        :rtype: boolean
+        """
+        valid = super(XmlObjectForm, self).is_valid() and \
+                all([s.is_valid() for s in self.subforms.itervalues()])
+        # schema validation can only be done after regular validation passes,
+        # because xmlobject must be updated with cleaned_data
+        if valid and self.instance is not None:
+            # update instance required to check schema-validity
+            instance = self.update_instance()     
+            if instance.is_valid():
+                return True
+            else:
+                # if not schema-valid, add validation errors to error dictionary
+                # NOTE: not overriding _get_errors because that is used by the built-in validation
+                # append to any existing non-field errors
+                if NON_FIELD_ERRORS not in self._errors:
+                    self._errors[NON_FIELD_ERRORS] = self.error_class()
+                self._errors[NON_FIELD_ERRORS].append("There was an unexpected schema validation error.  " +
+                    "This should not happen!  Please report the following errors:")
+                for err in instance.validation_errors():
+                    self._errors[NON_FIELD_ERRORS].append('VALIDATION ERROR: %s' % err.message)               
+                return False
+        return valid
 
     # NOTE: errors only returned for the *current* form, not for all subforms
     # - appears to be used only for form output, so this should be sensible

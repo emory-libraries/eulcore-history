@@ -114,7 +114,7 @@ class XmlObjectFormTest(unittest.TestCase):
             (expected, got))
 
         expected, got = 13, initial_data['int']
-        self.assertEqual(13, initial_data['int'],
+        self.assertEqual(expected, initial_data['int'],
            "initial instance-based form value for 'int' should be %s, got %s" % \
             (expected, got))
 
@@ -336,7 +336,9 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertFalse(form.is_valid(),
             "form is not valid when required subform fields are missing")
 
-        form = TestForm(self.post_data)
+        form = TestForm(self.post_data, instance=self.testobj)
+        # NOTE: passing in object instance because validation now attempts to initialize,
+        # and dynamic creation of nodes like bar[2]/baz is currently not supported
         self.assertTrue(form.is_valid(),
             "form is valid when top-level and subform required fields are present")
 
