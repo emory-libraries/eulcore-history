@@ -260,23 +260,13 @@ class XmlObjectForm(BaseForm):
                 subinstance = getattr(self.instance, name, None)
             else:
                 subinstance = None
-
-            if data is not None:
-                # field name will be used as form prefix
-                # pull out any relevant initial data by name prefix
-                # (could hand off all the data, but it seems cleaner to pass on the appropriate subset)
-                id_prefix = '%s-' % name
-                field_data = dict([(k, v) for k, v in data.items()
-                                            if k.startswith(id_prefix) ])
-            else:
-                field_data = None
     
             # FIXME: do prefixes need to be nested?
             # e.g., subform prefix = my prefix + name
 
             # instantiate the subform class with field data and model instance
             # - setting prefix based on field name, to distinguish similarly named fields
-            self.subforms[name] = subform(data=field_data, instance=subinstance, prefix=name)
+            self.subforms[name] = subform(data=data, instance=subinstance, prefix=name)
 
     def update_instance(self):
         """Save bound form data into the XmlObject model instance and return the
