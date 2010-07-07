@@ -198,6 +198,8 @@ class TestFields(unittest.TestCase):
             txt_bool2 = xmlmap.SimpleBooleanField('boolean/text2', 'yes', 'no')
             num_bool1 = xmlmap.SimpleBooleanField('boolean/num1', 1, 0)
             num_bool2 = xmlmap.SimpleBooleanField('boolean/num2', 1, 0)
+            opt_elem_bool = xmlmap.SimpleBooleanField('boolean/opt', 'yes', None)
+            opt_attr_bool = xmlmap.SimpleBooleanField('boolean/@opt', 'yes', None)
 
         #obj = TestObject(self.fixture.documentElement)
         obj = TestObject(self.fixture)
@@ -205,6 +207,8 @@ class TestFields(unittest.TestCase):
         self.assertEqual(obj.txt_bool2, False)
         self.assertEqual(obj.num_bool1, True)
         self.assertEqual(obj.num_bool2, False)
+        self.assertEqual(obj.opt_elem_bool, False)
+        self.assertEqual(obj.opt_attr_bool, False)
 
         # set text boolean
         obj.txt_bool1 = False
@@ -219,6 +223,21 @@ class TestFields(unittest.TestCase):
         self.assertEqual(obj.node.xpath('number(boolean/num1)'), 0)
         self.assertEqual(obj.num_bool1, False)
 
+        # set optional element boolean
+        obj.opt_elem_bool = True
+        self.assertEqual(obj.node.xpath('string(boolean/opt)'), 'yes')
+        self.assertEqual(obj.opt_elem_bool, True)
+        obj.opt_elem_bool = False
+        self.assertEqual(obj.node.xpath('count(boolean/opt)'), 0)
+        self.assertEqual(obj.opt_elem_bool, False)
+
+        # set optional attribute boolean
+        obj.opt_attr_bool = True
+        self.assertEqual(obj.node.xpath('string(boolean/@opt)'), 'yes')
+        self.assertEqual(obj.opt_attr_bool, True)
+        obj.opt_attr_bool = False
+        self.assertEqual(obj.node.xpath('count(boolean/@opt)'), 0)
+        self.assertEqual(obj.opt_attr_bool, False)
 
 
     # FIXME: DateField and DateListField are hacked together. Until we

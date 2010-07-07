@@ -58,6 +58,8 @@ class StringMapper(Mapper):
             self.XPATH = etree.XPath('normalize-space(string())')
         
     def to_python(self, node):
+        if node is None:
+            return None
         if isinstance(node, basestring):
             return node
         return self.XPATH(node)
@@ -65,6 +67,8 @@ class StringMapper(Mapper):
 class NumberMapper(Mapper):
     XPATH = etree.XPath('number()')
     def to_python(self, node):
+        if node is None:
+            return None
         if isinstance(node, basestring):
             return int(node)     # FIXME: not equivalent to xpath number()...
         return self.XPATH(node)
@@ -76,27 +80,36 @@ class SimpleBooleanMapper(Mapper):
         self.false = false
         
     def to_python(self, node):
+        if node is None and \
+                self.false is None:
+            return False
+
         if isinstance(node, basestring):
             value = node
         else:
             value = self.XPATH(node)
         if value == str(self.true):
             return True
-        if value == str(self.false):
+        if self.false is not None and \
+                value == str(self.false):
             return False        
         # what happens if it is neither of these?
         raise Exception("Boolean field value '%s' is neither '%s' nor '%s'" % (value, self.true, self.false))
-        
 
     def to_xml(self, value):
         if value:
             return str(self.true)
-        else:
+        elif self.false is not None:
             return str(self.false)
+        else:
+            return None
+
 
 class DateMapper(object):
     XPATH = etree.XPath('string()')
     def to_python(self, node):
+        if node is None:
+            return None
         if isinstance(node, basestring):
             rep = node
         else:
@@ -125,7 +138,125 @@ class NodeMapper(object):
         self.node_class = node_class
 
     def to_python(self, node):
+        if node is None:
+            return None
         return self.node_class(node)
+
+
+# internal xml utility functions for use by managers
+
+def _find_terminal_step(xast):
+    if isinstance(xast, ast.Step):
+        return xast
+    elif isinstance(xast, ast.BinaryExpression):
+        if xast.op in ('/', '//'):
+            return _find_terminal_step(xast.right)
+    return None
+
+def _find_xml_node(xpath, node, context):
+    matches = node.xpath(xpath, **context)
+    if matches:
+        return matches[0]
+
+def _create_xml_node(xast, node, context):
+    if isinstance(xast, ast.Step):
+        if isinstance(xast.node_test, ast.NameTest) and \
+                len(xast.predicates) == 0:
+            if xast.axis in (None, 'child'):
+                return _create_child_node(node, context, xast)
+            elif xast.axis in ('@', 'attribute'):
+                return _create_attribute_node(node, context, xast)
+    elif isinstance(xast, ast.BinaryExpression):
+        if xast.op == '/':
+            left_xpath = serialize(xast.left)
+            left_node = _find_xml_node(left_xpath, node, context)
+            if left_node is None:
+                left_node = _create_xml_node(xast.left, node, context)
+            return _create_xml_node(xast.right, left_node, context)
+
+    # anything else, throw an exception:
+    msg = ("Missing element for '%s', and node creation is supported " + \
+           "only for simple child and attribute nodes.") % (serialize(xast),)
+    raise Exception(msg)
+
+def _create_child_node(node, context, step):
+    opts = {}
+    ns_uri = None
+    if 'namespaces' in context:
+        opts['nsmap'] = context['namespaces']
+        if step.node_test.prefix:
+            ns_uri = context['namespaces'][step.node_test.prefix]
+    E = ElementMaker(namespace=ns_uri, **opts)
+    new_node = E(step.node_test.name)
+    node.append(new_node)
+    return new_node
+
+def _create_attribute_node(node, context, step):
+    node_name, node_xpath, nsmap = _get_attribute_name(step, context)
+    # create an empty attribute node
+    node.set(node_name, '')
+    # find via xpath so a 'smart' string can be returned and set normally
+    result = node.xpath(node_xpath, namespaces=nsmap)
+    return result[0]
+
+def _set_in_xml(node, val, context, step):
+    if isinstance(node, etree._Element):
+        if not list(node):      # no child elements
+            node.text = val
+        else:                 
+            raise Exception("Cannot set string value - not a text node!")
+    elif hasattr(node, 'getparent'):
+        # by default, etree returns a "smart" string for attribute result;
+        # determine attribute name and set on parent node
+        attribute, node_xpath, nsmap = _get_attribute_name(step, context)
+        node.getparent().set(attribute, val)
+
+def _remove_xml(xast, node, context):
+    if isinstance(xast, ast.Step):
+        if isinstance(xast.node_test, ast.NameTest):
+            if xast.axis in (None, 'child'):
+                _remove_child_node(node, context, xast)
+            elif xast.axis in ('@', 'attribute'):
+                _remove_attribute_node(node, context, xast)
+    elif isinstance(xast, ast.BinaryExpression):
+        if xast.op == '/':
+            left_xpath = serialize(xast.left)
+            left_node = _find_xml_node(left_xpath, node, context)
+            if left_node is not None:
+                _remove_xml(xast.right, left_node, context)
+    
+def _remove_child_node(node, context, xast):
+    xpath = serialize(xast)
+    child = _find_xml_node(xpath, node, context)
+    if child is not None:
+        node.remove(child)
+
+def _remove_attribute_node(node, context, xast):
+    node_name, node_xpath, nsmap = _get_attribute_name(xast, context)
+    del node.attrib[node_name]
+
+def _get_attribute_name(step, context):
+    # calculate attribute name, xpath, and nsmap based on node info and context namespaces
+    if not step.node_test.prefix:
+        nsmap = {}
+        ns_uri = None
+        node_name = step.node_test.name
+        node_xpath = '@%s' % node_name
+    else:
+        # if node has a prefix, the namespace *should* be defined in context
+        if 'namespaces' in context and step.node_test.prefix in context['namespaces']:
+            ns_uri = context['namespaces'][step.node_test.prefix]
+        else:
+            ns_uri = None
+            # we could throw an exception here if ns_uri wasn't found, but
+            # for now assume the user knows what he's doing...
+
+        node_xpath = '@%s:%s' % (step.node_test.prefix, step.node_test.name)
+        node_name = '{%s}%s' % (ns_uri, step.node_test.name)
+        nsmap = {step.node_test.prefix: ns_uri}
+
+    return node_name, node_xpath, nsmap
+
 
 # managers to map operations to either a single identified node or a
 # list of them
@@ -136,110 +267,27 @@ class SingleNodeManager(object):
         self.instantiate_on_get = instantiate_on_get
 
     def get(self, xpath, node, context, to_python, xast):
-        match = self.find_xml_node(xpath, node, context)
-        if match is not None:
-            return to_python(match)
-        elif self.instantiate_on_get:
-            return to_python(self.create_xml_node(xast, node, context))
+        match = _find_xml_node(xpath, node, context)
+        if match is None and self.instantiate_on_get:
+            return to_python(_create_xml_node(xast, node, context))
+        # else, non-None match, or not instantiate
+        return to_python(match)
 
     def set(self, xpath, xast, node, context, to_xml, value):
         xvalue = to_xml(value)
-        match = self.find_xml_node(xpath, node, context)
-        terminal_step = None
-        if match is None:
-            match = self.create_xml_node(xast, node, context)
-        # terminal (rightmost) step informs how we update the xml
-        step = self.find_terminal_step(xast)
-        self.set_in_xml(match, xvalue, context, step)
+        match = _find_xml_node(xpath, node, context)
 
-    def find_terminal_step(self, xast):
-        if isinstance(xast, ast.Step):
-            return xast
-        elif isinstance(xast, ast.BinaryExpression):
-            if xast.op in ('/', '//'):
-                return self.find_terminal_step(xast.right)
-        return None
-
-    def find_xml_node(self, xpath, node, context):
-        matches = node.xpath(xpath, **context)
-        if matches:
-            return matches[0]
-
-    def create_xml_node(self, xast, node, context):
-        if isinstance(xast, ast.Step):
-            if isinstance(xast.node_test, ast.NameTest) and \
-                    len(xast.predicates) == 0:
-                if xast.axis in (None, 'child'):
-                    return self.create_child_node(node, context, xast)
-                elif xast.axis in ('@', 'attribute'):
-                    return self.create_attribute_node(node, context, xast)
-        elif isinstance(xast, ast.BinaryExpression):
-            if xast.op == '/':
-                left_xpath = serialize(xast.left)
-                left_node = self.find_xml_node(left_xpath, node, context)
-                if left_node is None:
-                    left_node = self.create_xml_node(xast.left, node, context)
-                return self.create_xml_node(xast.right, left_node, context)
-
-        # anything else, throw an exception:
-        msg = ("Missing element for '%s', and node creation is supported " + \
-               "only for simple child and attribute nodes.") % (serialize(xast),)
-        raise Exception(msg)
-
-    def create_child_node(self, node, context, step):
-        opts = {}
-        ns_uri = None
-        if 'namespaces' in context:
-            opts['nsmap'] = context['namespaces']
-            if step.node_test.prefix:
-                ns_uri = context['namespaces'][step.node_test.prefix]
-        E = ElementMaker(namespace=ns_uri, **opts)
-        new_node = E(step.node_test.name)
-        node.append(new_node)
-        return new_node
-
-    def create_attribute_node(self, node, context, step):
-        node_name, node_xpath, nsmap = self._get_attribute_name(step, context)
-        # create an empty attribute node
-        node.set(node_name, '')
-        # find via xpath so a 'smart' string can be returned and set normally
-        result = node.xpath(node_xpath, namespaces=nsmap)
-        return result[0]
-
-    def set_in_xml(self, node, val, context, step):
-        if isinstance(node, etree._Element):
-            if not list(node):      # no child elements
-                node.text = val
-            else:                 
-                raise Exception("Cannot set string value - not a text node!")
-        elif hasattr(node, 'getparent'):
-            # by default, etree returns a "smart" string for attribute result;
-            # determine attribute name and set on parent node
-            attribute, node_xpath, nsmap = self._get_attribute_name(step, context)
-            node.getparent().set(attribute, val)
-
-    def _get_attribute_name(self, step, context):
-        # calculate attribute name, xpath, and nsmap based on node info and context namespaces
-        if not step.node_test.prefix:
-            nsmap = {}
-            ns_uri = None
-            node_name = step.node_test.name
-            node_xpath = '@%s' % node_name
+        if xvalue is None:
+            # match must be None. if it exists, delete it.
+            if match is not None:
+                _remove_xml(xast, node, context)
         else:
-            # if node has a prefix, the namespace *should* be defined in context
-            if 'namespaces' in context and step.node_test.prefix in context['namespaces']:
-                ns_uri = context['namespaces'][step.node_test.prefix]
-            else:
-                ns_uri = None
-                # we could throw an exception here if ns_uri wasn't found, but
-                # for now assume the user knows what he's doing...
+            if match is None:
+                match = _create_xml_node(xast, node, context)
+            # terminal (rightmost) step informs how we update the xml
+            step = _find_terminal_step(xast)
+            _set_in_xml(match, xvalue, context, step)
 
-            node_xpath = '@%s:%s' % (step.node_test.prefix, step.node_test.name)
-            node_name = '{%s}%s' % (ns_uri, step.node_test.name)
-            nsmap = {step.node_test.prefix: ns_uri}
-
-        return node_name, node_xpath, nsmap
-        
 
 class NodeListManager(object):
     def get(self, xpath, node, context, to_python, xast):
