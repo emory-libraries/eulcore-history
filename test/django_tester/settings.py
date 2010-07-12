@@ -76,19 +76,20 @@ TEMPLATE_DIRS = (
 )
 
 INSTALLED_APPS = (
+    # our apps to test:
+    'eulcore.django.auth',
+    'eulcore.django.emory_ldap',
+    'eulcore.django.existdb',
+    'eulcore.django.ldap',
+    'eulcore.django.testsetup',
+    'eulcore.django.forms',
+
     # needed for test dependencies:
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
-
-    # our apps to test:
-    'eulcore.django.emory_ldap',
-    'eulcore.django.existdb',
-    'eulcore.django.ldap',
-    'eulcore.django.testsetup',
-    'eulcore.django.forms',
 )
 
 AUTH_PROFILE_MODULE = 'emory_ldap.EmoryLDAPUserProfile'

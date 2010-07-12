@@ -168,3 +168,13 @@ Applications that want to use full Emory LDAP support should:
    * Consider using `south <http://south.aeracode.org/>`_ migrations, which
      are maintained in the distribution of this module, though they are not
      required.
+
+
+:mod:`eulcore.django.auth` - Customized permission decorators
+-------------------------------------------------------------
+
+.. automodule:: eulcore.django.auth
+
+.. automethod:: eulcore.django.auth.user_passes_test_with_403
+
+.. automethod:: eulcore.django.auth.permission_required_with_403
