@@ -18,14 +18,6 @@ from testcore import main
 
 class MyDigitalObject(DigitalObject):
     # extend digital object with datastreams for testing
-    dc = XmlDatastream("DC", "Dublin Core", DublinCore, defaults={
-            'control_group': 'X',
-            'format': 'http://www.openarchives.org/OAI/2.0/oai_dc/',
-        })
-    rels_ext = RdfDatastream("RELS-EXT", "External Relations", defaults={
-            'control_group': 'X',
-            'format': 'info:fedora/fedora-system:FedoraRELSExt-1.0',
-        })
     text = Datastream("TEXT", "Text datastream", defaults={
             'mimetype': 'text/plain',
         })

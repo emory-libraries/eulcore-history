@@ -10,6 +10,7 @@ from eulcore import xmlmap
 from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed, datetime_to_fedoratime
 from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfile, \
     NewPids, ObjectHistory, ObjectMethods
+from eulcore.xmlmap.dc import DublinCore
 
 
 # FIXME: needed by both server and models, where to put?
@@ -438,6 +439,36 @@ class FileDatastream(Datastream):
     _datastreamClass = FileDatastreamObject
 
 
+class DigitalObjectType(type):
+    """A metaclass for :class:`DigitalObject`.
+    
+    All this does for now is find Datastream objects from parent classes
+    and those defined on the class itself and collect them into a
+    _defined_datastreams dictionary on the class. Using this, clients (or,
+    more likely, internal library code) can more easily introspect the
+    datastreams defined in code for the object.
+    """
+    def __new__(cls, name, bases, defined_attrs):
+        datastreams = {}
+        use_attrs = defined_attrs.copy()
+
+        for base in bases:
+            base_ds = getattr(base, '_defined_datastreams', None)
+            if base_ds:
+                datastreams.update(base_ds)
+
+        for attr_name, attr_val in defined_attrs.items():
+            if isinstance(attr_val, Datastream):
+                datastreams[attr_name] = attr_val
+
+        use_attrs['_defined_datastreams'] = datastreams
+
+        super_new = super(DigitalObjectType, cls).__new__
+        new_class = super_new(cls, name, bases, use_attrs)
+
+        return new_class
+
+
 class DigitalObject(object):
     """
     A single digital object in a Fedora respository, with methods and properties
@@ -445,9 +476,16 @@ class DigitalObject(object):
     parts.
     """
 
-    # TODO: add once we fully support inheriting datastreams:
-    #dc = XmlDatastream("DC", "Dublin Core", DublinCore)
-    #rels_ext = RdfDatastream("RELS-EXT", "External Relations")
+    __metaclass__ = DigitalObjectType
+
+    dc = XmlDatastream("DC", "Dublin Core", DublinCore, defaults={
+            'control_group': 'X',
+            'format': 'http://www.openarchives.org/OAI/2.0/oai_dc/',
+        })
+    rels_ext = RdfDatastream("RELS-EXT", "External Relations", defaults={
+            'control_group': 'X',
+            'format': 'info:fedora/fedora-system:FedoraRELSExt-1.0',
+        })
 
     def __init__(self, api, pid=None):
         self.api = api
@@ -680,15 +718,8 @@ class DigitalObject(object):
         doc.append(self._build_foxml_properties(E))
         
         # collect datastream definitions for ingest.
-        # FIXME: this method of identifying datastreams doesn't address
-        # inheritance.
-        for fname, fval in self.__class__.__dict__.iteritems():
-            if not isinstance(fval, Datastream):
-                continue
-
-            ds = fval # ds is the Datastream
-            dsobj = getattr(self, fname) # dsobj is the DatastreamObject
-
+        for dsname, ds in self._defined_datastreams.items():
+            dsobj = getattr(self, dsname)
             dsnode = self._build_foxml_datastream(E, ds.id, dsobj)
             if dsnode is not None:
                 doc.append(dsnode)
