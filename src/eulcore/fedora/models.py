@@ -1,6 +1,6 @@
 import cStringIO
 import hashlib
-import rdflib
+from rdflib import URIRef
 from rdflib.Graph import Graph as RdfGraph
 
 from lxml import etree
@@ -489,6 +489,7 @@ class DigitalObject(object):
 
     def __init__(self, api, pid=None):
         self.api = api
+        self.pid = pid
         self.dscache = {}       # accessed by DatastreamDescriptor to store and cache datastreams
 
         # cache object profile, track if it is modified and needs to be saved
@@ -506,24 +507,28 @@ class DigitalObject(object):
         # means a new object: we call that function to get our initial pid.
         # None is a new object, and use a default pid generation function.
         if pid is None:
-            pid = self._getDefaultPid
-        self.pid = pid
+            self.pid = self._getDefaultPid
+
+        self._ingested = True
+        if callable(self.pid):
+            self._ingested = False
+            self.pid = self.pid()
+            self._init_as_new_object()
+
+    def _init_as_new_object(self):
+        pass
+        for cmodel in getattr(self, 'CONTENT_MODELS', ()):
+            self.rels_ext.content.add((URIRef(self.uri), URIRef(URI_HAS_MODEL),
+                                       URIRef(cmodel)))
 
     def __str__(self):
         if self._ingested:
             return self.pid
         else:
-            return '(no pid)'
+            return self.pid + ' (uningested)'
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, str(self))
-
-    @property
-    def _ingested(self):
-        # as mentioned in __init__, a string pid is pulled from the repo. a
-        # callable pid is not yet ingested: we'll call that function to get
-        # the pid at ingest
-        return not callable(self.pid)
 
     def _getDefaultPid(self, namespace=None):
         kwargs = {}
@@ -536,9 +541,7 @@ class DigitalObject(object):
     @property
     def uri(self):
         "Fedora URI for this object (info:fedora/foo:### form of object pid) "
-        if self._ingested:
-            return 'info:fedora/' + self.pid
-        # otherwise we don't have a uri yet
+        return 'info:fedora/' + self.pid
 
     @property
     def info(self):
@@ -681,25 +684,24 @@ class DigitalObject(object):
         return [ds for ds in datastreams if self.dscache[ds].undo_last_save(logMessage)]
 
     def _ingest(self, logMessage):
-        requested_pid = self.pid()
-        foxml = self._build_foxml_for_ingest(requested_pid)
+        foxml = self._build_foxml_for_ingest()
         returned_pid = self.api.ingest(foxml, logMessage)
 
-        if returned_pid != requested_pid:
+        if returned_pid != self.pid:
             msg = ('fedora returned unexpected pid "%s" when trying to ' + 
                    'ingest object with pid "%s"') % \
-                  (returned_pid, requested_pid)
+                  (returned_pid, self.pid)
             raise Exception(msg)
 
         # then clean up the local object so that self knows it's dealing
         # with an ingested object now
-        self.pid = returned_pid
+        self._ingested = True
         self._info = None
         self.info_modified = False
         self.dscache = {}
 
-    def _build_foxml_for_ingest(self, pid, pretty=False):
-        doc = self._build_foxml_doc(pid)
+    def _build_foxml_for_ingest(self, pretty=False):
+        doc = self._build_foxml_doc()
 
         print_opts = {'encoding' : 'UTF-8'}
         if pretty: # for easier debug
@@ -707,14 +709,14 @@ class DigitalObject(object):
         
         return etree.tostring(doc, **print_opts)
 
-    FOXML_NS = "info:fedora/fedora-system:def/foxml#"
+    FOXML_NS = 'info:fedora/fedora-system:def/foxml#'
 
-    def _build_foxml_doc(self, pid):
+    def _build_foxml_doc(self):
         # make an lxml element builder - default namespace is foxml, display with foxml prefix
         E = ElementMaker(namespace=self.FOXML_NS, nsmap={'foxml' : self.FOXML_NS })
         doc = E('digitalObject')
         doc.set('VERSION', '1.1')
-        doc.set('PID', pid)
+        doc.set('PID', self.pid)
         doc.append(self._build_foxml_properties(E))
         
         # collect datastream definitions for ingest.
@@ -895,7 +897,7 @@ class DigitalObject(object):
             else:
                 raise Exception(e)            
             
-        st = (rdflib.URIRef(self.uri), rdflib.URIRef(URI_HAS_MODEL), rdflib.URIRef(model))
+        st = (URIRef(self.uri), URIRef(URI_HAS_MODEL), URIRef(model))
         return st in rels
 
 

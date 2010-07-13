@@ -2,8 +2,8 @@
 from datetime import datetime
 from dateutil.tz import tzutc
 import os
+from rdflib import URIRef
 from rdflib.Graph import Graph as RdfGraph
-import rdflib
 import tempfile
 
 from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject, \
@@ -17,6 +17,9 @@ from test_fedora.base import FedoraTestCase, TEST_PIDSPACE, FIXTURE_ROOT
 from testcore import main
 
 class MyDigitalObject(DigitalObject):
+    CONTENT_MODELS = ['info:fedora/example:ExampleCModel',
+                      'info:fedora/example:AnotherCModel']
+
     # extend digital object with datastreams for testing
     text = Datastream("TEXT", "Text datastream", defaults={
             'mimetype': 'text/plain',
@@ -132,12 +135,15 @@ class TestDatastreams(FedoraTestCase):
 
     def test_rdf_datastream(self):
         # add a relationship to test RELS-EXT/rdf datastreams        
+        hasModel = "info:fedora/fedora-system:def/model#hasModel"
         isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
-        self.obj.add_relationship(isMemberOf, "info:fedora/foo:123")
+        foo123 = "info:fedora/foo:123"
+        self.obj.add_relationship(isMemberOf, foo123)
         
         self.assert_(isinstance(self.obj.rels_ext, RdfDatastreamObject))
         self.assert_(isinstance(self.obj.rels_ext.content, RdfGraph))
-        self.assert_("isMemberOf" in self.obj.rels_ext.content.serialize())
+        self.assert_((URIRef(self.obj.uri), URIRef(isMemberOf), URIRef(foo123)) in
+                     self.obj.rels_ext.content)
 
     def test_file_datastream(self):
         # add file datastream to test object
@@ -254,7 +260,14 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(obj.rels_ext.state, 'A')
         self.assertEqual(obj.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
         self.assertEqual(obj.rels_ext.control_group, 'X')
+
+        hasModel = URIRef('info:fedora/fedora-system:def/model#hasModel')
+        uri = URIRef(obj.uri)
         self.assertTrue(isinstance(obj.rels_ext.content, RdfGraph))
+        self.assert_((uri, hasModel, URIRef("info:fedora/example:ExampleCModel")) in
+                     obj.rels_ext.content)
+        self.assert_((uri, hasModel, URIRef("info:fedora/example:AnotherCModel")) in
+                     obj.rels_ext.content)
 
         # test managed xml datastreams
         self.assertEqual(obj.extradc.label, 'Managed DC XML datastream')
@@ -283,6 +296,11 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(fetched.rels_ext.state, 'A')
         self.assertEqual(fetched.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
         self.assertEqual(fetched.rels_ext.control_group, 'X')
+
+        self.assert_((uri, hasModel, URIRef("info:fedora/example:ExampleCModel")) in
+                     fetched.rels_ext.content)
+        self.assert_((uri, hasModel, URIRef("info:fedora/example:AnotherCModel")) in
+                     fetched.rels_ext.content)
 
         self.assertEqual(fetched.extradc.label, 'Managed DC XML datastream')
         self.assertEqual(fetched.extradc.mimetype, 'application/xml')
@@ -511,7 +529,7 @@ class TestDigitalObject(FedoraTestCase):
 
         rels = self.obj.rels_ext.content
         # convert first added relationship to rdflib statement to check that it is in the rdf graph
-        st = (rdflib.URIRef(self.obj.uri), rdflib.URIRef(isMemberOf), rdflib.URIRef(related.uri))
+        st = (URIRef(self.obj.uri), URIRef(isMemberOf), URIRef(related.uri))
         self.assertTrue(st in rels)
 
 
