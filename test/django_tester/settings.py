@@ -80,9 +80,10 @@ INSTALLED_APPS = (
     'eulcore.django.auth',
     'eulcore.django.emory_ldap',
     'eulcore.django.existdb',
+    'eulcore.django.forms',
+    'eulcore.django.http',
     'eulcore.django.ldap',
     'eulcore.django.testsetup',
-    'eulcore.django.forms',
 
     # needed for test dependencies:
     'django.contrib.admin',

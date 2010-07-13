@@ -1,0 +1,1 @@
+from eulcore.django.http.decorators import content_negotiation

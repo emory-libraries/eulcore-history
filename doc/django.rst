@@ -178,3 +178,11 @@ Applications that want to use full Emory LDAP support should:
 .. automethod:: eulcore.django.auth.user_passes_test_with_403
 
 .. automethod:: eulcore.django.auth.permission_required_with_403
+
+
+:mod:`eulcore.django.http` - Content Negotiation for Django views
+-----------------------------------------------------------------
+
+.. automodule:: eulcore.django.http
+
+.. automethod:: eulcore.django.http.content_negotiation
