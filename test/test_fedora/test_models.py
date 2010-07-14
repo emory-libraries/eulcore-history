@@ -532,6 +532,10 @@ class TestDigitalObject(FedoraTestCase):
         st = (URIRef(self.obj.uri), URIRef(isMemberOf), URIRef(related.uri))
         self.assertTrue(st in rels)
 
+    def test_registry(self):
+        self.assert_('test_fedora.test_models.MyDigitalObject' in
+                     DigitalObject.defined_types)
+
 
 if __name__ == '__main__':
     main()

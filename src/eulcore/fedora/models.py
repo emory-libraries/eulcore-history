@@ -448,6 +448,9 @@ class DigitalObjectType(type):
     more likely, internal library code) can more easily introspect the
     datastreams defined in code for the object.
     """
+
+    _registry = {}
+
     def __new__(cls, name, bases, defined_attrs):
         datastreams = {}
         use_attrs = defined_attrs.copy()
@@ -466,7 +469,14 @@ class DigitalObjectType(type):
         super_new = super(DigitalObjectType, cls).__new__
         new_class = super_new(cls, name, bases, use_attrs)
 
+        new_class_name = '%s.%s' % (new_class.__module__, new_class.__name__)
+        DigitalObjectType._registry[new_class_name] = new_class
+
         return new_class
+
+    @property
+    def defined_types(self):
+        return DigitalObjectType._registry.copy()
 
 
 class DigitalObject(object):
