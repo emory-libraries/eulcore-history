@@ -497,6 +497,8 @@ class DigitalObject(object):
             'format': 'info:fedora/fedora-system:FedoraRELSExt-1.0',
         })
 
+    CONTENT_MODELS = ()
+
     def __init__(self, api, pid=None):
         self.api = api
         self.pid = pid
@@ -526,8 +528,7 @@ class DigitalObject(object):
             self._init_as_new_object()
 
     def _init_as_new_object(self):
-        pass
-        for cmodel in getattr(self, 'CONTENT_MODELS', ()):
+        for cmodel in self.CONTENT_MODELS:
             self.rels_ext.content.add((URIRef(self.uri), URIRef(URI_HAS_MODEL),
                                        URIRef(cmodel)))
 
@@ -940,4 +941,14 @@ class DigitalObjectSaveFailure(StandardError):
     def __str__(self):
         return "Error saving %s - failed to save %s; saved %s; successfully backed out %s" \
                 % (self.obj_pid, self.failure, ', '.join(self.saved), ', '.join(self.cleaned))
+        
+
+class ContentModelObject(DigitalObject):
+    ds_composite_model = XmlDatastream('DS-COMPOSITE-MODEL', 'DS Composite Model',
+                            DsCompositeModel, defaults={
+                                'control_group': 'X',
+                        })
+
+    @staticmethod
+    def for_digital_object(obj):
         
