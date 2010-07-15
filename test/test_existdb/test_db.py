@@ -7,7 +7,7 @@ from eulcore.existdb import db
 from testcore import main
 
 EXISTDB_SERVER_PROTOCOL = "http://"
-EXISTDB_SERVER_HOST     = "kamina.library.emory.edu:8080/exist/xmlrpc"
+EXISTDB_SERVER_HOST     = "kamina.library.emory.edu:8080/exist"
 # NOTE: test account used for tests that require non-guest access; user should be in eXist DBA group
 EXISTDB_SERVER_USER     = "eulcore_tester"
 EXISTDB_SERVER_PWD      = "eVlc0re_t3st"

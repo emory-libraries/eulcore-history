@@ -21,6 +21,9 @@ def _wrap_xmlrpc_fault(f):
             return f(*args, **kwargs)
         except xmlrpclib.Fault, e:
             raise ExistDBException(e)
+        # FIXME: could we catch IOerror (connection reset) and try again ?
+        # occasionally getting this error (so far exclusively in unit tests)
+        # error: [Errno 104] Connection reset by peer
     return wrapper
 
 
@@ -49,7 +52,7 @@ class ExistDB:
         self.resultType = resultType or QueryResult
 
         self.server = xmlrpclib.ServerProxy(
-                uri=server_url,
+                uri="%s/xmlrpc" % server_url.rstrip('/'),
                 encoding=encoding,
                 verbose=verbose,
                 allow_none=True,
@@ -210,7 +213,7 @@ class ExistDB:
 
     @_wrap_xmlrpc_fault
     def query(self, xquery, start=1, how_many=10, **kwargs):
-        """Execute an XQuery_ query, returning the results directly.
+        """Execute an XQuery query, returning the results directly.
 
         :param xquery: a string XQuery query
         :param start: first index to return (1-based)
@@ -230,7 +233,7 @@ class ExistDB:
             xml_s = xml_s.encode("UTF-8")
 
         return xmlmap.load_xmlobject_from_string(xml_s, self.resultType)
-    
+
     @_wrap_xmlrpc_fault
     def executeQuery(self, xquery):
         """Execute an XQuery query, returning a server-provided result
@@ -382,7 +385,7 @@ class ExistDB:
 
 class QueryResult(xmlmap.XmlObject):
     """The results of an eXist XQuery query"""
-
+    
     start = xmlmap.IntegerField("@start")
     """The index of the first result returned"""
 

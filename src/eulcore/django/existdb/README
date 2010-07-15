@@ -19,7 +19,7 @@ Projects that use this module should include the following settings in their
 ``settings.py``::
 
   #Exist DB Settings
-  EXISTDB_SERVER_URL = "http://user:passwd@megaserver.example.com:8042/exist/xmlrpc"
+  EXISTDB_SERVER_URL = "http://user:passwd@megaserver.example.com:8042/exist"
   EXISTDB_ROOT_COLLECTION = "/sample_collection"
 
 If you are using an eXist index configuration file, you can add another setting

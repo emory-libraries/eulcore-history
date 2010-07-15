@@ -94,6 +94,7 @@ class ExistQueryTest(unittest.TestCase):
         self.assert_(isinstance(slice, QuerySet))
         self.assert_(isinstance(slice[0], QueryTestModel))        
         self.assertEqual(2, slice.count())
+        self.assertEqual(2, len(slice))
         self.assertEqual('abc', slice[0].id)
         self.assertEqual('def', slice[1].id)
         self.assertRaises(IndexError, slice.__getitem__, 2)
@@ -106,6 +107,16 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual(1, slice.count())
         self.assertEqual('xyz', slice[0].id)
         self.assertRaises(IndexError, slice.__getitem__, 1)
+
+        # test slicing with unspecified bounds
+        slice = self.qs.order_by('id')[:2]
+        self.assertEqual(2, slice.count())
+        self.assertEqual('def', slice[1].id)
+
+        slice = self.qs.order_by('id')[1:]
+        self.assertEqual(3, slice.count())
+        self.assertEqual('one', slice[1].id)
+        self.assertEqual('xyz', slice[2].id)
 
     def test_filter(self):
         fqs = self.qs.filter(contains="two")

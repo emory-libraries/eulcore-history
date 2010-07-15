@@ -14,7 +14,7 @@ from eulcore.xmlmap.fields import StringField, DateField, NodeField, NodeListFie
 from eulcore.xmlmap.core import XmlObjectType
 from eulcore.existdb.exceptions import DoesNotExist, ReturnedMultiple
 
-__all__ = ['QuerySet', 'Xquery', 'PartialResultObject']
+__all__ = ['QuerySet', 'Xquery']
 
 # TODO: update field info (currently only name/xpath?) passed to Query
 # object to include field type (e.g., StringField, NodeField) so that we
@@ -52,6 +52,8 @@ class QuerySet(object):
         self.model = model     
         self._db = using
 
+        # remove leading / from collection name if present
+        collection = collection.lstrip('/') if collection is not None else None
         if xquery:
             self.query = xquery
         else:
@@ -61,6 +63,9 @@ class QuerySet(object):
         self.partial_fields = {}
         self.additional_fields = {}
         self._count = None
+        self._result_cache = {}
+        self._start = 0
+        self._stop = None
 
     @property
     def result_id(self):
@@ -73,15 +78,20 @@ class QuerySet(object):
     def count(self):
         """Return the cached query hit count, executing the query first if
         it has not yet executed."""
-        # FIXME: need to test this - how does hits differ from count?
+        # if we are in a sliced subset of the query result with a defined end,
+        # return the slice length
+        if self._stop is not None:
+            return self._stop - self._start
+        
         if self._count is None:
             self._count = self._db.getHits(self.result_id)
-        return self._count
+            
+        return self._count - self._start
 
     def queryTime(self):
         """Return the time (in milliseconds) it took for eXist to run the
         query, running the query first if it has not yet executed."""
-        # cache summary? is this useful?
+        # FIXME: should summary be cached ?
         summary = self._db.querySummary(self.result_id)
         return summary['queryTime']
 
@@ -94,6 +104,8 @@ class QuerySet(object):
         copy = QuerySet(model=self.model, xquery=self.query.getCopy(), using=self._db)        
         copy.partial_fields = self.partial_fields.copy()
         copy.additional_fields = self.additional_fields.copy()
+        # reset result cache, if any, because any filters will change it
+        copy._result_cache = {}   
         return copy
 
     def filter(self, **kwargs):
@@ -261,6 +273,9 @@ class QuerySet(object):
         expressions match no items, or if they match more than one, this
         method throws an exception.
 
+        Raises a :class:`eulcore.existdb.exceptions.DoesNotExist` exception if
+        no matches are found; raises a :class:`eulcore.existdb.exceptions.ReturnedMultiple`
+        exception if more than one match is found.
         """
 
         fqs = self.filter(**kwargs)
@@ -273,43 +288,65 @@ class QuerySet(object):
             raise ReturnedMultiple("returned %s with params %s" % (fqs.count(), kwargs))
 
     def __getitem__(self, k):
-        """Return a single result or slice of results from the query."""        
+        """Return a single result or slice of results from the query."""
         if not isinstance(k, (slice, int, long)):
            raise TypeError
-
+        
         if isinstance(k, slice):
             qs = self._getCopy()
-            qs.query.set_limits(low=k.start, high=k.stop)            
+            # if start was specified, use it; otherwise retain current start
+            if k.start is not None:
+                qs._start = int(k.start)
+            # if a slice bigger than available results is requested, cap it at actual max
+            qs._stop = min(k.stop, self.count())
+
+            # because the slicing is done within the result cache,
+            # share the same cache across subsets of this queryset
+            qs._result_cache = self._result_cache # FIXME: would it be better/safer to use a copy?
+
             return qs
 
         # check that index is in range
         # for now, not handling any fancy python indexing
         if k < 0 or k >= self.count():
             raise IndexError
-       
-        item = self._db.retrieve(self.result_id, k)
-        if self.model is None or self.query._distinct:
-            return item.data
 
-        return_type = self.model
-        
-        # if there are additional/partial fields that need to override defined fields,
-        # define a new class derived from the XmlObject model and map those fields
-        if self.partial_fields:
-            return_type = _create_return_class(self.model, self.partial_fields)
-        elif self.additional_fields:
-            return_type = _create_return_class(self.model, self.additional_fields)
+        # calculate the actual index for retrieval from eXist and storage result
+        # cache based on the start of the current slice
+        i = k + self._start
 
-        obj = load_xmlobject_from_string(item.data, return_type)
-        # make queryTime method available when retrieving a single item
-        setattr(obj, 'queryTime', self.queryTime)
-        return obj
+        if i not in self._result_cache:
+            # if the requested item has not yet been retrieved, get it from eXist
+            item = self._db.retrieve(self.result_id, i)
+            if self.model is None or self.query._distinct:
+                self._result_cache[i] = item.data
+            else:
+                return_type = self.model
+
+                # if there are additional/partial fields that need to override defined fields,
+                # define a new class derived from the XmlObject model and map those fields
+                if self.partial_fields:
+                    return_type = _create_return_class(self.model, self.partial_fields)
+                elif self.additional_fields:
+                    return_type = _create_return_class(self.model, self.additional_fields)
+
+                obj = load_xmlobject_from_string(item.data, return_type)
+                # make queryTime method available when retrieving a single item
+                setattr(obj, 'queryTime', self.queryTime)
+                self._result_cache[i] = obj
+
+        return self._result_cache[i]
 
     def __iter__(self):
         """Iterate through available results."""
         # rudimentary iterator (django queryset one much more complicated...)
         for i in range(self.count()):
             yield self[i]
+
+    def __len__(self):
+        # FIXME: is this sufficient?
+        # in django, calling len() populates the cache...
+        return self.count()
 
     def _runQuery(self):
         """Execute the currently configured query."""
@@ -406,7 +443,8 @@ class Xquery(object):
         if xpath is not None:
             self.xpath = xpath
 
-        self.collection = collection
+        # remove leading / from collection name (if any)
+        self.collection = collection.lstrip('/') if collection is not None else None
         self.filters = []
         self.order_by = None
         self.return_fields = {}
@@ -436,11 +474,12 @@ class Xquery(object):
         xpath_parts = []
 
         if self.collection is not None:
-            xpath_collection = 'collection("/db/' + self.collection.lstrip('/') + '")'
+            xpath_collection = 'collection("/db/%s")' % self.collection
             xpath_parts.append(xpath_collection)
 
         # if top-level path has multiple parts, add collection to each
         # FIXME: this could be unreliable; there should be a better way to handle this...
+        # TODO: use eulcore.xpath here
         if '|/' in self.xpath:
             xpath = self.xpath.replace("|/", "|%s/" % xpath_collection)
             xpath_parts.append(xpath)
@@ -542,6 +581,7 @@ class Xquery(object):
     def _constructReturn(self):
         """Construct the return portion of a FLOWR xquery."""
         # return element - use last node of base xpath
+        # TODO: use eulcore.xpath for this
         return_el = self.xpath.split('/')[-1].strip('@')
         if return_el == 'node()':       # FIXME: other () expressions?
             return_el = 'node'
@@ -569,6 +609,7 @@ class Xquery(object):
                     rblocks.append('element %s {xmldb:last-modified(util:collection-name(%s), util:document-name(%s))}' \
                             % (name, self.xq_var, self.xq_var))
                 else:
+                    # TODO: use eulcore.xpath for this
                     if re.search('@[^/,]+$', xpath):     # last element in path is an attribute node
                         # returning attributes as elements to avoid attribute conflict
                         xpath = "string(%s)" % xpath        # put contents of attribute in constructed element
@@ -615,6 +656,7 @@ class Xquery(object):
         # common xpath clean-up before handing off to exist
         # FIXME: this will break on /foo[bar="|./"]
         # FIXME: move return field xpath manip here?  perhaps add param to set type of xpath?
+        # TODO: use eulcore.xpath for this
 
         # mutiple nodes |ed together- fix context issuse by replacing . with xq variable
         if '|./' in xpath:
