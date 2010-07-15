@@ -1,5 +1,3 @@
-from lxml import etree
-
 from eulcore import xmlmap
 
 # FIXME: DateField still needs significant improvements before we can make
@@ -198,27 +196,3 @@ class SearchResults(xmlmap.XmlObject):
     "session experation date"
     results = xmlmap.NodeListField('res:resultList/res:objectFields', SearchResult)
     "search results - list of :class:`SearchResult`"
-
-# xml objects for fedora content models
-
-class DsTypeModel(xmlmap.XmlObject):
-    mimetype = xmlmap.StringField('form/@MIME')
-
-class DsCompositeModel(xmlmap.XmlObject):
-    """:class:`~eulcore.xmlmap.XmlObject` for declaring fedora datastreams
-        in a CModel object"""
-
-    ROOT_NAME = 'dsCompositeModel'
-    ROOT_NS = 'info:fedora/fedora-system:def/dsCompositeModel#'
-    ROOT_NAMESPACES = { None: ROOT_NS }
-
-    def getTypeModel(self, name, create=False):
-        matches = self.node.xpath('dsTypeModel[@ID=$id]', id=name)
-        if matches:
-            return DsTypeModel(matches[0])
-        if not create:
-            return None
-
-        new_node = etree.SubElement(self.node, 'dsTypeModel')
-        new_node.set('ID', name)
-        return DsTypeModel(new_node)
