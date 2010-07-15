@@ -283,6 +283,23 @@ class TestFields(unittest.TestCase):
 
         FILE.close()
 
+    def testPredicatedSetting(self):
+        class TestObject(xmlmap.XmlObject):
+            attr_pred = xmlmap.StringField('pred[@a="foo"]')
+            layered_pred = xmlmap.StringField('pred[@a="foo"]/pred[@b="bar"]')
+            nested_pred = xmlmap.StringField('pred[pred[@a="foo"]]/val')
+
+        obj = TestObject(self.fixture)
+
+        obj.attr_pred = 'test'
+        self.assertEqual(obj.node.xpath('string(pred[@a="foo"])'), 'test')
+
+        obj.layered_pred = 'test'
+        self.assertEqual(obj.node.xpath('string(pred[@a="foo"]/pred[@b="bar"])'), 'test')
+
+        obj.nested_pred = 'test'
+        self.assertEqual(obj.node.xpath('string(pred[pred[@a="foo"]]/val)'), 'test')
+
 
 if __name__ == '__main__':
     main()

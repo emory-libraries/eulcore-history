@@ -160,12 +160,26 @@ def _find_xml_node(xpath, node, context):
 
 def _create_xml_node(xast, node, context):
     if isinstance(xast, ast.Step):
-        if isinstance(xast.node_test, ast.NameTest) and \
-                len(xast.predicates) == 0:
+        if isinstance(xast.node_test, ast.NameTest):
+            # check the predicates (if any) to verify they're constructable
+            for pred in xast.predicates:
+                if not _predicate_is_constructible(pred):
+                    msg = ("Missing element for '%s', and node creation is " +
+                           "supported only for simple child and attribute " +
+                           "nodes with simple predicates.") % (serialize(xast),)
+                    raise Exception(msg)
+
+            # create the node itself
             if xast.axis in (None, 'child'):
-                return _create_child_node(node, context, xast)
+                new_node = _create_child_node(node, context, xast)
             elif xast.axis in ('@', 'attribute'):
-                return _create_attribute_node(node, context, xast)
+                new_node = _create_attribute_node(node, context, xast)
+
+            # and create any nodes necessary for the predicates
+            for pred in xast.predicates:
+                _construct_predicate(pred, new_node, context)
+
+            return new_node
     elif isinstance(xast, ast.BinaryExpression):
         if xast.op == '/':
             left_xpath = serialize(xast.left)
@@ -198,6 +212,51 @@ def _create_attribute_node(node, context, step):
     # find via xpath so a 'smart' string can be returned and set normally
     result = node.xpath(node_xpath, namespaces=nsmap)
     return result[0]
+
+def _predicate_is_constructible(pred):
+    if isinstance(pred, ast.Step):
+        # only child and attribute for now
+        if pred.axis not in (None, 'child', '@', 'attribute'):
+            return False
+        # no node tests for now: only name tests
+        if not isinstance(pred.node_test, ast.NameTest):
+            return False
+        # only constructible if its own predicates are
+        if any((not _predicate_is_constructible(sub_pred)
+                for sub_pred in pred.predicates)):
+            return False
+    elif isinstance(pred, ast.BinaryExpression):
+        if pred.op == '/':
+            # path expressions are constructible if each side is
+            if not _predicate_is_constructible(pred.left):
+                return False
+            if not _predicate_is_constructible(pred.right):
+                return False
+        elif pred.op == '=':
+            # = expressions are constructible for now only if the left side
+            # is constructible and the right side is a literal
+            if not _predicate_is_constructible(pred.left):
+                return False
+            if not isinstance(pred.right, (int, long, basestring)):
+                return False
+
+    # otherwise, i guess we're ok
+    return True
+
+def _construct_predicate(xast, node, context):
+    if isinstance(xast, ast.Step):
+        return _create_xml_node(xast, node, context)
+    elif isinstance(xast, ast.BinaryExpression):
+        if xast.op == '/':
+            left_leaf = _construct_predicate(xast.left, node, context)
+            right_node = _construct_predicate(xast.right, left_node, context)
+            return right_node
+        elif xast.op == '=':
+            left_leaf = _construct_predicate(xast.left, node, context)
+            step = _find_terminal_step(xast.left)
+            xvalue = str(xast.right)
+            _set_in_xml(left_leaf, xvalue, context, step)
+            return left_leaf
 
 def _set_in_xml(node, val, context, step):
     if isinstance(node, etree._Element):
