@@ -171,7 +171,7 @@ class QuerySet(object):
         return qscopy
 
     def only(self, *fields):
-        """Limit results to include only specified fields.
+        """Limit results to include only specified fields.        
 
         :param fields: names of fields in the QuerySet's :attr:`model`
 
@@ -185,6 +185,10 @@ class QuerySet(object):
          * hash - generate and return a SHA-1 checksum of the root element being queried
          * last_modified - :class:`eulcore.xmlmap.fields.DateField` for the date
                 the document the root element belongs to was last modified
+
+        NOTE: Be aware that this will result in an XQuery with a constructed return.
+        For large queries, this may have a significant impact on performance.
+        For more details, see http://exist.sourceforge.net/tuning.html#N103A2 .
         """
         field_objs = {}
         field_xpath = {}
@@ -213,6 +217,8 @@ class QuerySet(object):
         copy, they will contain the specified additional fields.
 
         For special fields available, see :meth:`only`.
+
+        For performance considerations, see note on :meth:`only`.
         """
         field_objs = {}
         field_xpath = {}
