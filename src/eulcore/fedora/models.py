@@ -9,7 +9,7 @@ from lxml.builder import ElementMaker
 from eulcore import xmlmap
 from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed, datetime_to_fedoratime
 from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfile, \
-    NewPids, ObjectHistory, ObjectMethods
+    NewPids, ObjectHistory, ObjectMethods, DsCompositeModel
 from eulcore.xmlmap.dc import DublinCore
 
 
@@ -453,6 +453,7 @@ class DigitalObjectType(type):
 
     def __new__(cls, name, bases, defined_attrs):
         datastreams = {}
+        local_datastreams = {}
         use_attrs = defined_attrs.copy()
 
         for base in bases:
@@ -462,8 +463,11 @@ class DigitalObjectType(type):
 
         for attr_name, attr_val in defined_attrs.items():
             if isinstance(attr_val, Datastream):
-                datastreams[attr_name] = attr_val
+                local_datastreams[attr_name] = attr_val
 
+        use_attrs['_local_datastreams'] = local_datastreams
+
+        datastreams.update(local_datastreams)
         use_attrs['_defined_datastreams'] = datastreams
 
         super_new = super(DigitalObjectType, cls).__new__
@@ -909,6 +913,17 @@ class DigitalObject(object):
             
         st = (URIRef(self.uri), URIRef(URI_HAS_MODEL), URIRef(model))
         return st in rels
+
+
+class ContentModel(DigitalObject):
+    """Fedora CModel object"""
+
+    CONTENT_MODELS = ['info:fedora/fedora-system:ContentModel-3.0']
+    ds_composite_model = XmlDatastream('DS-COMPOSITE-MODEL',
+            'Datastream Composite Model', DsCompositeModel, defaults={
+                'control_group': 'X',
+                'versionable': True,
+            })
 
 
 class DigitalObjectSaveFailure(StandardError):

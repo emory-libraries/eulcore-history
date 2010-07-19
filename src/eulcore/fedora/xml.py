@@ -196,3 +196,10 @@ class SearchResults(xmlmap.XmlObject):
     "session experation date"
     results = xmlmap.NodeListField('res:resultList/res:objectFields', SearchResult)
     "search results - list of :class:`SearchResult`"
+
+class DsCompositeModel(xmlmap.XmlObject):
+    """:class:`~eulcore.xmlmap.XmlObject` for a
+    :class:`~eulcore.fedora.models.ContentModel`'s DS-COMPOSITE-MODEL
+    datastream"""
+
+    # TODO: still under development; just a placeholder for now
