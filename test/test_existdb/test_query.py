@@ -262,7 +262,7 @@ class ExistQueryTest(unittest.TestCase):
         qs = QuerySet(using=self.db, collection=COLLECTION, model=SubqueryTestModel, xpath='//name')
         name = qs.also('parent_id').get(name__exact='two')
         self.assertEqual('abc', name.parent_id,
-            "parent id set correctly when retuning at name level with also parent_id specified; should be 'abc', got '"
+            "parent id set correctly when returning at name level with also parent_id specified; should be 'abc', got '"
             + name.parent_id + "'")
 
     def test_also_subfield(self):
@@ -383,7 +383,7 @@ class XqueryTest(unittest.TestCase):
         self.assert_('collection("/db/mycoll")' in xq.getQuery())
 
         # prep_xpath function should clean up more complicated xpaths
-        xq.sort('name|./@id')
+        xq.sort('name|@id')
         self.assert_('order by $n/name|$n/@id' in xq.getQuery())
         
 
@@ -409,11 +409,12 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery(xpath='/el')
         xq.xq_var = '$n'
         xq.return_only({'myid':'@id', 'some_name':'name', 'first_letter':'substring(@n,1,1)'})
-        self.assert_('return <el>' in xq._constructReturn())
-        self.assert_('element myid {$n/string(@id)}' in xq._constructReturn())
-        self.assert_('element some_name {$n/name/node()}' in xq._constructReturn())
-        self.assert_('element first_letter {$n/substring(@n,1,1)}' in xq._constructReturn())
-        self.assert_('</el>' in xq._constructReturn())
+        xq_return = xq._constructReturn()
+        self.assert_('return <el>' in xq_return)
+        self.assert_('element myid {string($n/@id)}' in xq_return)
+        self.assert_('element some_name {$n/name/node()}' in xq_return)
+        self.assert_('element first_letter {substring($n/@n,1,1)}' in xq_return)
+        self.assert_('</el>' in xq_return)
 
         xq = Xquery(xpath='/some/el/notroot')
         xq.return_only({'id':'@id'})
@@ -432,7 +433,7 @@ class XqueryTest(unittest.TestCase):
         xq.return_also({'myid':'@id', 'some_name':'name'})
         self.assert_('$n/@*,' in xq._constructReturn())
         self.assert_('$n/node(),' in xq._constructReturn())
-        self.assert_('element myid {$n/string(@id)},' in xq._constructReturn())
+        self.assert_('element myid {string($n/@id)},' in xq._constructReturn())
 
     def test_return_also__fulltext_score(self):
         xq = Xquery(xpath='/el')
@@ -483,7 +484,27 @@ class XqueryTest(unittest.TestCase):
     def test_prep_xpath(self):
         xq = Xquery()
         xq.xq_var = '$n'
-        self.assertEqual("./name|$n/title", xq.prep_xpath("./name|./title"))
+        # handle attributes
+        self.assertEqual('string($n/@id)', xq.prep_xpath('@id', rtn=True))
+        #self.assertEqual('$n/../string(@id)', xq.prep_xpath('../@id', rtn=True))
+        self.assertEqual('string($n/parent::root/@id)', xq.prep_xpath('parent::root/@id', rtn=True))
+        # handle regular nodes
+        self.assertEqual('$n/title/node()', xq.prep_xpath('title', rtn=True))
+        # function call - regular node
+        self.assertEqual('substring($n/title,1,1)', xq.prep_xpath('substring(title,1,1)'))
+        # function call - abbreviated step
+        self.assertEqual('substring($n/.,1,1)', xq.prep_xpath('substring(.,1,1)'))
+
+        # xpath with OR - absolute paths
+        self.assertEqual('$n/name/node()|$n/title/node()', xq.prep_xpath('/name|/title', rtn=True))
+        # xpath with OR - relative paths
+        self.assertEqual('$n/name/node()|$n/title/node()', xq.prep_xpath('name|title', rtn=True))
+        # xpath with OR - mixed absolute and relative paths
+        self.assertEqual('$n/name/node()|$n/title/node()', xq.prep_xpath('/name|title', rtn=True))
+        # multiple ORs
+        self.assertEqual('$n/name/node()|$n/title/node()|string($n/@year)',
+                xq.prep_xpath('/name|/title|@year', rtn=True))
+
 
 
 if __name__ == '__main__':

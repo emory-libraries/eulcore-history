@@ -8,10 +8,10 @@ stand-in replacement in any context that expects one.
 
 """
 
-import re
 from eulcore.xmlmap import load_xmlobject_from_string
 from eulcore.xmlmap.fields import StringField, DateField, NodeField, NodeListField
 from eulcore.xmlmap.core import XmlObjectType
+from eulcore.xpath import ast, parse, serialize
 from eulcore.existdb.exceptions import DoesNotExist, ReturnedMultiple
 
 __all__ = ['QuerySet', 'Xquery']
@@ -506,7 +506,7 @@ class Xquery(object):
                 if self.order_by == 'fulltext_score':
                     order_field = '$fulltext_score descending'    # assume highest to lowest when ordering by relevance
                 else:
-                    order_field = '%s/%s' % (self.xq_var, self.prep_xpath(self.order_by).lstrip('/'))
+                    order_field = self.prep_xpath(self.order_by)
                 flowr_order = 'order by %s' % order_field
             else:
                 flowr_order = ''
@@ -580,11 +580,11 @@ class Xquery(object):
 
     def _constructReturn(self):
         """Construct the return portion of a FLOWR xquery."""
-        # return element - use last node of base xpath
-        # TODO: use eulcore.xpath for this
-        return_el = self.xpath.split('/')[-1].strip('@')
-        if return_el == 'node()':       # FIXME: other () expressions?
-            return_el = 'node'
+        # get a return element name
+        return_el = self._return_name_from_xpath(parse(self.xpath))
+        #return_el = self.xpath.split('/')[-1].strip('@')
+        #if return_el == 'node()':       # FIXME: other () expressions?
+        #    return_el = 'node'
 
         if self.return_fields or self.additional_return_fields:
             # returns for only/also fields are constructed almost exactly the same
@@ -609,20 +609,23 @@ class Xquery(object):
                     rblocks.append('element %s {xmldb:last-modified(util:collection-name(%s), util:document-name(%s))}' \
                             % (name, self.xq_var, self.xq_var))
                 else:
-                    # TODO: use eulcore.xpath for this
-                    if re.search('@[^/,]+$', xpath):     # last element in path is an attribute node
-                        # returning attributes as elements to avoid attribute conflict
-                        xpath = "string(%s)" % xpath        # put contents of attribute in constructed element
-                    elif '(' not in xpath:          # do not add node() if xpath contains a function (likely to breaks things)
-                        # note: using node() so element *contents* will be in named element instead of nesting elements
-                        xpath = "%s/node()" % xpath
-                    xpath = self.prep_xpath(xpath)                    
-                    # define element, e.g. element id {$n/title/node()} or {$n/string(@id)}
-                    rblocks.append('element %s {%s/%s}' % (name, self.xq_var, xpath))
+                    rblocks.append('element %s {%s}' % (name, self.prep_xpath(xpath, rtn=True)))
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
         else:
             r = 'return %s' % self.xq_var
         return r
+
+    def _return_name_from_xpath(self, parsed_xpath):
+        # generate a return element name based on the xpath
+        if isinstance(parsed_xpath, ast.Step):
+            # if this is a step, just use the node test
+            return parsed_xpath.node_test
+        elif isinstance(parsed_xpath, ast.BinaryExpression):
+            # binary expression like node()|node() - recurse on right hand portion
+            return self._return_name_from_xpath(parsed_xpath.right)
+        elif isinstance(parsed_xpath, ast.AbsolutePath):
+            # absolute path like //a - recurse on relative portion
+            return self._return_name_from_xpath(parsed_xpath.relative)
 
     def clear_filters(self):
         self.filters = []
@@ -652,16 +655,66 @@ class Xquery(object):
         self.start = 0
         self.end = None
 
-    def prep_xpath(self, xpath):
-        # common xpath clean-up before handing off to exist
-        # FIXME: this will break on /foo[bar="|./"]
-        # FIXME: move return field xpath manip here?  perhaps add param to set type of xpath?
-        # TODO: use eulcore.xpath for this
+    def prep_xpath(self, xpath, rtn=False, parsed=False):
+        """Prepare an xpath to be used in an xquery return.
 
-        # mutiple nodes |ed together- fix context issuse by replacing . with xq variable
-        if '|./' in xpath:
-            xpath  = xpath.replace("|./", "|%s/" % self.xq_var)
-        return xpath
+        :param xpath: xpath as string or parsed by :meth:`eulcore.xpath.parse`
+        :param rtn: xpath will be used as a return value (additional escaping
+            that is unneeded or inappropriate elsewhere, e.g. for a sort value)
+        :param parsed: boolean flag to indicate if xpath has already been parsed
+        :rtype: string
+        """
+        # common xpath clean-up before handing off to exist
+        parsed_xpath = xpath if parsed else parse(xpath)
+        
+        if isinstance(parsed_xpath, ast.BinaryExpression):
+            if parsed_xpath.op == '|': # or parsed_xpath.op == '/':
+                # binary expression - prep the two expressions and put them back together
+                return "%(left)s%(op)s%(right)s" % {
+                        'op': parsed_xpath.op,
+                        'left': self.prep_xpath(parsed_xpath.left, parsed=True, rtn=rtn),
+                        'right': self.prep_xpath(parsed_xpath.right, parsed=True, rtn=rtn)
+                        }
+        # set context relative to xquery variable
+        if isinstance(parsed_xpath, ast.AbsolutePath):
+            # for an absolute path, (e.g., //node or /node), we need $n(xpath)
+            context = self.xq_var
+            relative_xpath = parsed_xpath.relative
+        elif isinstance(parsed_xpath, ast.FunctionCall):
+            # function call - the function itself needs no context, but
+            # any arguments that are node tests should be prepped
+            context = ''
+            for i in range(len(parsed_xpath.args)):
+                arg = parsed_xpath.args[i]
+                if isinstance(arg, ast.AbbreviatedStep) or isinstance(arg, ast.Step):
+                    # prep_xpath returns string, but function arg needs to be parsed
+                    parsed_xpath.args[i] = parse(self.prep_xpath(arg, parsed=True))
+            relative_xpath = None
+        else:
+            # for a relative path, we need $n/(xpath)
+            context = "%s/" % self.xq_var
+            relative_xpath = parsed_xpath
+            # for a binary expression using /, use the right-hand side as relative xpath
+            if isinstance(parsed_xpath, ast.BinaryExpression) and parsed_xpath.op == '/':
+                relative_xpath = parsed_xpath.right
+        
+        # FIXME: other possible cases?
+
+        xpath_str = "%(context)s%(xpath)s" % {'context': context,
+                                              'xpath': serialize(parsed_xpath) }
+
+        # additional escaping for return values that are unneeded elsewhere
+        if rtn and relative_xpath is not None and hasattr(relative_xpath, 'axis'):
+            if relative_xpath.axis in ('@', 'attribute'):
+                # returning an attribute - returning as elements to avoid attribute conflicts
+                # the string contents of the attribute will be put in a constructed element
+                xpath_str = "string(%s)" % xpath_str
+            elif relative_xpath.axis in (None, 'child'):
+                # returning a single element; using node() so element *contents* will
+                # be in constructed named return element, instead of nesting elements
+                xpath_str = "%s/node()" % xpath_str
+
+        return xpath_str
 
 
 
