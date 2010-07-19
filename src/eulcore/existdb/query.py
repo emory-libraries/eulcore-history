@@ -582,10 +582,7 @@ class Xquery(object):
         """Construct the return portion of a FLOWR xquery."""
         # get a return element name
         return_el = self._return_name_from_xpath(parse(self.xpath))
-        #return_el = self.xpath.split('/')[-1].strip('@')
-        #if return_el == 'node()':       # FIXME: other () expressions?
-        #    return_el = 'node'
-
+        
         if self.return_fields or self.additional_return_fields:
             # returns for only/also fields are constructed almost exactly the same
             if self.return_fields:
