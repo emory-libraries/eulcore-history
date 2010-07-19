@@ -312,7 +312,7 @@ class TestNewObject(FedoraTestCase):
     def test_modified_datastreams(self):
         """Verify that we can modify a new object's datastreams before
         ingesting it."""
-        obj = MyDigitalObject(self.api, pid=self.getNextPid)
+        obj = MyDigitalObject(self.api, pid=self.getNextPid(), create=True)
         
         # modify content for dc (metadata should be covered by other tests)
         obj.dc.content.description = 'A test object'
