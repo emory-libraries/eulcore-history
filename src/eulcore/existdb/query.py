@@ -154,20 +154,28 @@ class QuerySet(object):
         return qscopy
 
     def order_by(self, field):
-        """Order results returned according to a specified field
+        """Order results returned according to a specified field.  By default,
+        all sorting is in ascending order.
 
         :param field: the name (a string) of a field in the QuerySet's
-                      :attr:`model`
+                      :attr:`model`.  If the field is prefixed with '-', results
+                      will be sorted in descending order.
 
-        This method returns an updated copy of the QuerySet: It does not
+        Example usage for descending sort::
+        
+            queryset.filter(fulltext_terms='foo').order_by('-fulltext_score')
+
+        This method returns an updated copy of the QuerySet. It does not
         modify the original.
-
         """
-
-        # TODO: allow multiple fields, ascending/descending
+        sort_opts = {}
+        if field[0] == '-':
+            sort_opts = {'ascending': False }
+            field = field[1:]
+        # TODO: allow multiple fields
         xpath = _simple_fielddef_to_xpath(field, self.model) or field
         qscopy = self._getCopy()
-        qscopy.query.sort(xpath)
+        qscopy.query.sort(xpath, **sort_opts)
         return qscopy
 
     def only(self, *fields):
@@ -453,6 +461,7 @@ class Xquery(object):
         self.collection = collection.lstrip('/') if collection is not None else None
         self.filters = []
         self.order_by = None
+        self.order_mode = None
         self.return_fields = {}
         self.additional_return_fields = {}
         self.start = 0
@@ -466,6 +475,7 @@ class Xquery(object):
         xq = Xquery(xpath=self.xpath, collection=self.collection)
         xq.filters += self.filters
         xq.order_by = self.order_by
+        xq.order_mode = self.order_mode
         xq._distinct = self._distinct
         # return *copies* of dictionaries, not references to the ones in this object!
         xq.return_fields = self.return_fields.copy()
@@ -499,21 +509,25 @@ class Xquery(object):
             # NOTE: use constructed xpath, with collection (if any)
             flowr_for = 'for %s in %s' % (self.xq_var, xpath)
 
+            # TODO: more consistent handling of special variables throughout
             let = []
             if 'fulltext_score' == self.order_by or 'fulltext_score' in self.return_fields \
                 or 'fulltext_score' in self.additional_return_fields:
                 let.append('let $fulltext_score := ft:score(%s)' % self.xq_var)
             if 'hash' in self.return_fields or 'hash' in self.additional_return_fields:
                 let.append('let $hash := util:hash(%s, "SHA-1")' % self.xq_var)
+            if 'last_modified' == self.order_by or 'last_modified' in self.return_fields \
+                or 'last_modified' in self.additional_return_fields:
+                let.append('let $last_modified := xmldb:last-modified(util:collection-name(%(var)s), util:document-name(%(var)s))' % {'var': self.xq_var})
             flowr_let = '\n'.join(let)
             
             # for now, assume sort relative to root element
-            if self.order_by:
-                if self.order_by == 'fulltext_score':
-                    order_field = '$fulltext_score descending'    # assume highest to lowest when ordering by relevance
+            if self.order_by:                
+                if self.order_by in ['fulltext_score', 'last_modified']:
+                    order_field = '$%s' % self.order_by
                 else:
                     order_field = self.prep_xpath(self.order_by)
-                flowr_order = 'order by %s' % order_field
+                flowr_order = 'order by %s %s' % (order_field, self.order_mode)
             else:
                 flowr_order = ''
             flowr_where = ''
@@ -539,10 +553,11 @@ class Xquery(object):
 
         return query
 
-    def sort(self, field):
+    def sort(self, field, ascending=True):
         "Add ordering to xquery; sort field assumed relative to base xpath"
         # todo: multiple sort fields; asc/desc?
         self.order_by = field
+        self.order_mode = 'ascending' if ascending else 'descending'
 
     def distinct(self):
         self._distinct = True
@@ -600,17 +615,14 @@ class Xquery(object):
             fields = dict(self.return_fields, **self.additional_return_fields)
             for name, xpath in fields.iteritems():
                 # special cases
-                if name == 'fulltext_score':
-                    rblocks.append('element %s {$fulltext_score}' % name)
+                if name in ['fulltext_score', 'last_modified']:
+                    rblocks.append('element %(name)s {$%(name)s}' % {'name': name })
                 elif name == "document_name":
                     rblocks.append('element %s {util:document-name(%s)}' % (name, self.xq_var))
                 elif name == "collection_name":
                     rblocks.append('element %s {util:collection-name(%s)}' % (name, self.xq_var))
                 elif name == 'hash':
                     rblocks.append('element %s {$hash}' % name)
-                elif name == 'last_modified':
-                    rblocks.append('element %s {xmldb:last-modified(util:collection-name(%s), util:document-name(%s))}' \
-                            % (name, self.xq_var, self.xq_var))
                 else:
                     rblocks.append('element %s {%s}' % (name, self.prep_xpath(xpath, rtn=True)))
             r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
