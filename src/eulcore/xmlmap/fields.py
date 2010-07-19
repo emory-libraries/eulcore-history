@@ -234,10 +234,11 @@ def _predicate_is_constructible(pred):
                 return False
         elif pred.op == '=':
             # = expressions are constructible for now only if the left side
-            # is constructible and the right side is a literal
+            # is constructible and the right side is a literal or variable
             if not _predicate_is_constructible(pred.left):
                 return False
-            if not isinstance(pred.right, (int, long, basestring)):
+            if not isinstance(pred.right,
+                    (int, long, basestring, ast.VariableReference)):
                 return False
 
     # otherwise, i guess we're ok
@@ -254,7 +255,14 @@ def _construct_predicate(xast, node, context):
         elif xast.op == '=':
             left_leaf = _construct_predicate(xast.left, node, context)
             step = _find_terminal_step(xast.left)
-            xvalue = str(xast.right)
+            if isinstance(xast.right, ast.VariableReference):
+                name = xast.right.name
+                ctxval = context.get(name, None)
+                if ctxval is None:
+                    ctxval = context[name[1]]
+                xvalue = str(ctxval)
+            else:
+                xvalue = str(xast.right)
             _set_in_xml(left_leaf, xvalue, context, step)
             return left_leaf
 

@@ -301,6 +301,14 @@ class Datastream(object):
             obj.dscache[self.id] = self._datastreamClass(obj, self.id, self.label, **self.datastream_args)
         return obj.dscache[self.id]
 
+    @property
+    def default_mimetype(self):
+        mimetype = self.datastream_args.get('mimetype', None)
+        if mimetype:
+            return mimetype
+        ds_cls = self._datastreamClass
+        return ds_cls.default_mimetype
+
     # set and delete not implemented on datastream descriptor
     # - delete would only make sense for optional datastreams, not yet needed
     # - saving updated content to fedora handled by datastream object
@@ -593,6 +601,20 @@ class DigitalObject(object):
     @property
     def modified(self):
         return self.info.modified
+
+    @property
+    def exists(self):
+        # If we can get the object profile, this object exists. If not, then
+        # it doesn't. We could conceivably use self.info or
+        # self.getProfile() for this, but it seems to make more sense for
+        # this property to bypass their _create checks and go straight to
+        # the repo. Unfortunately that means that if you get obj.exists
+        # and obj.info, you'll poke fedora twice.
+        try:
+            self.api.getObjectProfile(self.pid)
+            return True
+        except RequestFailed:
+            return False
 
     def getDatastreamProfile(self, dsid):
         """Get information about a particular datastream belonging to this object.
