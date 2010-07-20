@@ -66,6 +66,12 @@ class QuerySet(object):
         self._result_cache = {}
         self._start = 0
         self._stop = None
+        self._return_type = None
+
+    def __del__(self):
+        # release any queries in eXist 
+        if self._result_id is not None:
+            self._db.releaseQueryResult(self._result_id)
 
     @property
     def result_id(self):
@@ -94,8 +100,6 @@ class QuerySet(object):
         # FIXME: should summary be cached ?
         summary = self._db.querySummary(self.result_id)
         return summary['queryTime']
-
-    # FIXME: how do you get the count for the non-limited set?
 
     def _getCopy(self):
         """Get a clone of the current QuerySet for modification via
@@ -188,13 +192,15 @@ class QuerySet(object):
         copy, they will contain only the specified fields.
 
         Special fields available:
-         * fulltext_score (should only be used in combination with fulltext search)
-         * document_name
-         * hash - generate and return a SHA-1 checksum of the root element being queried
-         * last_modified - :class:`eulcore.xmlmap.fields.DateField` for the date
-                the document the root element belongs to was last modified
+         * ``fulltext_score`` - lucene query; should only be used when a fulltext
+           query has been used
+         * ``document_name``, ``collection_name`` - document or collection name
+           where xml content is stored in eXist
+         * ``hash`` - generate and return a SHA-1 checksum of the root element being queried
+         * ``last_modified`` - :class:`~eulcore.xmlmap.fields.DateField` for the date
+           the document the xml element belongs to was last modified
 
-        NOTE: Be aware that this will result in an XQuery with a constructed return.
+        **NOTE:** Be aware that this will result in an XQuery with a constructed return.
         For large queries, this may have a significant impact on performance.
         For more details, see http://exist.sourceforge.net/tuning.html#N103A2 .
         """
@@ -275,7 +281,7 @@ class QuerySet(object):
         self.query.clear_filters()        
         # if a query has been made to eXist - release result & reset result id
         if self._result_id is not None:
-            self.db.releaseQueryResult(self._result_id)
+            self._db.releaseQueryResult(self._result_id)
             self._result_id = None
             self._count = None          # clear any count based on this result set
 
@@ -331,25 +337,37 @@ class QuerySet(object):
 
         if i not in self._result_cache:
             # if the requested item has not yet been retrieved, get it from eXist
-            item = self._db.retrieve(self.result_id, i)
+            item = self._db.retrieve(self.result_id, i) # TODO: make highlight-matches available for fulltext-searches
             if self.model is None or self.query._distinct:
                 self._result_cache[i] = item.data
             else:
-                return_type = self.model
-
-                # if there are additional/partial fields that need to override defined fields,
-                # define a new class derived from the XmlObject model and map those fields
-                if self.partial_fields:
-                    return_type = _create_return_class(self.model, self.partial_fields)
-                elif self.additional_fields:
-                    return_type = _create_return_class(self.model, self.additional_fields)
-
-                obj = load_xmlobject_from_string(item.data, return_type)
+                obj = load_xmlobject_from_string(item.data, self.return_type)
                 # make queryTime method available when retrieving a single item
                 setattr(obj, 'queryTime', self.queryTime)
                 self._result_cache[i] = obj
 
         return self._result_cache[i]
+
+    @property
+    def return_type(self):
+        """Return type that will be used for initializing results returned from
+        eXist queries.  Either the subclass of :class:`~eulcore.xmlmap.XmlObject`
+        passed in to the constructor as model, or, if :meth:`only` or :meth:`also`
+        has been used, a dynamically created instance of :class:`~eulcore.xmlmap.XmlObject`
+        with the xpaths modified based on the constructed xml return.
+        """
+        if self._return_type is None:
+            self._return_type = self.model
+
+            # if there are additional/partial fields that need to override defined fields,
+            # define a new class derived from the XmlObject model and map those fields
+            if self.partial_fields:
+                self._return_type = _create_return_class(self.model, self.partial_fields,
+                        override_xpaths=self.query.get_return_xpaths())
+            elif self.additional_fields:
+                self._return_type = _create_return_class(self.model, self.additional_fields,
+                        override_xpaths=self.query.get_return_xpaths())
+        return self._return_type
 
     def __iter__(self):
         """Iterate through available results."""
@@ -375,7 +393,8 @@ class QuerySet(object):
 
     
 
-def _create_return_class(baseclass, override_fields, xpath_prefix=None):
+def _create_return_class(baseclass, override_fields, xpath_prefix=None,
+            override_xpaths={}):
     """
     Define a new return class which extends the specified baseclass and
     overrides the specified fields.
@@ -386,6 +405,9 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None):
     :param xpath_prefix: optional, should only be used when recursing.  By default, the xpath
     	for a constructed node is assumed to be the same as the field name; for sub-object fields,
         this parameter is used to pass the prefix in for creating the sub-object class.
+    :param override_xpaths: dictionary of field name and xpaths to use, based on
+        the constructed xml being returned; most likely generated by 
+        :meth:`Xquery.get_return_xpaths`.
     """
 
     # NOTE: this class is tested indirectly via the QuerySet also and only functions,
@@ -415,10 +437,18 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None):
                 field_type = StringField	# handle special cases like fulltext score
             else:
                 field_type = type(fields[-1])
-            
+
+            # by default, assume xpath is field name
             xpath = name
+            fieldname = name
             if xpath_prefix:
                 xpath = "__".join((xpath_prefix, name))
+                fieldname = "__".join((xpath_prefix, name))
+                
+            # if an override xpath is specified for this field, use that
+            if fieldname in override_xpaths:
+                xpath = override_xpaths[fieldname]
+
             #TODO: create a clone function for nodefield that takes an xpath
             # (this should make field-type instantiation more reliable and flexible)
             if isinstance(fields[-1], NodeField) or isinstance(fields[-1], NodeListField):
@@ -434,7 +464,7 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None):
             prefix = "__".join((xpath_prefix, prefix))
         # new subclass type
         subclass = _create_return_class(nodefield._get_node_class(), subclass_fields[subclass_name],
-                                        xpath_prefix=prefix)
+                                        xpath_prefix=prefix, override_xpaths=override_xpaths)
         # field type (e.g. NodeField or NodeListField), to be instanced as new subclass
         class_fields[subclass_name] = type(nodefield)(".", subclass) 
     
@@ -452,7 +482,10 @@ class Xquery(object):
     xpath = '/node()'       # default generic xpath
     xq_var = '$n'           # xquery variable to use when constructing flowr query
     available_filters = ['contains', 'startswith', 'exact', 'fulltext_terms']
+    special_fields =  ['fulltext_score', 'last_modified', 'hash',
+        'document_name', 'collection_name']
 
+    
     def __init__(self, xpath=None, collection=None):
         if xpath is not None:
             self.xpath = xpath
@@ -460,13 +493,19 @@ class Xquery(object):
         # remove leading / from collection name (if any)
         self.collection = collection.lstrip('/') if collection is not None else None
         self.filters = []
+        # sort information - field to sort on, ascending/descending
         self.order_by = None
         self.order_mode = None
+        # also/only fields
         self.return_fields = {}
         self.additional_return_fields = {}
+        # start/end values for subsequence
         self.start = 0
         self.end = None
         self._distinct = False
+        # return field / xpath details for constructed xquery return
+        self.return_xpaths = []
+        self._return_field_count = 1
 
     def __str__(self):
         return self.getQuery()
@@ -480,6 +519,8 @@ class Xquery(object):
         # return *copies* of dictionaries, not references to the ones in this object!
         xq.return_fields = self.return_fields.copy()
         xq.additional_return_fields = self.additional_return_fields.copy()
+        xq.return_xpaths = self.return_xpaths
+        xq._return_field_count = self._return_field_count
         return xq
 
     def getQuery(self):
@@ -488,42 +529,49 @@ class Xquery(object):
         Returns xpath or FLOWR XQuery if required based on sorting and return
         """
         xpath_parts = []
-
         if self.collection is not None:
-            xpath_collection = 'collection("/db/%s")' % self.collection
-            xpath_parts.append(xpath_collection)
-
-        # if top-level path has multiple parts, add collection to each
-        # FIXME: this could be unreliable; there should be a better way to handle this...
-        # TODO: use eulcore.xpath here
-        if '|/' in self.xpath:
-            xpath = self.xpath.replace("|/", "|%s/" % xpath_collection)
-            xpath_parts.append(xpath)
+            # if a collection is specified, add it it to the top-level query xpath
+            # -- prep_xpath handles logic for top-level xpath with multiple components, e.g. foo|bar 
+            collection_xquery = 'collection("/db/%s")' % self.collection
+            xpath_parts.append(self.prep_xpath(self.xpath, context=collection_xquery))
         else:
             xpath_parts.append(self.xpath)
+            
         xpath_parts += [ '[%s]' % (f,) for f in self.filters ]
 
         xpath = ''.join(xpath_parts)
         # requires FLOWR instead of just XQuery  (sort, customized return, etc.)
         if self.order_by or self.return_fields or self.additional_return_fields:
-            # NOTE: use constructed xpath, with collection (if any)
+            # NOTE: using constructed xpath, with collection filter (if collection specified)
             flowr_for = 'for %s in %s' % (self.xq_var, xpath)
 
-            # TODO: more consistent handling of special variables throughout
+            # define any special fields that have been requested
             let = []
-            if 'fulltext_score' == self.order_by or 'fulltext_score' in self.return_fields \
-                or 'fulltext_score' in self.additional_return_fields:
-                let.append('let $fulltext_score := ft:score(%s)' % self.xq_var)
-            if 'hash' in self.return_fields or 'hash' in self.additional_return_fields:
-                let.append('let $hash := util:hash(%s, "SHA-1")' % self.xq_var)
-            if 'last_modified' == self.order_by or 'last_modified' in self.return_fields \
-                or 'last_modified' in self.additional_return_fields:
-                let.append('let $last_modified := xmldb:last-modified(util:collection-name(%(var)s), util:document-name(%(var)s))' % {'var': self.xq_var})
+            for field in self.special_fields:
+                if field == self.order_by or field in self.return_fields \
+                        or field in self.additional_return_fields:
+                    # determine how to calculate the value of the requested field
+                    if field == 'fulltext_score':
+                        val = 'ft:score(%s)' % self.xq_var
+                    elif field == 'hash':
+                        val = 'util:hash(%s, "SHA-1")' % self.xq_var
+                    elif field == 'document_name':
+                        val = 'util:document-name(%s)' % self.xq_var
+                    elif field == 'collection_name':
+                        val = 'util:collection-name(%s)' % self.xq_var
+                    elif field == 'document_name':
+                        val = 'util:document-name(%s)' % self.xq_var
+                    elif field == 'last_modified':
+                        val = 'xmldb:last-modified(util:collection-name(%(var)s), util:document-name(%(var)s))' % \
+                            {'var': self.xq_var }
+                    # define an xquery variable with the same name as the special field
+                    let.append('let $%s := %s' % (field, val))
+
             flowr_let = '\n'.join(let)
             
             # for now, assume sort relative to root element
             if self.order_by:                
-                if self.order_by in ['fulltext_score', 'last_modified']:
+                if self.order_by in self.special_fields:
                     order_field = '$%s' % self.order_by
                 else:
                     order_field = self.prep_xpath(self.order_by)
@@ -555,7 +603,7 @@ class Xquery(object):
 
     def sort(self, field, ascending=True):
         "Add ordering to xquery; sort field assumed relative to base xpath"
-        # todo: multiple sort fields; asc/desc?
+        # todo: support multiple sort fields
         self.order_by = field
         self.order_mode = 'ascending' if ascending else 'descending'
 
@@ -591,47 +639,52 @@ class Xquery(object):
 
 
     def return_only(self, fields):
-        "Only return the specified fields.  fields should be a dictionary of return name -> xpath"
+        """Only return the specified fields.  Fields should be a dictionary of
+        {'field name' : 'xpath'}."""
         self.return_fields.update(fields)
 
     def return_also(self, fields):
-        """Return additional specified fields.  fields should be a dictionary of return name -> xpath.
-           Not compatible with return_only."""
+        """Return additional specified fields.  Fields should be a dictionary of
+        {'field name' : 'xpath'}.
+        
+        Not compatible with :meth:`return_only`."""
         self.additional_return_fields.update(fields)
 
     def _constructReturn(self):
         """Construct the return portion of a FLOWR xquery."""
-        # get a return element name
-        return_el = self._return_name_from_xpath(parse(self.xpath))
         
         if self.return_fields or self.additional_return_fields:
+            # constructed return result with partial or additional content
+
+            # get a return element name to wrap the results
+            return_el = self._return_name_from_xpath(parse(self.xpath))
+
+            # reset any return fields that have been previously calculated
+            self._return_field_count = 1
+            self.return_xpaths = []
+
             # returns for only/also fields are constructed almost exactly the same
             if self.return_fields:
                 rblocks = []
             elif self.additional_return_fields:
                 # return everything under matched node - all attributes, all nodes
-                rblocks = ["%s/@*" % self.xq_var, "%s/node()" % self.xq_var]
+                rblocks = ["{%s/@*}" % self.xq_var, "{%s/node()}" % self.xq_var]
                 
             fields = dict(self.return_fields, **self.additional_return_fields)
             for name, xpath in fields.iteritems():
                 # special cases
-                if name in ['fulltext_score', 'last_modified']:
-                    rblocks.append('element %(name)s {$%(name)s}' % {'name': name })
-                elif name == "document_name":
-                    rblocks.append('element %s {util:document-name(%s)}' % (name, self.xq_var))
-                elif name == "collection_name":
-                    rblocks.append('element %s {util:collection-name(%s)}' % (name, self.xq_var))
-                elif name == 'hash':
-                    rblocks.append('element %s {$hash}' % name)
+                if name in self.special_fields:
+                    # reference any special fields requested as xquery variables
+                    rblocks.append('<%(name)s>{$%(name)s}</%(name)s>' % {'name': name })
                 else:
-                    rblocks.append('element %s {%s}' % (name, self.prep_xpath(xpath, rtn=True)))
-            r = 'return <%s>\n {' % (return_el)  + ',\n '.join(rblocks) + '\n} </%s>' % (return_el)
+                    rblocks.append(self.prep_xpath(xpath, return_field=True))
+            return 'return <%s>\n ' % (return_el)  + '\n '.join(rblocks) + '\n</%s>' % (return_el)
         else:
-            r = 'return %s' % self.xq_var
-        return r
+            # return entire node, no constructed return
+            return 'return %s' % self.xq_var
 
     def _return_name_from_xpath(self, parsed_xpath):
-        # generate a return element name based on the xpath
+        "Generate a top-level return element name based on the xpath."
         if isinstance(parsed_xpath, ast.Step):
             # if this is a step, just use the node test
             return parsed_xpath.node_test
@@ -670,68 +723,102 @@ class Xquery(object):
         self.start = 0
         self.end = None
 
-    def prep_xpath(self, xpath, rtn=False, parsed=False):
-        """Prepare an xpath to be used in an xquery return.
+    def prep_xpath(self, xpath, context=None, return_field=False, parsed=False):
+        """Prepare an xpath for use in an xquery.
 
         :param xpath: xpath as string or parsed by :meth:`eulcore.xpath.parse`
-        :param rtn: xpath will be used as a return value (additional escaping
-            that is unneeded or inappropriate elsewhere, e.g. for a sort value)
+        :param context: optional context to add to xpaths; by default, the current
+            xquery variable will be used
+        :param return_field: xpath will be used as a return field; it will have
+            additional node wrapping, and a return-field xpath will be calculated
+            and stored for use in :meth:`get_return_xpaths`
         :param parsed: boolean flag to indicate if xpath has already been parsed
         :rtype: string
         """
         # common xpath clean-up before handing off to exist
         parsed_xpath = xpath if parsed else parse(xpath)
-        
-        if isinstance(parsed_xpath, ast.BinaryExpression):
-            if parsed_xpath.op == '|': # or parsed_xpath.op == '/':
-                # binary expression - prep the two expressions and put them back together
-                return "%(left)s%(op)s%(right)s" % {
-                        'op': parsed_xpath.op,
-                        'left': self.prep_xpath(parsed_xpath.left, parsed=True, rtn=rtn),
-                        'right': self.prep_xpath(parsed_xpath.right, parsed=True, rtn=rtn)
-                        }
-        # set context relative to xquery variable
-        if isinstance(parsed_xpath, ast.AbsolutePath):
-            # for an absolute path, (e.g., //node or /node), we need $n(xpath)
+        if context is None:
             context = self.xq_var
-            relative_xpath = parsed_xpath.relative
+
+        if isinstance(parsed_xpath, ast.BinaryExpression) and parsed_xpath.op == '|': 
+            # binary OR expression - prep the two expressions and put them back together
+            xpath_str = '%(left)s%(op)s%(right)s' % {
+                    'op': parsed_xpath.op,
+                    'left': self.prep_xpath(parsed_xpath.left, parsed=True, context=context),
+                    'right': self.prep_xpath(parsed_xpath.right, parsed=True, context=context),
+                    'var': self.xq_var
+                    }
+            # xquery context variable has been added to individual portions and
+            # should not be added again
+            context_path = None
+        # determine context needed relative to xquery variable
+        elif isinstance(parsed_xpath, ast.AbsolutePath):
+            # for an absolute path, (e.g., //node or /node), we need $n(xpath)
+            context_path = context
         elif isinstance(parsed_xpath, ast.FunctionCall):
             # function call - the function itself needs no context, but
             # any arguments that are node tests should be prepped
-            context = ''
+            context_path = ''
             for i in range(len(parsed_xpath.args)):
                 arg = parsed_xpath.args[i]
                 if isinstance(arg, ast.AbbreviatedStep) or isinstance(arg, ast.Step):
                     # prep_xpath returns string, but function arg needs to be parsed
                     parsed_xpath.args[i] = parse(self.prep_xpath(arg, parsed=True))
-            relative_xpath = None
         else:
             # for a relative path, we need $n/(xpath)
-            context = "%s/" % self.xq_var
-            relative_xpath = parsed_xpath
-            # for a binary expression using /, use the right-hand side as relative xpath
-            if isinstance(parsed_xpath, ast.BinaryExpression) and parsed_xpath.op == '/':
-                relative_xpath = parsed_xpath.right
-        
+            context_path = "%s/" % context
+            
         # FIXME: other possible cases?
+        
+        if context_path is not None:
+            xpath_str = "%(context)s%(xpath)s" % {'context': context_path,
+                                                  'xpath': serialize(parsed_xpath) }
 
-        xpath_str = "%(context)s%(xpath)s" % {'context': context,
-                                              'xpath': serialize(parsed_xpath) }
-
-        # additional escaping for return values that are unneeded elsewhere
-        if rtn and relative_xpath is not None and hasattr(relative_xpath, 'axis'):
-            if relative_xpath.axis in ('@', 'attribute'):
-                # returning an attribute - returning as elements to avoid attribute conflicts
-                # the string contents of the attribute will be put in a constructed element
-                xpath_str = "string(%s)" % xpath_str
-            elif relative_xpath.axis in (None, 'child'):
-                # returning a single element; using node() so element *contents* will
-                # be in constructed named return element, instead of nesting elements
-                xpath_str = "%s/node()" % xpath_str
+        if return_field:
+            xpath_str = "<field>{%s}</field>" % xpath_str
+            # get xpath for field as it will be returned
+            self.return_xpaths.append(self._return_field_xpath(parsed_xpath))
+            self._return_field_count += 1
 
         return xpath_str
 
+    def _return_field_xpath(self, xpath):
+        if isinstance(xpath, ast.Step):
+            return "field[%d]/%s" % (self._return_field_count, serialize(xpath))
+        elif isinstance(xpath, ast.BinaryExpression):
+            if xpath.op == '|':
+                return "%(left)s|%(right)s" % {
+                    'left': self._return_field_xpath(xpath.left),
+                    'right': self._return_field_xpath(xpath.right)
+                    }
+            if xpath.op in ('/', '//'):
+                return self._return_field_xpath(xpath.right)
+        elif isinstance(xpath, ast.FunctionCall):
+            # for a function call, the field itself should be all the xpath needed
+            return "field[%d]" % self._return_field_count
+        
+        # FIXME: other cases?
+        return None     # FIXME: is there any sane fall-back return?
 
+    def get_return_xpaths(self):
+        """Generate a dictionary of xpaths to match the results as they will be
+        returned in a constructed return result (when return fields have
+        been specified by :meth:`return_also` or :meth:`return_only`).
+        
+        :returns: dictionary keyed on field names from argument passed to
+            :meth:`return_only` or :meth:`return_also`
+        :rtype: dict
+        """
+        fields = dict(self.return_fields, **self.additional_return_fields)
+        xpaths = {}
+        i = 0
+        for name in fields.keys():
+            if name in ['fulltext_score', 'last_modified', 'hash', 'document_name', 'collection_name']:
+                xpaths[name] = name
+            else:
+                xpaths[name] = self.return_xpaths[i]
+                i += 1
+        return xpaths
 
 # some helpers for handling '__'-separated field names:
 

@@ -20,6 +20,8 @@ class QueryTestModel(xmlmap.XmlObject):
             description = xmlmap.StringField('description')
             wnn = xmlmap.IntegerField('wacky_node_name')
             sub = xmlmap.NodeField("sub", QuerySubModel)
+            or_field = xmlmap.StringField('name|description|@id')
+            substring = xmlmap.StringField('substring(name, 1, 1)')
 
 COLLECTION = EXISTDB_TEST_COLLECTION
 
@@ -221,21 +223,31 @@ class ExistQueryTest(unittest.TestCase):
         self.qs.only('name')
         self.assert_('element name {' not in self.qs.query.getQuery(), "main queryset unchanged by only()")
         
-        fqs = self.qs.filter(id='one').only('name','id', 'sub')
+        fqs = self.qs.filter(id='one').only('name','id', 'sub', 'or_field')
         self.assert_(isinstance(fqs[0], QueryTestModel))	# actually a Partial type derived from this
         # attributes that should be present
         self.assertNotEqual(fqs[0].id, None)
         self.assertNotEqual(fqs[0].sub, None)
         self.assertNotEqual(fqs[0].sub.subname, None)
+        self.assertNotEqual(fqs[0].or_field, None)
         # attribute not returned
         self.assertEqual(fqs[0].description, None)
         self.assertEqual('one', fqs[0].id)
         self.assertEqual('one', fqs[0].name)
         self.assertEqual('la', fqs[0].sub.subname)
+        self.assertEqual('one', fqs[0].or_field)    # = name (first of ORed fields present)
 
         fqs = self.qs.filter(id='one').only('wnn')
         self.assertTrue(hasattr(fqs[0], "wnn"))
         self.assertEqual(42, fqs[0].wnn)
+
+        # nested field return
+        fqs = self.qs.filter(id='one').only('name','id', 'sub__subname')
+        self.assertEqual('la', fqs[0].sub.subname)
+
+        # xpath function return
+        fqs = self.qs.filter(id='one').only('substring')
+        self.assertEqual('o', fqs[0].substring)
 
     def test_only_hash(self):
         fqs = self.qs.only('hash')
@@ -421,9 +433,9 @@ class XqueryTest(unittest.TestCase):
         xq.return_only({'myid':'@id', 'some_name':'name', 'first_letter':'substring(@n,1,1)'})
         xq_return = xq._constructReturn()
         self.assert_('return <el>' in xq_return)
-        self.assert_('element myid {string($n/@id)}' in xq_return)
-        self.assert_('element some_name {$n/name/node()}' in xq_return)
-        self.assert_('element first_letter {substring($n/@n,1,1)}' in xq_return)
+        self.assert_('<field>{$n/@id}</field>' in xq_return)
+        self.assert_('<field>{$n/name}</field>' in xq_return)
+        self.assert_('<field>{substring($n/@n,1,1)}</field>' in xq_return)
         self.assert_('</el>' in xq_return)
 
         xq = Xquery(xpath='/some/el/notroot')
@@ -435,22 +447,22 @@ class XqueryTest(unittest.TestCase):
         xq.xq_var = '$n'
         xq.return_only({'fulltext_score':''})
         self.assert_('let $fulltext_score := ft:score($n)' in xq.getQuery())
-        self.assert_('element fulltext_score {$fulltext_score}' in xq._constructReturn())
+        self.assert_('<fulltext_score>{$fulltext_score}</fulltext_score>' in xq._constructReturn())
 
     def test_return_also(self):
         xq = Xquery(xpath='/el')
         xq.xq_var = '$n'
         xq.return_also({'myid':'@id', 'some_name':'name'})
-        self.assert_('$n/@*,' in xq._constructReturn())
-        self.assert_('$n/node(),' in xq._constructReturn())
-        self.assert_('element myid {string($n/@id)},' in xq._constructReturn())
+        self.assert_('{$n/@*}' in xq._constructReturn())
+        self.assert_('{$n/node()}' in xq._constructReturn())
+        self.assert_('<field>{$n/@id}</field>' in xq._constructReturn())
 
     def test_return_also__fulltext_score(self):
         xq = Xquery(xpath='/el')
         xq.xq_var = '$n'
         xq.return_also({'fulltext_score':''})
         self.assert_('let $fulltext_score := ft:score($n)' in xq.getQuery())
-        self.assert_('element fulltext_score {$fulltext_score}' in xq._constructReturn())
+        self.assert_('<fulltext_score>{$fulltext_score}</fulltext_score>' in xq._constructReturn())
 
 
     def test_set_limits(self):
@@ -495,25 +507,25 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery()
         xq.xq_var = '$n'
         # handle attributes
-        self.assertEqual('string($n/@id)', xq.prep_xpath('@id', rtn=True))
-        #self.assertEqual('$n/../string(@id)', xq.prep_xpath('../@id', rtn=True))
-        self.assertEqual('string($n/parent::root/@id)', xq.prep_xpath('parent::root/@id', rtn=True))
+        self.assertEqual('<field>{$n/@id}</field>', xq.prep_xpath('@id', return_field=True))
+        self.assertEqual('<field>{$n/../@id}</field>', xq.prep_xpath('../@id', return_field=True))
+        self.assertEqual('<field>{$n/parent::root/@id}</field>', xq.prep_xpath('parent::root/@id', return_field=True))
         # handle regular nodes
-        self.assertEqual('$n/title/node()', xq.prep_xpath('title', rtn=True))
+        self.assertEqual('<field>{$n/title}</field>', xq.prep_xpath('title', return_field=True))
         # function call - regular node
         self.assertEqual('substring($n/title,1,1)', xq.prep_xpath('substring(title,1,1)'))
         # function call - abbreviated step
         self.assertEqual('substring($n/.,1,1)', xq.prep_xpath('substring(.,1,1)'))
 
         # xpath with OR - absolute paths
-        self.assertEqual('$n/name/node()|$n/title/node()', xq.prep_xpath('/name|/title', rtn=True))
+        self.assertEqual('<field>{$n/name|$n/title}</field>', xq.prep_xpath('/name|/title', return_field=True))
         # xpath with OR - relative paths
-        self.assertEqual('$n/name/node()|$n/title/node()', xq.prep_xpath('name|title', rtn=True))
+        self.assertEqual('<field>{$n/name|$n/title}</field>', xq.prep_xpath('name|title', return_field=True))
         # xpath with OR - mixed absolute and relative paths
-        self.assertEqual('$n/name/node()|$n/title/node()', xq.prep_xpath('/name|title', rtn=True))
+        self.assertEqual('<field>{$n/name|$n/title}</field>', xq.prep_xpath('/name|title', return_field=True))
         # multiple ORs
-        self.assertEqual('$n/name/node()|$n/title/node()|string($n/@year)',
-                xq.prep_xpath('/name|/title|@year', rtn=True))
+        self.assertEqual('<field>{$n/name|$n/title|$n/@year}</field>',
+                xq.prep_xpath('/name|/title|@year', return_field=True))
 
 
 
