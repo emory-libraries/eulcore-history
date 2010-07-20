@@ -67,6 +67,7 @@ class QuerySet(object):
         self._start = 0
         self._stop = None
         self._return_type = None
+        self._highlight_matches = False
 
     def __del__(self):
         # release any queries in eXist 
@@ -108,6 +109,7 @@ class QuerySet(object):
         copy = QuerySet(model=self.model, xquery=self.query.getCopy(), using=self._db)        
         copy.partial_fields = self.partial_fields.copy()
         copy.additional_fields = self.additional_fields.copy()
+        copy._highlight_matches = self._highlight_matches
         # reset result cache, if any, because any filters will change it
         copy._result_cache = {}   
         return copy
@@ -154,6 +156,11 @@ class QuerySet(object):
                 lookuptype = rest or 'exact'
 
             qscopy.query.add_filter(xpath, lookuptype, value)
+
+            # enable highlighting when a full-text query is used
+            if lookuptype == 'fulltext_terms':
+                qscopy._highlight_matches = True
+
         # return copy query string so additional filters can be added or get() called
         return qscopy
 
@@ -337,7 +344,7 @@ class QuerySet(object):
 
         if i not in self._result_cache:
             # if the requested item has not yet been retrieved, get it from eXist
-            item = self._db.retrieve(self.result_id, i) # TODO: make highlight-matches available for fulltext-searches
+            item = self._db.retrieve(self.result_id, i, highlight=self._highlight_matches)
             if self.model is None or self.query._distinct:
                 self._result_cache[i] = item.data
             else:

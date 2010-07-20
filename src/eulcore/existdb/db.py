@@ -290,14 +290,20 @@ class ExistDB:
         return self.server.getHits(result_id)
 
     @_wrap_xmlrpc_fault
-    def retrieve(self, result_id, position, options={}):
+    def retrieve(self, result_id, position, highlight=False, **options):
         """Retrieve a single result fragment.
 
         :param result_id: an integer handle returned by :meth:`executeQuery`
         :param position: the result index to return
+        :param highlight: enable search term highlighting in result; optional,
+            defaults to False
         :rtype: the query result item as a string
 
         """
+        if highlight:
+            # eXist highlight modes: attributes, elements, or both
+            # using elements because it seems most reasonable default
+            options['highlight-matches'] = 'elements'
         return self.server.retrieve(result_id, position, options)
 
     @_wrap_xmlrpc_fault
