@@ -209,6 +209,13 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual('def', fqs[1].id)
         self.assertEqual('one', fqs[2].id)
         self.assertEqual('xyz', fqs[3].id)
+        # reverse sorting
+        fqs = self.qs.order_by('-name')
+        self.assertEqual('four', fqs[3].name)
+        self.assertEqual('two', fqs[0].name)
+        fqs = self.qs.order_by('-id')
+        self.assertEqual('abc', fqs[3].id)
+        self.assertEqual('xyz', fqs[0].id)
 
     def test_only(self):        
         self.qs.only('name')
@@ -329,7 +336,7 @@ class ExistQueryTest__FullText(unittest.TestCase):
             "should get 1 match for fulltext_terms search on = 'only two' (got %s)" % fqs.count())
 
     def test_order_by__fulltext_score(self):
-        fqs = self.qs.filter(description__fulltext_terms='one').order_by('fulltext_score')
+        fqs = self.qs.filter(description__fulltext_terms='one').order_by('-fulltext_score')
         self.assertEqual('one', fqs[0].name)    # one appears 3 times, should be first
 
     def test_only__fulltext_score(self):
@@ -379,13 +386,16 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery(collection="mycoll")
         xq.xq_var = '$n'
         xq.sort('@id')
-        self.assert_('order by $n/@id' in xq.getQuery())
+        self.assert_('order by $n/@id ascending' in xq.getQuery())
         self.assert_('collection("/db/mycoll")' in xq.getQuery())
 
         # prep_xpath function should clean up more complicated xpaths
         xq.sort('name|@id')
         self.assert_('order by $n/name|$n/@id' in xq.getQuery())
-        
+
+        # sort descending
+        xq.sort('@id', ascending=False)
+        self.assert_('order by $n/@id descending' in xq.getQuery())
 
     def test_filters(self):
         xq = Xquery(xpath='/el')
