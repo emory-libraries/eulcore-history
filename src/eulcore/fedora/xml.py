@@ -201,7 +201,8 @@ class SearchResults(xmlmap.XmlObject):
 
 class DsTypeModel(xmlmap.XmlObject):
     id = xmlmap.StringField('@ID')
-    mimetype = xmlmap.StringField('form/@MIME')
+    # FIXME: namespace issues if we use form instead of * here
+    mimetype = xmlmap.StringField('*/@MIME')
 
 
 class DsCompositeModel(xmlmap.XmlObject):
@@ -215,7 +216,8 @@ class DsCompositeModel(xmlmap.XmlObject):
 
     # TODO: this feels like it could be generalized into a dict-like field
     # class.
-    TYPE_MODEL_XPATH = 'dsTypeModel[@ID=$dsid]'
+    # FIXME: namespace issues if we use dsTypeModel instead of * here
+    TYPE_MODEL_XPATH = '*[@ID=$dsid]'
     def get_type_model(self, dsid, create=False):
             field = Field(self.TYPE_MODEL_XPATH,
                         manager=SingleNodeManager(instantiate_on_get=create),

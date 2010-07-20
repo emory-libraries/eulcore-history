@@ -1,5 +1,7 @@
 import cStringIO
 import hashlib
+import logging
+
 from rdflib import URIRef
 from rdflib.Graph import Graph as RdfGraph
 
@@ -12,6 +14,7 @@ from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfi
     NewPids, ObjectHistory, ObjectMethods, DsCompositeModel
 from eulcore.xmlmap.dc import DublinCore
 
+logger = logging.getLogger(__name__)
 
 # FIXME: needed by both server and models, where to put?
 URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
@@ -944,6 +947,40 @@ class ContentModel(DigitalObject):
                 'control_group': 'X',
                 'versionable': True,
             })
+
+    @staticmethod
+    def for_class(cls, repo):
+        full_name = '%s.%s' % (cls.__module__, cls.__name__)
+        cmodels = cls.CONTENT_MODELS
+        if not cmodels:
+            logger.debug('%s has no content models' % (full_name,))
+            return None
+        if len(cmodels) > 1:
+            logger.debug('%s has %d content models' % (full_name, len(cmodels)))
+            raise ValueError(('Cannot construct ContentModel object for ' +
+                              '%s, which has %d CONTENT_MODELS (only 1 is ' +
+                              'supported)') %
+                             (full_name, len(cmodels)))
+
+        cmodel_uri = cmodels[0]
+        logger.debug('cmodel for %s is %s' % (full_name, cmodel_uri))
+        cmodel_obj = repo.get_object(cmodel_uri, type=ContentModel,
+                                     create=False)
+        if cmodel_obj.exists:
+            logger.debug('%s already exists' % (cmodel_uri,))
+            return cmodel_obj
+
+        # otherwise the cmodel doesn't exist. let's create it.
+        logger.debug('creating %s from %s' % (cmodel_uri, full_name))
+        cmodel_obj = repo.get_object(cmodel_uri, type=ContentModel,
+                                     create=True)
+        # XXX: should this use _defined_datastreams instead?
+        for ds in cls._local_datastreams.values():
+            ds_composite_model = cmodel_obj.ds_composite_model.content
+            type_model = ds_composite_model.get_type_model(ds.id, create=True)
+            type_model.mimetype = ds.default_mimetype
+        cmodel_obj.save()
+        return cmodel_obj
 
 
 class DigitalObjectSaveFailure(StandardError):

@@ -8,7 +8,8 @@ import tempfile
 
 from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject, \
         XmlDatastream, XmlDatastreamObject, RdfDatastream, RdfDatastreamObject, \
-        FileDatastream, FileDatastreamObject, DigitalObjectSaveFailure
+        FileDatastream, FileDatastreamObject, DigitalObjectSaveFailure, \
+        ContentModel
 from eulcore.fedora.server import URI_HAS_MODEL
 from eulcore.fedora.xml import ObjectDatastream
 from eulcore.xmlmap.dc import DublinCore
@@ -32,6 +33,16 @@ class MyDigitalObject(DigitalObject):
     image = FileDatastream('IMAGE', 'managed binary image datastream', defaults={
                 'mimetype': 'image/png'
         })
+
+class SimpleDigitalObject(DigitalObject):
+    CONTENT_MODELS = ['info:fedora/example:SimpleCModel' ]
+
+    # extend digital object with datastreams for testing
+    text = Datastream("TEXT", "Text datastream", defaults={
+            'mimetype': 'text/plain',
+        })
+    extradc = XmlDatastream("EXTRADC", "Managed DC XML datastream", DublinCore)
+
 
 TEXT_CONTENT = "Here is some text content for a non-xml datastream."
 def _add_text_datastream(obj):    
@@ -535,6 +546,41 @@ class TestDigitalObject(FedoraTestCase):
     def test_registry(self):
         self.assert_('test_fedora.test_models.MyDigitalObject' in
                      DigitalObject.defined_types)
+
+
+class TestContentModel(FedoraTestCase):
+    def test_for_class(self):
+        CMODEL_URI = ContentModel.CONTENT_MODELS[0]
+
+        # first: create a cmodel for SimpleDigitalObject, the simple case
+        cmodel = ContentModel.for_class(SimpleDigitalObject, self.repo)
+        expect_uri = SimpleDigitalObject.CONTENT_MODELS[0]
+        self.assertEqual(cmodel.uri, expect_uri)
+        self.assertTrue(cmodel.has_model(CMODEL_URI))
+
+        dscm = cmodel.ds_composite_model.content
+        typemodel = dscm.get_type_model('TEXT')
+        self.assertEqual(typemodel.mimetype, 'text/plain')
+
+        typemodel = dscm.get_type_model('EXTRADC')
+        self.assertEqual(typemodel.mimetype, 'text/xml')
+
+        # try ContentModel itself. Content model objects have the "content
+        # model" content model. That content model should already be in
+        # every repo, so for_class shouldn't need to make anything.
+        cmodel = ContentModel.for_class(ContentModel, self.repo)
+        expect_uri = ContentModel.CONTENT_MODELS[0]
+        self.assertEqual(cmodel.uri, expect_uri)
+        self.assertTrue(cmodel.has_model(CMODEL_URI))
+
+        dscm = cmodel.ds_composite_model.content
+        typemodel = dscm.get_type_model('DS-COMPOSITE-MODEL')
+        self.assertEqual(typemodel.mimetype, 'text/xml')
+
+        # try MyDigitalObject. this should fail, as MyDigitalObject has two
+        # CONTENT_MODELS: we support only one
+        self.assertRaises(ValueError, ContentModel.for_class,
+                          MyDigitalObject, self.repo)
 
 
 if __name__ == '__main__':
