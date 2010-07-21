@@ -256,6 +256,23 @@ class ExistQueryTest(unittest.TestCase):
             # each return object should have a 40-character SHA-1 hash checksum
             self.assertEqual(40, len(result.hash),
                 'xquery result should have 40-character checksum, got %s' % result.hash)
+                
+    def test_document_name(self):
+        fqs = self.qs.filter(id='one').only('document_name')
+        # document_name attribute should be present
+        self.assertNotEqual(fqs[0].document_name, None)
+        self.assertEqual(fqs[0].document_name, "f1.xml")
+
+        fqs = self.qs.filter(id='one').also('document_name')
+        self.assertNotEqual(fqs[0].document_name, None)
+        self.assertEqual(fqs[0].document_name, "f1.xml")
+
+    def test_collection_name(self):
+        fqs = self.qs.filter(id='one').only('collection_name')
+        self.assertEqual(fqs[0].collection_name, '/db' + COLLECTION)
+
+        fqs = self.qs.filter(id='one').also('collection_name')
+        self.assertEqual(fqs[0].collection_name, '/db' + COLLECTION)
 
     def test_only_lastmodified(self):
         fqs = self.qs.only('last_modified')
@@ -358,22 +375,11 @@ class ExistQueryTest__FullText(unittest.TestCase):
         self.assertNotEqual(fqs[0].fulltext_score, None)
         self.assert_(float(fqs[0].fulltext_score) > 0.5)    # full-text score should be a float
 
-    def test_document_name(self):
-        fqs = self.qs.filter(id='one').only('document_name')
-        # document_name attribute should be present
-        self.assertNotEqual(fqs[0].document_name, None)
-        self.assertEqual(fqs[0].document_name, "f1.xml")
-
-        fqs = self.qs.filter(id='one').also('document_name')
-        self.assertNotEqual(fqs[0].document_name, None)
-        self.assertEqual(fqs[0].document_name, "f1.xml")
-
-    def test_collection_name(self):
-        fqs = self.qs.filter(id='one').only('collection_name')
-        self.assertEqual(fqs[0].collection_name, '/db' + COLLECTION)
-
-        fqs = self.qs.filter(id='one').also('collection_name')
-        self.assertEqual(fqs[0].collection_name, '/db' + COLLECTION)
+    def test_fulltext_autohighlight(self):
+        fqs = self.qs.filter(description__fulltext_terms='only two')
+        # result from fulltext search - xml should have exist:match tags
+        self.assert_('<exist:match' in fqs[0].serialize())
+        
 
 
 
