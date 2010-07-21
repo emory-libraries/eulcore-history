@@ -312,6 +312,10 @@ class Datastream(object):
         ds_cls = self._datastreamClass
         return ds_cls.default_mimetype
 
+    @property
+    def default_format_uri(self):
+        return self.datastream_args.get('format', None)
+
     # set and delete not implemented on datastream descriptor
     # - delete would only make sense for optional datastreams, not yet needed
     # - saving updated content to fedora handled by datastream object
@@ -944,6 +948,7 @@ class ContentModel(DigitalObject):
     CONTENT_MODELS = ['info:fedora/fedora-system:ContentModel-3.0']
     ds_composite_model = XmlDatastream('DS-COMPOSITE-MODEL',
             'Datastream Composite Model', DsCompositeModel, defaults={
+                'format': 'info:fedora/fedora-system:FedoraDSCompositeModel-1.0',
                 'control_group': 'X',
                 'versionable': True,
             })
@@ -979,6 +984,8 @@ class ContentModel(DigitalObject):
             ds_composite_model = cmodel_obj.ds_composite_model.content
             type_model = ds_composite_model.get_type_model(ds.id, create=True)
             type_model.mimetype = ds.default_mimetype
+            if ds.default_format_uri:
+                type_model.format_uri = ds.default_format_uri
         cmodel_obj.save()
         return cmodel_obj
 

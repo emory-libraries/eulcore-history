@@ -554,6 +554,7 @@ class TestContentModel(FedoraTestCase):
 
         # first: create a cmodel for SimpleDigitalObject, the simple case
         cmodel = ContentModel.for_class(SimpleDigitalObject, self.repo)
+        self.append_test_pid(cmodel.pid)
         expect_uri = SimpleDigitalObject.CONTENT_MODELS[0]
         self.assertEqual(cmodel.uri, expect_uri)
         self.assertTrue(cmodel.has_model(CMODEL_URI))
@@ -576,6 +577,7 @@ class TestContentModel(FedoraTestCase):
         dscm = cmodel.ds_composite_model.content
         typemodel = dscm.get_type_model('DS-COMPOSITE-MODEL')
         self.assertEqual(typemodel.mimetype, 'text/xml')
+        self.assertEqual(typemodel.format_uri, 'info:fedora/fedora-system:FedoraDSCompositeModel-1.0')
 
         # try MyDigitalObject. this should fail, as MyDigitalObject has two
         # CONTENT_MODELS: we support only one
