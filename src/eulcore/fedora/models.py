@@ -1,5 +1,7 @@
 import cStringIO
 import hashlib
+import logging
+
 from rdflib import URIRef
 from rdflib.Graph import Graph as RdfGraph
 
@@ -9,9 +11,10 @@ from lxml.builder import ElementMaker
 from eulcore import xmlmap
 from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed, datetime_to_fedoratime
 from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfile, \
-    NewPids, ObjectHistory, ObjectMethods
+    NewPids, ObjectHistory, ObjectMethods, DsCompositeModel
 from eulcore.xmlmap.dc import DublinCore
 
+logger = logging.getLogger(__name__)
 
 # FIXME: needed by both server and models, where to put?
 URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
@@ -65,10 +68,10 @@ class DatastreamObject(object):
     def info(self):
         # pull datastream profile information from Fedora, but only when accessed
         if self._info is None:
-            if self.obj._ingested:
-                self._info = self.obj.getDatastreamProfile(self.id)
-            else:
+            if self.obj._create:
                 self._info = self._bootstrap_info()
+            else:
+                self._info = self.obj.getDatastreamProfile(self.id)
             if not self.versionable:
                 self._info_backup = { 'dsLabel': self._info.label,
                                       'mimeType': self._info.mimetype,
@@ -94,15 +97,15 @@ class DatastreamObject(object):
     def _get_content(self):
         # pull datastream content from Fedora, but only when accessed
         if self._content is None:
-            if self.obj._ingested:
+            if self.obj._create:
+                self._content = self._bootstrap_content()
+            else:
                 data, url = self.obj.api.getDatastreamDissemination(self.obj.pid, self.id)
                 self._content = self._convert_content(data, url)
                 if not self.versionable:   
                     self._content_backup = data
                 # calculate and store a digest of the current datastream text content
                 self.digest = self._content_digest()
-            else:
-                self._content = self._bootstrap_content()
         return self._content
     def _set_content(self, val):
         # if datastream is not versionable, grab contents before updating
@@ -301,6 +304,18 @@ class Datastream(object):
             obj.dscache[self.id] = self._datastreamClass(obj, self.id, self.label, **self.datastream_args)
         return obj.dscache[self.id]
 
+    @property
+    def default_mimetype(self):
+        mimetype = self.datastream_args.get('mimetype', None)
+        if mimetype:
+            return mimetype
+        ds_cls = self._datastreamClass
+        return ds_cls.default_mimetype
+
+    @property
+    def default_format_uri(self):
+        return self.datastream_args.get('format', None)
+
     # set and delete not implemented on datastream descriptor
     # - delete would only make sense for optional datastreams, not yet needed
     # - saving updated content to fedora handled by datastream object
@@ -453,6 +468,7 @@ class DigitalObjectType(type):
 
     def __new__(cls, name, bases, defined_attrs):
         datastreams = {}
+        local_datastreams = {}
         use_attrs = defined_attrs.copy()
 
         for base in bases:
@@ -462,8 +478,11 @@ class DigitalObjectType(type):
 
         for attr_name, attr_val in defined_attrs.items():
             if isinstance(attr_val, Datastream):
-                datastreams[attr_name] = attr_val
+                local_datastreams[attr_name] = attr_val
 
+        use_attrs['_local_datastreams'] = local_datastreams
+
+        datastreams.update(local_datastreams)
         use_attrs['_defined_datastreams'] = datastreams
 
         super_new = super(DigitalObjectType, cls).__new__
@@ -497,7 +516,7 @@ class DigitalObject(object):
             'format': 'info:fedora/fedora-system:FedoraRELSExt-1.0',
         })
 
-    def __init__(self, api, pid=None):
+    def __init__(self, api, pid=None, create=False):
         self.api = api
         self.pid = pid
         self.dscache = {}       # accessed by DatastreamDescriptor to store and cache datastreams
@@ -513,29 +532,27 @@ class DigitalObject(object):
         self._history = None
         self._methods = None
 
-        # a string pid is a live object in the repository. a callable pid
-        # means a new object: we call that function to get our initial pid.
-        # None is a new object, and use a default pid generation function.
+        # pid = None signals to create a new object, using a default pid
+        # generation function.
         if pid is None:
-            self.pid = self._getDefaultPid
+            self.pid = self._getDefaultPid()
+            create = True
 
-        self._ingested = True
-        if callable(self.pid):
-            self._ingested = False
-            self.pid = self.pid()
+        self._create = bool(create)
+
+        if create:
             self._init_as_new_object()
 
     def _init_as_new_object(self):
-        pass
         for cmodel in getattr(self, 'CONTENT_MODELS', ()):
             self.rels_ext.content.add((URIRef(self.uri), URIRef(URI_HAS_MODEL),
                                        URIRef(cmodel)))
 
     def __str__(self):
-        if self._ingested:
-            return self.pid
-        else:
+        if self._create:
             return self.pid + ' (uningested)'
+        else:
+            return self.pid
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, str(self))
@@ -592,6 +609,20 @@ class DigitalObject(object):
     def modified(self):
         return self.info.modified
 
+    @property
+    def exists(self):
+        # If we can get the object profile, this object exists. If not, then
+        # it doesn't. We could conceivably use self.info or
+        # self.getProfile() for this, but it seems to make more sense for
+        # this property to bypass their _create checks and go straight to
+        # the repo. Unfortunately that means that if you get obj.exists
+        # and obj.info, you'll poke fedora twice.
+        try:
+            self.api.getObjectProfile(self.pid)
+            return True
+        except RequestFailed:
+            return False
+
     def getDatastreamProfile(self, dsid):
         """Get information about a particular datastream belonging to this object.
 
@@ -619,14 +650,14 @@ class DigitalObject(object):
 
         :rtype: :class:`ObjectProfile`
         """
-        if self._ingested:
+        if self._create:
+            return ObjectProfile()
+        else:
             data, url = self.api.getObjectProfile(self.pid)
             return parse_xml_object(ObjectProfile, data, url)
-        else:
-            return ObjectProfile()
 
     def _saveProfile(self, logMessage=None):
-        if not self._ingested:
+        if self._create:
             raise Exception("can't save profile information for a new object before it's ingested.")
 
         saved = self.api.modifyObject(self.pid, self.label, self.owner, self.state, logMessage)
@@ -652,10 +683,10 @@ class DigitalObject(object):
         declaration, though it too can be overridden prior to the initial
         save.
         """
-        if self._ingested:
-            self._save_existing(logMessage)
-        else:
+        if self._create:
             self._ingest(logMessage)
+        else:
+            self._save_existing(logMessage)
 
     def _save_existing(self, logMessage):
         # save an object that has already been ingested into fedora
@@ -705,7 +736,7 @@ class DigitalObject(object):
 
         # then clean up the local object so that self knows it's dealing
         # with an ingested object now
-        self._ingested = True
+        self._create = False
         self._info = None
         self.info_modified = False
         self.dscache = {}
@@ -818,14 +849,14 @@ class DigitalObject(object):
 
         :rtype: dictionary
         """
-        if self._ingested:
+        if self._create:
+            # FIXME: should we default to the datastreams defined in code?
+            return {}
+        else:
             # NOTE: can be accessed as a cached class property via ds_list
             data, url = self.api.listDatastreams(self.pid)
             dsobj = parse_xml_object(ObjectDatastreams, data, url)
             return dict([ (ds.dsid, ds) for ds in dsobj.datastreams ])
-        else:
-            # FIXME: should we default to the datastreams defined in code?
-            return {}
 
     @property
     def ds_list(self):      # NOTE: how to name to distinguish from locally configured datastream objects?
@@ -909,6 +940,54 @@ class DigitalObject(object):
             
         st = (URIRef(self.uri), URIRef(URI_HAS_MODEL), URIRef(model))
         return st in rels
+
+
+class ContentModel(DigitalObject):
+    """Fedora CModel object"""
+
+    CONTENT_MODELS = ['info:fedora/fedora-system:ContentModel-3.0']
+    ds_composite_model = XmlDatastream('DS-COMPOSITE-MODEL',
+            'Datastream Composite Model', DsCompositeModel, defaults={
+                'format': 'info:fedora/fedora-system:FedoraDSCompositeModel-1.0',
+                'control_group': 'X',
+                'versionable': True,
+            })
+
+    @staticmethod
+    def for_class(cls, repo):
+        full_name = '%s.%s' % (cls.__module__, cls.__name__)
+        cmodels = cls.CONTENT_MODELS
+        if not cmodels:
+            logger.debug('%s has no content models' % (full_name,))
+            return None
+        if len(cmodels) > 1:
+            logger.debug('%s has %d content models' % (full_name, len(cmodels)))
+            raise ValueError(('Cannot construct ContentModel object for ' +
+                              '%s, which has %d CONTENT_MODELS (only 1 is ' +
+                              'supported)') %
+                             (full_name, len(cmodels)))
+
+        cmodel_uri = cmodels[0]
+        logger.debug('cmodel for %s is %s' % (full_name, cmodel_uri))
+        cmodel_obj = repo.get_object(cmodel_uri, type=ContentModel,
+                                     create=False)
+        if cmodel_obj.exists:
+            logger.debug('%s already exists' % (cmodel_uri,))
+            return cmodel_obj
+
+        # otherwise the cmodel doesn't exist. let's create it.
+        logger.debug('creating %s from %s' % (cmodel_uri, full_name))
+        cmodel_obj = repo.get_object(cmodel_uri, type=ContentModel,
+                                     create=True)
+        # XXX: should this use _defined_datastreams instead?
+        for ds in cls._local_datastreams.values():
+            ds_composite_model = cmodel_obj.ds_composite_model.content
+            type_model = ds_composite_model.get_type_model(ds.id, create=True)
+            type_model.mimetype = ds.default_mimetype
+            if ds.default_format_uri:
+                type_model.format_uri = ds.default_format_uri
+        cmodel_obj.save()
+        return cmodel_obj
 
 
 class DigitalObjectSaveFailure(StandardError):

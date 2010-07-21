@@ -3,6 +3,7 @@ from eulcore import xmlmap
 # FIXME: DateField still needs significant improvements before we can make
 # it part of the real xmlmap interface.
 from eulcore.xmlmap.fields import DateField
+from eulcore.xmlmap.fields import Field, SingleNodeManager, NodeMapper
 
 from eulcore.fedora.util import datetime_to_fedoratime, fedoratime_to_datetime
 
@@ -196,3 +197,34 @@ class SearchResults(xmlmap.XmlObject):
     "session experation date"
     results = xmlmap.NodeListField('res:resultList/res:objectFields', SearchResult)
     "search results - list of :class:`SearchResult`"
+
+DS_NAMESPACE = 'info:fedora/fedora-system:def/dsCompositeModel#'
+DS_NAMESPACES = { 'ds': DS_NAMESPACE }
+
+class DsTypeModel(xmlmap.XmlObject):
+    ROOT_NAMESPACES = DS_NAMESPACES
+
+    id = xmlmap.StringField('@ID')
+    mimetype = xmlmap.StringField('ds:form/@MIME')
+    format_uri = xmlmap.StringField('ds:form/@FORMAT_URI')
+
+
+class DsCompositeModel(xmlmap.XmlObject):
+    """:class:`~eulcore.xmlmap.XmlObject` for a
+    :class:`~eulcore.fedora.models.ContentModel`'s DS-COMPOSITE-MODEL
+    datastream"""
+
+    ROOT_NAME = 'dsCompositeModel'
+    ROOT_NS = 'info:fedora/fedora-system:def/dsCompositeModel#'
+    ROOT_NAMESPACES = DS_NAMESPACES
+
+    # TODO: this feels like it could be generalized into a dict-like field
+    # class.
+    TYPE_MODEL_XPATH = 'ds:dsTypeModel[@ID=$dsid]'
+    def get_type_model(self, dsid, create=False):
+            field = Field(self.TYPE_MODEL_XPATH,
+                        manager=SingleNodeManager(instantiate_on_get=create),
+                        mapper=NodeMapper(DsTypeModel))
+            context = { 'namespaces': DS_NAMESPACES,
+                        'dsid': dsid }
+            return field.get_for_node(self.node, context)

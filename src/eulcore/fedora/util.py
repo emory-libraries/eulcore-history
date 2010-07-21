@@ -121,9 +121,6 @@ class RequestContextManager(object):
             response = connection.getresponse()
             # FIXME: handle 3xx
             if response.status >= 400 and self.throw_errors:
-                import sys
-                print >>sys.stderr, self.url, response.status
-
                 raise RequestFailed(response)
             return response
         except:

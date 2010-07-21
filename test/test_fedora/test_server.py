@@ -65,11 +65,11 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         # new object 
         obj = self.repo.get_object()
         self.assertTrue(isinstance(obj, DigitalObject))
-        self.assertFalse(obj._ingested)
+        self.assertTrue(obj._create)
         # new object, specified type
         obj = self.repo.get_object(type=MyDigitalObject)
         self.assertTrue(isinstance(obj, MyDigitalObject))
-        self.assertFalse(obj._ingested)
+        self.assertTrue(obj._create)
 
 
 

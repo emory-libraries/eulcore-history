@@ -108,21 +108,32 @@ class Repository(object):
         uris = self.risearch.get_subjects(URI_HAS_MODEL, cmodel_uri)
         return [ self.get_object(uri, type) for uri in uris ]
 
-    def get_object(self, pid=None, type=None):
+    def get_object(self, pid=None, type=None, create=None):
         """
         Initialize a single object from Fedora, or create a new one, with the
         same Fedora configuration and credentials.
 
-        :param pid: pid of the object to request (if not specified, creates new object)
+        :param pid: pid of the object to request (if not specified,
+                    generates a new pid)
         :param type: type of object to return; defaults to :class:`DigitalObject`
         :rtype: single object of the type specified
+        :create: boolean: create a new object? (if not specified, defaults
+                 to False when pid is specified, and True when it is not)
         """        
         type = type or self.default_object_type
+
         if pid is None:
-            pid = self.get_next_pid
-        elif pid.startswith('info:fedora/'): # passed a uri
+            pid = self.get_next_pid()
+            if create is None:
+                create = True
+        else:
+            if create is None:
+                create = False
+
+        if pid.startswith('info:fedora/'): # passed a uri
             pid = pid[len('info:fedora/'):]
-        return type(self.api, pid)
+
+        return type(self.api, pid, create)
 
     def find_objects(self, terms=None, type=None, chunksize=None, **kwargs):
         """
