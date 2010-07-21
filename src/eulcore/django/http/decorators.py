@@ -1,7 +1,7 @@
 from functools import wraps
 import mimeparse
 
-def content_negotiation(formats):
+def content_negotiation(formats, default_type='text/html'):
     """
     Provides basic content negotiation and returns a view method based on the
     best match of content types as indicated in formats.
@@ -31,7 +31,9 @@ def content_negotiation(formats):
     def _decorator(view_method):
         @wraps(view_method)
         def _wrapped(request, *args, **kwargs):
-            default_type = 'text/html'  # If not specificied assume HTML request.
+            # Changed this to be a value passed as a method argument defaulting
+            # to text/html instead so it's more flexible.
+            # default_type = 'text/html'  # If not specificied assume HTML request.
 
             # Add text/html for the original method if not already included.
             if default_type not in formats:
