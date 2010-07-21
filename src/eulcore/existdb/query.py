@@ -791,6 +791,8 @@ class Xquery(object):
 
     def _return_field_xpath(self, xpath):
         if isinstance(xpath, ast.Step):
+            # FIXME: should predicates be removed here?
+            # field[x] should be sufficient to identify return node, and predicates may not match
             return "field[%d]/%s" % (self._return_field_count, serialize(xpath))
         elif isinstance(xpath, ast.BinaryExpression):
             if xpath.op == '|':
@@ -803,7 +805,8 @@ class Xquery(object):
         elif isinstance(xpath, ast.FunctionCall):
             # for a function call, the field itself should be all the xpath needed
             return "field[%d]" % self._return_field_count
-        
+        elif isinstance(xpath, ast.AbsolutePath):
+            return self._return_field_xpath(xpath.relative)
         # FIXME: other cases?
         return None     # FIXME: is there any sane fall-back return?
 
@@ -820,7 +823,7 @@ class Xquery(object):
         xpaths = {}
         i = 0
         for name in fields.keys():
-            if name in ['fulltext_score', 'last_modified', 'hash', 'document_name', 'collection_name']:
+            if name in self.special_fields:
                 xpaths[name] = name
             else:
                 xpaths[name] = self.return_xpaths[i]
