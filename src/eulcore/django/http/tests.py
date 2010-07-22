@@ -10,6 +10,9 @@ def html_view(request):
 def xml_view(request):
     return "XML"
 
+def json_view(request):
+    return "JSON"
+
 class ContentNegotiationTest(TestCase):
     # known browser accept headers - taken from https://developer.mozilla.org/en/Content_negotiation
     FIREFOX = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
@@ -28,6 +31,13 @@ class ContentNegotiationTest(TestCase):
         # no accept header specified - should use default view
         response = self.negotiated_view(self.request)
         self.assertEqual("HTML", response)
+
+    def test_custom_default(self):
+        # no accept header, should return user specified default view.
+        decorator = content_negotiation({'application/xml': xml_view, 'text/html': html_view}, default_type="application/json")
+        negotiated_view = decorator(json_view)
+        response = negotiated_view(self.request)
+        self.assertEqual("JSON", response)
 
     def test_html(self):
         self.request.META['HTTP_ACCEPT'] = 'text/html, application/xhtml+xml'
