@@ -7,6 +7,7 @@ def content_negotiation(formats, default_type='text/html'):
     best match of content types as indicated in formats.
 
     :param formats: dictionary of content types and corresponding methods
+    :param default_type: string the decorated method is the return type for.
 
     Example usage::
 
