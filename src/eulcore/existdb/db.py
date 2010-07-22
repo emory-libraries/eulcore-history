@@ -299,11 +299,14 @@ class ExistDB:
             defaults to False
         :rtype: the query result item as a string
 
-        """
+        """        
         if highlight:
             # eXist highlight modes: attributes, elements, or both
             # using elements because it seems most reasonable default
             options['highlight-matches'] = 'elements'
+            # pretty-printing with eXist matches can introduce unwanted whitespace
+            if 'indent' not in options:
+                options['indent'] = 'no'
         return self.server.retrieve(result_id, position, options)
 
     @_wrap_xmlrpc_fault
