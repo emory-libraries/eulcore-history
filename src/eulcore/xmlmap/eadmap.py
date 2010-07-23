@@ -337,12 +337,15 @@ class EadId(xmlmap.XmlObject):
     Expected element passed to constructor: `ead/eadheader/eadid`.
     """
     country = xmlmap.StringField('@countrycode')
+    "country code - `@countrycode`"
     maintenance_agency = xmlmap.StringField('@mainagencycode')
+    "maintenance agency - `@mainagencycode`"
     url = xmlmap.StringField('@url')
+    "url - `@url`"
     identifier = xmlmap.StringField('@identifier')
-    eadid = xmlmap.StringField(".")
+    "identifier - `@identifier`"
+    value = xmlmap.StringField(".")
     "text content of the eadid node"
-
 
 class EncodedArchivalDescription(xmlmap.XmlObject):
     """xmlmap object for an Encoded Archival Description (EAD) Finding Aid
