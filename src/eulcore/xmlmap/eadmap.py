@@ -247,6 +247,8 @@ class ArchivalDescription(xmlmap.XmlObject):
 
       Expected node element passed to constructor: `ead/archdesc`.
       """
+    did = xmlmap.NodeField("did", DescriptiveIdentification)
+    'descriptive identification :class:`DescriptiveIdentification` - `did`'
     origination = xmlmap.StringField("did/origination", normalize=True)
     "origination - `did/origination`"
     unitid = xmlmap.StringField("did/unitid")
@@ -329,6 +331,19 @@ class FileDescription(xmlmap.XmlObject):
     publication = xmlmap.NodeField("publicationstmt", PublicationStatement)
     "publication information - `publicationstmt`"
 
+class EadId(xmlmap.XmlObject):
+    """EAD identifier for a single EAD finding aid document.
+
+    Expected element passed to constructor: `ead/eadheader/eadid`.
+    """
+    country = xmlmap.StringField('@countrycode')
+    maintenance_agency = xmlmap.StringField('@mainagencycode')
+    url = xmlmap.StringField('@url')
+    identifier = xmlmap.StringField('@identifier')
+    eadid = xmlmap.StringField(".")
+    "text content of the eadid node"
+
+
 class EncodedArchivalDescription(xmlmap.XmlObject):
     """xmlmap object for an Encoded Archival Description (EAD) Finding Aid
 
@@ -336,8 +351,8 @@ class EncodedArchivalDescription(xmlmap.XmlObject):
     """
     id = xmlmap.StringField('@id')
     "top-level id attribute - `@id`; preferable to use eadid"
-    eadid = xmlmap.StringField('eadheader/eadid')
-    "ead id - `eadheader/eadid`"
+    eadid = xmlmap.NodeField('eadheader/eadid', EadId)
+    "ead id :class:`EadId` - `eadheader/eadid`"
     # mappings for fields common to access or display as top-level information
     title = xmlmap.NodeField('eadheader/filedesc/titlestmt/titleproper', xmlmap.XmlObject)
     "record title - `eadheader/filedesc/titlestmt/titleproper`"

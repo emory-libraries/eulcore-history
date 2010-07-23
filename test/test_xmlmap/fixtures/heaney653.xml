@@ -2,7 +2,8 @@
     <!-- NOTE: this ead is based on an actual finding aid from MARBL, but has been heavily modified
         to provide a more complete example of the kind os tags that can be included in a finding aid -->
     <eadheader countryencoding="iso3166-1" dateencoding="iso8601" langencoding="iso639-2b" relatedencoding="Dublin Core" repositoryencoding="iso15511" scriptencoding="iso15924">
-        <eadid countrycode="us" identifier="heaney653.xml" mainagencycode="geu-s">heaney653.xml</eadid>
+        <eadid countrycode="us" identifier="heaney653.xml" mainagencycode="geu-s"
+            url="http://some.pid.org/ark:/1234/567">heaney653</eadid>
         <filedesc>
             <titlestmt>
                 <titleproper encodinganalog="Title" type="Irish">Seamus Heaney collection, 1972-1997</titleproper>

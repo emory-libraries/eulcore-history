@@ -19,7 +19,7 @@ class TestEad(unittest.TestCase):
 
     def testBasicFields(self):
         self.assertEqual(unicode(self.ead.title), "Seamus Heaney collection, 1972-1997")
-        self.assertEqual(self.ead.eadid, "heaney653.xml")
+        self.assertEqual(unicode(self.ead.eadid), u'heaney653')
         self.assertEqual(self.ead.id, "heaney653-011")
         self.assertEqual(self.ead.author, "Manuscript, Archives, and Rare Book Library, Emory University")
         # whitespace makes fields with tags a bit messier...
@@ -31,6 +31,15 @@ class TestEad(unittest.TestCase):
         self.assert_("(3 boxes)" in self.ead.physical_desc)
         self.assert_("12 oversized papers (OP)" in self.ead.physical_desc)
         self.assert_("materials relating to Irish poet Seamus Heaney" in unicode(self.ead.abstract))
+
+    def test_eadid(self):
+        self.assert_(isinstance(self.ead.eadid, EadId))
+        eadid = self.ead.eadid
+        self.assertEqual('heaney653', eadid.eadid)
+        self.assertEqual('heaney653.xml', eadid.identifier)
+        self.assertEqual('us', eadid.country)
+        self.assertEqual('geu-s', eadid.maintenance_agency)
+        self.assertEqual('http://some.pid.org/ark:/1234/567', eadid.url)
 
     def test_ArchivalDescription(self):
         self.assert_(isinstance(self.ead.archdesc, ArchivalDescription))
@@ -110,10 +119,7 @@ class TestEad(unittest.TestCase):
         # multiple indexes
         self.assert_(isinstance(ad.index[1], Index))
         self.assertEqual("Second Index", ad.index[1].head)
-        self.assertEqual("index2", ad.index[1].id)
-
-
-        
+        self.assertEqual("index2", ad.index[1].id)        
 
     def test_ControlledAccessHeadings(self):
         ca = self.ead.archdesc.controlaccess
