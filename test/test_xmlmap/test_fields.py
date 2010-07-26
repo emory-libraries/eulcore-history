@@ -301,5 +301,234 @@ class TestFields(unittest.TestCase):
         self.assertEqual(obj.node.xpath('string(pred[pred[@a="foo"]]/val)'), 'test')
 
 
+class TestNodeList(unittest.TestCase):
+    FIXTURE_TEXT = '''
+        <foo>
+            <baz>forty-two</baz>
+            <baz>thirteen</baz>
+            <bar>42</bar>
+            <bar>13</bar>
+            <l>a</l>
+            <l>b</l>
+            <l>a</l>
+            <l>3</l>
+            <l>c</l>
+            <l>a</l>
+            <l>7</l>
+            <l>b</l>
+            <l>11</l>
+            <l>a</l>
+            <l>y</l>
+        </foo>
+    '''
+    
+    def setUp(self):
+        class ListTestObject(xmlmap.XmlObject):
+            str = xmlmap.StringListField('baz')
+            int = xmlmap.IntegerListField('bar')
+            letters = xmlmap.StringListField('l')
+            empty = xmlmap.StringListField('missing')
+
+        # parseString wants a url. let's give it a proper one.
+        url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'FIXTURE_TEXT')
+
+        self.fixture = xmlmap.parseString(self.FIXTURE_TEXT, url)
+        self.obj = ListTestObject(self.fixture)
+
+    def test_index_checking(self):
+        self.assertRaises(TypeError, self.obj.str.__getitem__, 'a')
+        self.assertRaises(AssertionError, self.obj.str.__getitem__, slice(0, 10))
+        self.assertRaises(TypeError, self.obj.str.__setitem__, 'a', 'val')
+        self.assertRaises(AssertionError, self.obj.str.__setitem__, slice(0, 10), ['val'])
+        self.assertRaises(TypeError, self.obj.str.__delitem__, 'a')
+        self.assertRaises(AssertionError, self.obj.str.__delitem__, slice(0, 10))
+
+    def test_set(self):           
+        # set string values
+        string_list = self.obj.str
+        # - existing nodes in the xml
+        new_val = 'twenty-four'
+        self.obj.str[0] = new_val
+        self.assertEqual(new_val, self.obj.str[0],
+            'set value of existing node (position 0) in StringListField - expected %s, got %s' % \
+            (new_val, self.obj.str[0]))
+        new_val = 'seven'
+        string_list[1] = new_val
+        self.assertEqual(new_val, string_list[1],
+            'set value of existing node (position 1) in StringListField - expected %s, got %s' % \
+            (new_val, string_list[1]))
+        # - new value for a node at the end of the list - node should be created
+        new_val = 'eleventy-one'
+        string_list[2] = new_val
+        self.assertEqual(new_val, string_list[2],
+            'set value of new node (position 2) in StringListField - expected %s, got %s' % \
+            (new_val, string_list[2]))
+        # - beyond end of current list
+        self.assertRaises(IndexError, string_list.__setitem__, 4, 'foo')
+
+        # integer values
+        int_list = self.obj.int
+        # - existing nodes in the xml
+        new_val = 24
+        int_list[0] = new_val
+        self.assertEqual(new_val, int_list[0],
+            'set value of existing node (position 0) in IntegerListField - expected %d, got %d' % \
+            (new_val, int_list[0]))
+        new_val = 7
+        int_list[1] = new_val
+        self.assertEqual(new_val, int_list[1],
+            'set value of existing node (position 1) in IntegerListField - expected %d, got %d' % \
+            (new_val, int_list[1]))
+        # - a new value for a node at the end of the list - node should be created
+        new_val = 111
+        int_list[2] = new_val
+        self.assertEqual(new_val, int_list[2],
+            'set value of new node (position 2) in IntegerListField - expected %d, got %d' % \
+            (new_val, int_list[2]))
+        # - beyond end of current list
+        self.assertRaises(IndexError, int_list.__setitem__, 4, 23)
+
+        # list with no current members
+        self.obj.empty[0] = 'foo'
+        self.assertEqual(1, len(self.obj.empty),
+            "length of empty list after setting at index 0 should be 1, got %d" % \
+            len(self.obj.empty))
+        self.assertEqual('foo', self.obj.empty[0])
+
+    def test_del(self):
+        # first element
+        del(self.obj.str[0])
+        self.assertEqual(1, len(self.obj.str),
+            "StringListField length should be 1 after deletion, got %d" % len(self.obj.str))
+        self.assertEqual('thirteen', self.obj.str[0])
+
+        # second/last element
+        int_list = self.obj.int
+        del(int_list[1])
+        self.assertEqual(1, len(int_list),
+            "IntegerListField length should be 1 after deletion, got %d" % len(self.obj.str))
+
+        # out of range
+        self.assertRaises(IndexError, int_list.__delitem__, 4)
+        self.assertRaises(IndexError, self.obj.empty.__delitem__, 0)
+
+    def test_count(self):
+        self.assertEqual(4, self.obj.letters.count('a'))
+        self.assertEqual(2, self.obj.letters.count('b'))
+        self.assertEqual(0, self.obj.letters.count('z'))
+        
+        self.assertEqual(0, self.obj.empty.count('z'))
+
+    def test_append(self):
+        self.obj.str.append('la')
+        self.assertEqual(3, len(self.obj.str),
+            "length of StringListField is 3 after appending value")
+        self.assertEqual('la', self.obj.str[2])
+
+        int_list = self.obj.int
+        int_list.append(9)
+        self.assertEqual(3, len(int_list),
+            "length of IntegerListField is 3 after appending value")
+        self.assertEqual(9, int_list[2])
+
+        # list with no current members
+        self.obj.empty.append('foo')
+        self.assertEqual(1, len(self.obj.empty),
+            "length of empty list after setting appending should be 1, got %d" % \
+            len(self.obj.empty))
+        self.assertEqual('foo', self.obj.empty[0])
+
+    def test_index(self):
+        letters = self.obj.letters
+        self.assertEqual(0, letters.index('a'))
+        self.assertEqual(1, letters.index('b'))
+        self.assertEqual(3, letters.index('3'))
+
+        # not in list
+        self.assertRaises(ValueError, letters.index, 'foo')
+        self.assertRaises(ValueError, self.obj.empty.index, 'foo')
+
+    def test_remove(self):
+        letters = self.obj.letters
+        letters.remove('a')
+        self.assertNotEqual('a', letters[0],
+            "first letter is no longer 'a' after removing 'a'")
+        self.assertEqual(1, letters.index('a'),
+            "index for 'a' is 1 after removing 'a' - expected 1, got %d" % letters.index('a'))
+
+        # not in list
+        self.assertRaises(ValueError, letters.remove, 'foo')
+        self.assertRaises(ValueError, self.obj.empty.remove, 'foo')
+
+    def test_pop(self):
+        last = self.obj.letters.pop()
+        self.assertEqual('y', last,
+            "pop with no index returned last letter in list - expected 'y', got '%s'" % last)
+        self.assert_('y' not in self.obj.letters,
+            "'y' not in stringlistfield after popping last element")
+
+        first = self.obj.letters.pop(0)
+        self.assertEqual('a', first,
+            "pop with index 0 returned first letter in list - expected 'a', got '%s'" % first)
+        self.assertNotEqual('a', self.obj.letters[0],
+            "first letter is no longer 'a' after pop index 0")
+
+        # out of range
+        self.assertRaises(IndexError, self.obj.empty.pop, 0)
+        self.assertRaises(IndexError, self.obj.empty.pop)
+
+    def test_extend(self):
+        letters = self.obj.letters
+        letters.extend(['w', 'd', '40'])
+        self.assert_('w' in letters, 'value in extend list is now in StringList')
+        self.assert_('d' in letters, 'value in extend list is now in StringList')
+        self.assertEqual('40', letters[len(letters) - 1],
+            'last value in extend list is now last element StringList')
+
+        # extend an empty list
+        new_list = ['a', 'b', 'c']
+        self.obj.empty.extend(new_list)
+        self.assertEqual(new_list, self.obj.empty)
+
+    def test_insert(self):
+        letters = self.obj.letters
+        orig_letters = list(letters.data)   # copy original letters for comparison
+        # insert somewhere in the middle
+        letters.insert(2, 'q')
+        self.assertEqual('q', letters[2],
+            "letters[2] should be 'q' after inserting 'q' at 2, got '%s'" % letters[2])
+        self.assertEqual(len(orig_letters)+1, len(letters),
+            "length of letters should increase by 1 after insert; expected %d, got length %d" \
+                % (len(orig_letters)+1, len(letters) ))
+        self.assertEqual(orig_letters[2], letters[3],
+            "original 3rd letter should be 4th letter after insert; expected '%s', got '%s'" % \
+                (orig_letters[2], letters[3]))
+
+        # insert at beginning
+        letters.insert(0, 'z')
+        self.assertEqual('z', letters[0],
+            "letters[0] should be 'z' after inserting 'z' at 0, got '%s'" % letters[0])
+        self.assertEqual(len(orig_letters)+2, len(letters),
+            "length of letters should increase by 2 after 2nd insert; expected %d, got length %d" \
+                % (len(orig_letters)+2, len(letters) ))
+        self.assertEqual(orig_letters[0], letters[1],
+            "original first letter should be 2nd letter after insert; expected '%s', got '%s'" % \
+                (orig_letters[0], letters[1]))
+
+        # 'insert' at the end
+        letters.insert(len(letters), '99')
+        self.assertEqual('99', letters[-1],
+            "last item in letters should be '99' after inserting at end; got '%s'" % letters[-1])
+
+        # out of range
+        self.assertRaises(IndexError, letters.insert, 99, 'bar')
+
+        # insert in empty list
+        self.obj.empty.insert(0, 'z')
+        self.assertEqual('z', self.obj.empty[0],
+            "empty[0] should be 'z' after inserting 'z' at 0, got '%s'" % self.obj.empty[0])
+        self.assertEqual(1, len(self.obj.empty))
+
+
 if __name__ == '__main__':
     main()

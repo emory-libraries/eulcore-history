@@ -38,10 +38,10 @@ class Field(object):
         Field.creation_counter += 1
 
     def get_for_node(self, node, context):
-        return self.manager.get(self.xpath, node, context, self.mapper.to_python, self.parsed_xpath)
+        return self.manager.get(self.xpath, node, context, self.mapper, self.parsed_xpath)
 
     def set_for_node(self, node, context, value):
-        return self.manager.set(self.xpath, self.parsed_xpath, node, context, self.mapper.to_xml, value)
+        return self.manager.set(self.xpath, self.parsed_xpath, node, context, self.mapper, value)
 
 
 # data mappers to translate between identified xml nodes and Python values
@@ -158,7 +158,7 @@ def _find_xml_node(xpath, node, context):
     if matches:
         return matches[0]
 
-def _create_xml_node(xast, node, context):
+def _create_xml_node(xast, node, context, insert_index=None):
     if isinstance(xast, ast.Step):
         if isinstance(xast.node_test, ast.NameTest):
             # check the predicates (if any) to verify they're constructable
@@ -171,7 +171,7 @@ def _create_xml_node(xast, node, context):
 
             # create the node itself
             if xast.axis in (None, 'child'):
-                new_node = _create_child_node(node, context, xast)
+                new_node = _create_child_node(node, context, xast, insert_index)
             elif xast.axis in ('@', 'attribute'):
                 new_node = _create_attribute_node(node, context, xast)
 
@@ -193,7 +193,7 @@ def _create_xml_node(xast, node, context):
            "only for simple child and attribute nodes.") % (serialize(xast),)
     raise Exception(msg)
 
-def _create_child_node(node, context, step):
+def _create_child_node(node, context, step, insert_index=None):
     opts = {}
     ns_uri = None
     if 'namespaces' in context:
@@ -202,7 +202,10 @@ def _create_child_node(node, context, step):
             ns_uri = context['namespaces'][step.node_test.prefix]
     E = ElementMaker(namespace=ns_uri, **opts)
     new_node = E(step.node_test.name)
-    node.append(new_node)
+    if insert_index is not None:
+        node.insert(insert_index, new_node)
+    else:
+        node.append(new_node)
     return new_node
 
 def _create_attribute_node(node, context, step):
@@ -333,15 +336,15 @@ class SingleNodeManager(object):
     def __init__(self, instantiate_on_get=False):
         self.instantiate_on_get = instantiate_on_get
 
-    def get(self, xpath, node, context, to_python, xast):
+    def get(self, xpath, node, context, mapper, xast):
         match = _find_xml_node(xpath, node, context)
         if match is None and self.instantiate_on_get:
-            return to_python(_create_xml_node(xast, node, context))
+            return mapper.to_python(_create_xml_node(xast, node, context))
         # else, non-None match, or not instantiate
-        return to_python(match)
+        return mapper.to_python(match)
 
-    def set(self, xpath, xast, node, context, to_xml, value):
-        xvalue = to_xml(value)
+    def set(self, xpath, xast, node, context, mapper, value):
+        xvalue = mapper.to_xml(value)
         match = _find_xml_node(xpath, node, context)
 
         if xvalue is None:
@@ -355,11 +358,143 @@ class SingleNodeManager(object):
             step = _find_terminal_step(xast)
             _set_in_xml(match, xvalue, context, step)
 
+class NodeList(object):
+    # NOTES:
+    # new nodes are currently added to the end of the xml document
+    # - calculating the "correct" place to add a new list item is not simple
+    def __init__(self, xpath, node, context, mapper, xast):
+        self.xpath = xpath
+        self.node = node
+        self.context = context
+        self.mapper = mapper
+        self.xast = xast
+
+    @property
+    def matches(self):
+        # current matches from the xml tree
+        return self.node.xpath(self.xpath, **self.context)
+
+    @property
+    def data(self):
+        # data in list form - basis for several other list-y functions
+        return [ self.mapper.to_python(match) for match in self.matches ]
+
+    def __str__(self):
+        return str(self.data)
+
+    def __repr__(self):
+        return str(self.data)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __contains__(self, item):
+        return item in self.data
+
+    def __iter__(self):
+        for item in self.data:
+            yield item
+
+    def __eq__(self, other):
+        # FIXME: is any other comparison possible ?
+        return self.data == other
+
+    def _check_key_type(self, key):
+        if not isinstance(key, (slice, int, long)):
+            raise TypeError
+        assert not isinstance(key, slice), "Slice indexing is not supported"
+
+    def __getitem__(self, key):
+        self._check_key_type(key)
+        return self.mapper.to_python(self.matches[key])
+
+    def __setitem__(self, key, value):
+        self._check_key_type(key)
+        if key == len(self.matches):
+            # just after the end of the list - create a new node            
+            if len(self.matches):
+                # if there are existing nodes, use last element in list
+                # to determine where the new node should be created
+                last_item = self.matches[-1]
+                position = last_item.getparent().index(last_item)
+                insert_index = position + 1
+            else:
+                insert_index = None
+            match = _create_xml_node(self.xast, self.node, self.context, insert_index)
+        elif key > len(self.matches):
+            raise IndexError("Can't set at index %d - out of range" % key )
+        else:
+            match = self.matches[key]
+
+        xvalue = self.mapper.to_xml(value)
+        # terminal (rightmost) step informs how we update the xml
+        step = _find_terminal_step(self.xast)
+        _set_in_xml(match, xvalue, self.context, step)
+
+    def __delitem__(self, key):
+        self._check_key_type(key)
+        if key >= len(self.matches):
+            raise IndexError("Can't delete at index %d - out of range" % key )
+        
+        match = self.matches[key]
+        match.getparent().remove(match)
+
+        # according to python docs, 
+# Mutable sequences should provide methods append(), count(), index(), extend(),
+# insert(), pop(), remove(), reverse()  and sort()
+    def count(self, x):
+        # Return the number of times x appears in the list.
+        return self.data.count(x)
+
+    def append(self, x):
+        # Add an item to the end of the list; equivalent to a[len(a):] = [x].
+        self[len(self)] = x
+
+    def index(self, x):
+        # Return the index in the list of the first item whose value is x.
+        # It is an error if there is no such item.
+        return self.data.index(x)
+
+    def remove(self, x):
+        # Remove the first item from the list whose value is x.
+        # It is an error if there is no such item.
+        del(self[self.index(x)])
+
+    def pop(self, i=None):
+        # Remove the item at the given position in the list, and return it.
+        # If no index is specified, removes and returns the last item in the list.
+        if i is None:
+            i = len(self) - 1
+        val = self[i]
+        del(self[i])
+        return val
+
+    def extend(self, list):
+        # Extend the list by appending all the items in the given list; equivalent to a[len(a):] = L.
+        for item in list:
+            self.append(item)
+
+    def insert(self, i, x):
+        # Insert an item (x) at a given position (i).
+        if i == len(self):  # end of list or empty list
+            # insert at len(self) == append
+            self.append(x)
+        elif len(self.matches) > i:
+            # create a new xml node at the requested position
+            insert_index = self.matches[i].getparent().index(self.matches[i])                        
+            _create_xml_node(self.xast, self.node, self.context, insert_index)
+            # then use default set logic
+            self[i] = x
+        else:
+            # FIXME: correct error?
+            raise IndexError("Can't insert '%s' at index %d" % (x, i))
+        
+
+
 
 class NodeListManager(object):
-    def get(self, xpath, node, context, to_python, xast):
-        matches = node.xpath(xpath, **context)
-        return [ to_python(match) for match in matches ]
+    def get(self, xpath, node, context, mapper, xast):
+        return NodeList(xpath, node, context, mapper, xast)
 
 # finished field classes mixing a manager and a mapper
 
