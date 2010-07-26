@@ -35,7 +35,7 @@ class TestEad(unittest.TestCase):
     def test_eadid(self):
         self.assert_(isinstance(self.ead.eadid, EadId))
         eadid = self.ead.eadid
-        self.assertEqual('heaney653', eadid.eadid)
+        self.assertEqual('heaney653', eadid.value)
         self.assertEqual('heaney653.xml', eadid.identifier)
         self.assertEqual('us', eadid.country)
         self.assertEqual('geu-s', eadid.maintenance_agency)
