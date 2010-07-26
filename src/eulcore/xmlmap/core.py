@@ -226,6 +226,11 @@ class XmlObject(object):
             return self.node
         return self.node.xpath("normalize-space(.)")
 
+    def __string__(self):
+        if isinstance(self.node, basestring):
+            return self.node
+        return unicode(self).encode('ascii', 'xmlcharrefreplace')
+
     def serialize(self, stream=None, pretty=False):
         """Serialize the contents of the XmlObject to a stream.
 

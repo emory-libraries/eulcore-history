@@ -156,6 +156,13 @@ class TestXmlObject(unittest.TestCase):
         u = self.obj.__unicode__()
         self.assert_("42 13" in u)
 
+    def test__string(self):
+        self.assertEqual('42 13', self.obj.__string__())
+
+        # convert xml with unicode content
+        obj = xmlmap.load_xmlobject_from_string(u'<text>unicode \u2026</text>')
+        self.assertEqual('unicode &#8230;', obj.__string__())
+
     def test_serialize_tostring(self):
         xml_s = self.obj.serialize()        
         self.assert_("<baz>42</baz>" in xml_s)
