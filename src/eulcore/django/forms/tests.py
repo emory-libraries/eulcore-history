@@ -150,7 +150,7 @@ class XmlObjectFormTest(unittest.TestCase):
 
     def test_specified_fields(self):
         # if fields are specified, only they should be listed
-        myfields = ['int', 'bool']
+        myfields = ['int', 'bool', 'children.val']
         myform = xmlobjectform_factory(TestObject, fields=myfields)
         form = myform()
         self.assert_('int' in form.base_fields,
@@ -160,8 +160,15 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_('id' not in form.base_fields,
             'id field is not present in form fields when not specified in field list')
 
+        self.assert_('children' in form.subforms,
+            'children field is present in subforms when specified in nested field list')
+        self.assert_('val' in form.subforms['children'].base_fields,
+            'val field present in children subform fields when specified in nested field list')
+        self.assert_('id2' not in form.subforms['children'].base_fields,
+            'id2 field is not present in children subform fields when not specified in nested field list')
+
         # form field order should match order in fields list
-        self.assertEqual(myfields, form.base_fields.keys())
+        self.assertEqual(form.base_fields.keys(), ['int', 'bool'])
 
         # second variant to confirm field order
         myfields = ['longtext', 'int', 'bool']

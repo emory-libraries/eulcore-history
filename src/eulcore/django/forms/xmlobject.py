@@ -1,6 +1,7 @@
 # xmlobject-backed django form (analogous to django db model forms)
 # this code borrows heavily from django.forms.models
 
+from collections import defaultdict
 from string import capwords
 
 from django.forms import BaseForm, CharField, IntegerField, BooleanField, \
@@ -22,12 +23,57 @@ def fieldname_to_label(name):
     return capwords(name.replace('_', ' '))
 
 
-def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
+def _parse_field_list(fieldnames, include_parents=False):
+    field_parts = (name.split('.') for name in fieldnames)
+    return _collect_fields(field_parts, include_parents)
+
+def _collect_fields(field_parts_list, include_parents):
+    fields = []
+    subpart_lists = defaultdict(list)
+
+    for parts in field_parts_list:
+        field, subparts = parts[0], parts[1:]
+        if subparts:
+            if include_parents and field not in fields:
+                fields.append(field)
+            subpart_lists[field].append(subparts)
+        else:
+            fields.append(field)
+
+    subfields = dict((field, _collect_fields(subparts, include_parents))
+                     for field, subparts in subpart_lists.iteritems())
+
+    return _ParsedFieldList(fields, subfields)
+
+class _ParsedFieldList(object):
+    def __init__(self, fields, subfields):
+        self.fields = fields
+        self.subfields = subfields
+        
+
+class SubformAwareModelFormOptions(ModelFormOptions):
+    def __init__(self, options=None):
+        super(SubformAwareModelFormOptions, self).__init__(options)
+
+        self.parsed_fields = None
+        if isinstance(self.fields, _ParsedFieldList):
+            self.parsed_fields = self.fields
+        elif self.fields is not None:
+            self.parsed_fields = _parse_field_list(self.fields, include_parents=True)
+
+        self.parsed_exclude = None
+        if isinstance(self.exclude, _ParsedFieldList):
+            self.parsed_exclude = self.exclude
+        elif self.exclude is not None:
+            self.parsed_exclude = _parse_field_list(self.exclude, include_parents=False)
+
+
+def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, options=None):
     """
     Returns two sorted dictionaries (:class:`django.utils.datastructures.SortedDict`).
      * The first is a dictionary of form fields based on the
        :class:`~eulcore.xmlmap.XmlObject` class fields and their types.
-     * The second is a sorted dictionary of subform classes for any  fields of type
+     * The second is a sorted dictionary of subform classes for any fields of type
        :class:`~eulcore.xmlmap.fields.NodeField` on the model.
 
     Default sorting (within each dictionary) is by XmlObject field creation order.
@@ -43,15 +89,34 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
     :param widgets: optional dictionary of widget options to be passed to form
                 field constructor, keyed on field name
     """
+
+    # first collect fields and excludes for the form and all subforms. base
+    # these on the specified options object unless overridden in args.
+    fieldlist = getattr(options, 'parsed_fields', None)
+    if isinstance(fields, _ParsedFieldList):
+        fieldlist = fields
+    elif fields is not None:
+        fieldlist = _parse_field_list(fields, include_parents=True)
+
+    excludelist = getattr(options, 'parsed_exclude', None)
+    if isinstance(fields, _ParsedFieldList):
+        fieldlist = fields
+    elif exclude is not None:
+        excludelist = _parse_field_list(exclude, include_parents=False)
+
+    if widgets is None and options is not None:
+        widgets = options.widgets
+
+    # collect the fields (unordered for now) that we're going to be returning
     formfields = {}
     subforms = {}
     field_order = {}
-    
+
     for name, field in model._fields.iteritems():
-        if fields and not name in fields:
+        if fieldlist and not name in fieldlist.fields:
             # if specific fields have been requested and this is not one of them, skip it
             continue
-        if exclude and name in exclude:
+        if excludelist and name in excludelist.fields:
             # if exclude has been specified and this field is listed, skip it
             continue
         if widgets and name in widgets:
@@ -83,8 +148,8 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
             # define a new xmlobject form for the nodefield class
             # grab any options passed in for fields under this one
             subform_opts = {
-                'fields': fields[name] if fields and name in fields else None,
-                'exclude': exclude[name] if exclude and name in exclude else None,
+                'fields': fieldlist.subfields[name] if fieldlist and name in fieldlist.subfields else None,
+                'exclude': excludelist.subfields[name] if excludelist and name in excludelist.subfields else None,
                 'widgets': widgets[name] if widgets and name in widgets else None,
             }
             subforms[name] = xmlobjectform_factory(field.node_class, **subform_opts)
@@ -103,11 +168,13 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None):
         field_order[field.creation_counter] = name
 
     # if fields were explicitly specified, return them in that order
-    if fields:
-        ordered_fields = SortedDict([(name, formfields[name]) for name in fields
-                                                if name in formfields ])
-        ordered_subforms = SortedDict([(name, subforms[name]) for name in fields
-                                                if name in subforms ])
+    if fieldlist:
+        ordered_fields = SortedDict((name, formfields[name])
+                                    for name in fieldlist.fields
+                                    if name in formfields)
+        ordered_subforms = SortedDict((name, subforms[name])
+                                      for name in fieldlist.fields
+                                      if name in subforms)
     else:
         # sort on field creation counter and generate a django sorted dictionary
         ordered_fields = SortedDict(
@@ -140,6 +207,9 @@ def xmlobject_to_dict(instance, fields=None, exclude=None):
         if exclude and name in exclude:
             continue
         if isinstance(field, xmlmap.fields.NodeField):
+            # XXX: importing nodefields directly: will this cause key
+            # conflicts if multiple nodefields have subfields with the same
+            # names?
             nodefield = getattr(instance, name)
             if nodefield is not None:
                 data.update(xmlobject_to_dict(nodefield))   # fields/exclude
@@ -166,11 +236,10 @@ class XmlObjectFormType(type):
         new_class = super(XmlObjectFormType, cls).__new__(cls, name, bases, attrs)
 
         # use django's default model form options for fields, exclude, widgets, etc.
-        opts = new_class._meta =  ModelFormOptions(getattr(new_class, 'Meta',  None))
+        opts = new_class._meta =  SubformAwareModelFormOptions(getattr(new_class, 'Meta',  None))
         if opts.model:
             # if a model is defined, get xml fields and any subform classes
-            fields, subforms = formfields_for_xmlobject(opts.model, opts.fields,
-                                      opts.exclude, opts.widgets)
+            fields, subforms = formfields_for_xmlobject(opts.model, options=opts)
 
             # Override default model fields with any custom declared ones
             # (plus, include all the other declared fields).
@@ -271,8 +340,11 @@ class XmlObjectForm(BaseForm):
     def update_instance(self):
         """Save bound form data into the XmlObject model instance and return the
         updated instance."""
+        opts = self._meta
         for name in self.instance._fields.iterkeys():
-            if self._meta.fields and name not in self._meta.fields:
+            if opts.fields and name not in opts.parsed_fields.fields:
+                continue
+            if opts.exclude and name in opts.parsed_exclude.fields:
                 continue
             if name in self.cleaned_data:
                 setattr(self.instance, name, self.cleaned_data[name])
