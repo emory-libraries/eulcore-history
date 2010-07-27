@@ -222,5 +222,38 @@ class TestXmlObject(unittest.TestCase):
 
         FILE.close()
 
+    def test_equal(self):
+        class SubObj(xmlmap.XmlObject):
+            baz = xmlmap.StringField('baz')
+        class XmlObj(xmlmap.XmlObject):
+            bar = xmlmap.NodeField('bar', SubObj)
+            bar_list = xmlmap.NodeListField('bar', SubObj)
+            generic = xmlmap.NodeField('bar', xmlmap.XmlObject)
+
+        obj = xmlmap.load_xmlobject_from_string(TestXsl.FIXTURE_TEXT, XmlObj)
+        self.assertTrue(obj == obj,
+            'xmlobject identity equals obj == obj should return True')
+        self.assertFalse(obj.bar != obj.bar,
+            'xmlobject identity not-equals obj != obj should return False')
+        self.assertTrue(obj.bar == obj.bar_list[0],
+            'xmlobject equal should return True for objects pointing at same document node')
+        self.assertFalse(obj.bar != obj.bar_list[0],
+            'xmlobject not equal should return False for objects pointing at same document node')
+        self.assertTrue(obj.bar != obj.bar_list[1],
+            'xmlobject not equal should return True for objects pointing at different nodes')
+        self.assertFalse(obj.bar == obj.bar_list[1],
+            'xmlobject equal should return False for object pointing at different nodes')
+
+        # compare to None
+        self.assertTrue(obj != None,
+            'xmlobject not equal to None should return True')
+        self.assertFalse(obj.bar == None,
+            'xmlobject equal None should return False')
+
+        # FIXME: is this really what we want?
+        # should different xmlobject classes pointing at the same node be considered equal?
+        self.assertTrue(obj.generic == obj.bar,
+            'different xmlobject classes pointing at the same node are considered equal')
+
 if __name__ == '__main__':
     main()

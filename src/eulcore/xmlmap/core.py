@@ -128,6 +128,9 @@ class XmlObject(object):
 
     Programs can also pass an optional dictionary to the constructor to
     specify namespaces for XPath evaluation.
+
+    Custom equality/non-equality tests: two instances of :class:`XmlObject` are
+    considered equal if they point to the same lxml element node.
     """
 
     __metaclass__ = XmlObjectType
@@ -230,6 +233,19 @@ class XmlObject(object):
         if isinstance(self.node, basestring):
             return self.node
         return unicode(self).encode('ascii', 'xmlcharrefreplace')
+
+    def __eq__(self, other):
+        # consider two xmlobjects equal if they are pointing to the same xml node
+        # NOTE: does not address "equivalent" xml, which is potentially very complex
+        if hasattr(other, 'node'):
+            return self.node == other.node
+        return False
+
+    def __ne__(self, other):
+        # use lxml node for not-equals comparison also
+        if hasattr(other, 'node'):
+            return self.node != other.node
+        return True
 
     def serialize(self, stream=None, pretty=False):
         """Serialize the contents of the XmlObject to a stream.
