@@ -359,9 +359,27 @@ class SingleNodeManager(object):
             _set_in_xml(match, xvalue, context, step)
 
 class NodeList(object):
-    # NOTES:
-    # new nodes are currently added to the end of the xml document
-    # - calculating the "correct" place to add a new list item is not simple
+    """Custom List-like object to handle ListFields like :class:`IntegerListField`,
+    :class:`StringListField`, and :class:`NodeListField`, which allows for getting,
+    setting, and deleting list members.  :class:`NodeList` should **not** be
+    initialized directly, but instead should only be accessed as the return type
+    from a ListField.
+
+    Supports common list functions and operators, including the following: len();
+    **in**; equal and not equal comparison to standard python Lists.  Items can
+    be retrieved, set, and deleted by index, but slice indexing is not supported.
+    Supports the methods that Python documentation indicates should be provided
+    by Mutable sequences, with the exceptions of reverse and sort; in the
+    particular case of :class:`NodeListField`, it is unclear how a list of 
+    :class:`~eulcore.xmlmap.XmlObject` should be sorted, or whether or not such
+    a thing would be useful or meaningful for XML content.
+    
+    When a new element is appended to a :class:`~eulcore.xmlmap.fields.NodeList`,
+    it will be added to the XML immediately after the last element in the list.
+    In the case of an empty list, the new content will be appended at the end of
+    the appropriate XML parent node.  For XML content where element order is important
+    for schema validity, extra care may be required when constructing content.
+    """
     def __init__(self, xpath, node, context, mapper, xast):
         self.xpath = xpath
         self.node = node
@@ -372,6 +390,8 @@ class NodeList(object):
     @property
     def matches(self):
         # current matches from the xml tree
+        # NOTE: retrieving from the xml every time rather than caching
+        # because the xml document could change, and we want the latest data
         return self.node.xpath(self.xpath, **self.context)
 
     @property
@@ -403,6 +423,7 @@ class NodeList(object):
         return self.data != other
 
     def _check_key_type(self, key):
+        # check argument type for getitem, setitem, delitem
         if not isinstance(key, (slice, int, long)):
             raise TypeError
         assert not isinstance(key, slice), "Slice indexing is not supported"
@@ -452,26 +473,26 @@ class NodeList(object):
 # NOTE: not implementing sort/reverse at this time; not clear
 
     def count(self, x):
-        # Return the number of times x appears in the list.
+        "Return the number of times x appears in the list."
         return self.data.count(x)
 
     def append(self, x):
-        # Add an item to the end of the list; equivalent to a[len(a):] = [x].
+        "Add an item to the end of the list."
         self[len(self)] = x
 
     def index(self, x):
-        # Return the index in the list of the first item whose value is x.
-        # It is an error if there is no such item.
+        """Return the index in the list of the first item whose value is x,
+        or error if there is no such item."""
         return self.data.index(x)
 
     def remove(self, x):
-        # Remove the first item from the list whose value is x.
-        # It is an error if there is no such item.
+        """Remove the first item from the list whose value is x,
+        or error if there is no such item."""
         del(self[self.index(x)])
 
     def pop(self, i=None):
-        # Remove the item at the given position in the list, and return it.
-        # If no index is specified, removes and returns the last item in the list.
+        """Remove the item at the given position in the list, and return it.
+        If no index is specified, removes and returns the last item in the list."""
         if i is None:
             i = len(self) - 1
         val = self[i]
@@ -479,12 +500,12 @@ class NodeList(object):
         return val
 
     def extend(self, list):
-        # Extend the list by appending all the items in the given list
+        """Extend the list by appending all the items in the given list."""
         for item in list:
             self.append(item)
 
     def insert(self, i, x):
-        # Insert an item (x) at a given position (i).
+        """Insert an item (x) at a given position (i)."""
         if i == len(self):  # end of list or empty list: append
             self.append(x)
         elif len(self.matches) > i:
@@ -538,6 +559,8 @@ class StringListField(Field):
     Takes an optional parameter to indicate that the string contents should have
     whitespace normalized.  By default, does not normalize.
 
+    Actual return type is :class:`~eulcore.xmlmap.fields.NodeList`, which can be
+    treated like a regular Python list, and includes set and delete functionality.
     """
     def __init__(self, xpath, normalize=False):
         super(StringListField, self).__init__(xpath,
@@ -562,7 +585,11 @@ class IntegerListField(Field):
 
     """Map an XPath expression to a list of Python integers. If the XPath
     expression evaluates to an empty NodeList, an IntegerListField evaluates to
-    an empty list."""
+    an empty list.
+
+    Actual return type is :class:`~eulcore.xmlmap.fields.NodeList`, which can be
+    treated like a regular Python list, and includes set and delete functionality.
+    """
 
     def __init__(self, xpath):
         super(IntegerListField, self).__init__(xpath,
@@ -610,6 +637,9 @@ class DateListField(Field):
        DateListField processing is minimal, undocumented, and liable to
        change. It is not part of any official release. Use it at your own
        risk.
+
+    Actual return type is :class:`~eulcore.xmlmap.fields.NodeList`, which can be
+    treated like a regular Python list, and includes set and delete functionality.
     """
 
     def __init__(self, xpath):
@@ -653,6 +683,9 @@ class NodeListField(Field):
     Normally a ``NodeListField``'s ``node_class`` is a class. As a special
     exception, it may be the string ``"self"``, in which case it recursively
     refers to objects of its containing :class:`XmlObject` class.
+
+    Actual return type is :class:`~eulcore.xmlmap.fields.NodeList`, which can be
+    treated like a regular Python list, and includes set and delete functionality.
     """
 
     def __init__(self, xpath, node_class):
