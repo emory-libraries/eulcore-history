@@ -3,7 +3,11 @@
 import sys
 from django.core.management import setup_environ
 
-def run_django_tests(argv=None, extras=None):
+def setup_test_environ():
+    from django_tester import settings
+    setup_environ(settings)
+
+def run_django_tests(argv=None, extras=[]):
     # this code inlined (with simplifications) from relevant manage.py code
     
     argv = argv or sys.argv[:]
@@ -12,8 +16,7 @@ def run_django_tests(argv=None, extras=None):
 
     # use our settings file to bootstrap the test environment, then switch
     # to the official one.
-    from django_tester import settings
-    setup_environ(settings)
+    setup_test_environ()
     from django.conf import settings
 
     # FIXME: if we don't import existdb here, starting_tests doesn't get
