@@ -399,6 +399,9 @@ class NodeList(object):
         # FIXME: is any other comparison possible ?
         return self.data == other
 
+    def __ne__(self, other):
+        return self.data != other
+
     def _check_key_type(self, key):
         if not isinstance(key, (slice, int, long)):
             raise TypeError

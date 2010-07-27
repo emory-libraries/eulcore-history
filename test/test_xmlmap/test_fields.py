@@ -354,6 +354,18 @@ class TestNodeList(unittest.TestCase):
         self.assertRaises(TypeError, self.obj.str.__delitem__, 'a')
         self.assertRaises(AssertionError, self.obj.str.__delitem__, slice(0, 10))
 
+    def test_equals(self):
+        # custom equal/not equals allows comparing to normal lists
+        self.assertTrue(self.obj.int == [42, 13])
+        self.assertFalse(self.obj.int != [42, 13])
+        self.assertFalse(self.obj.int == [42, 5])
+        self.assertTrue(self.obj.int != [45, 13])
+
+        self.assertTrue(self.obj.str == ['forty-two', 'thirteen'])
+        self.assertFalse(self.obj.str != ['forty-two', 'thirteen'])
+        self.assertFalse(self.obj.str == ['nine', 'thirteen'])
+        self.assertTrue(self.obj.str != ['nine', 'sixteen'])
+
     def test_set(self):           
         # set string values
         string_list = self.obj.str
@@ -446,6 +458,16 @@ class TestNodeList(unittest.TestCase):
         
         self.assertEqual(0, self.obj.empty.count('z'))
 
+        # nodelistfield
+        node = SubList()
+        node.id = '1a'
+        node.parts.extend(['ankle', 'toe'])
+        # before adding
+        self.assertEqual(0, self.obj.nodes.count(node))
+        self.obj.nodes.append(node)
+        # after adding (same node can't be added more than once)
+        self.assertEqual(1, self.obj.nodes.count(node))
+
     def test_append(self):
         self.obj.str.append('la')
         self.assertEqual(3, len(self.obj.str),
@@ -497,6 +519,19 @@ class TestNodeList(unittest.TestCase):
         self.assertRaises(ValueError, letters.index, 'foo')
         self.assertRaises(ValueError, self.obj.empty.index, 'foo')
 
+        # nodelistfield
+        node = SubList()
+        node.id = '1a'
+        node.parts.extend(['ankle', 'toe'])
+        self.obj.nodes.insert(0, node)
+        self.assertEqual(0, self.obj.nodes.index(node),
+            "index returns 0 for nodefield inserted at position 0")
+        # delete and append to the end
+        del(self.obj.nodes[0])
+        self.obj.nodes.append(node)
+        self.assertEqual(1, self.obj.nodes.index(node),
+            "index returns 1 for nodefield appended to nodefield list of with 1 item")    
+
     def test_remove(self):
         letters = self.obj.letters
         letters.remove('a')
@@ -508,6 +543,17 @@ class TestNodeList(unittest.TestCase):
         # not in list
         self.assertRaises(ValueError, letters.remove, 'foo')
         self.assertRaises(ValueError, self.obj.empty.remove, 'foo')
+
+        # nodelistfield
+        node = SubList()
+        node.id = '1a'
+        node.parts.extend(['ankle', 'toe'])
+        # node is not in the list
+        self.assertRaises(ValueError, self.obj.nodes.remove, node)
+        # append then remove
+        self.obj.nodes.append(node)
+        self.obj.nodes.remove(node)
+        self.assert_(node not in self.obj.nodes, "node is not in NodeList after remove")
 
     def test_pop(self):
         last = self.obj.letters.pop()
