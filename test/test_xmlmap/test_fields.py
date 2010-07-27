@@ -300,6 +300,18 @@ class TestFields(unittest.TestCase):
         obj.nested_pred = 'test'
         self.assertEqual(obj.node.xpath('string(pred[pred[@a="foo"]]/val)'), 'test')
 
+# tests for settable listfields
+class SubList(xmlmap.XmlObject):
+    ROOT_NAME = 'sub'
+    id = xmlmap.StringField('@id')
+    parts = xmlmap.StringListField('part')
+
+class ListTestObject(xmlmap.XmlObject):
+    str = xmlmap.StringListField('baz')
+    int = xmlmap.IntegerListField('bar')
+    letters = xmlmap.StringListField('l')
+    empty = xmlmap.StringListField('missing')
+    nodes = xmlmap.NodeListField('sub', SubList)
 
 class TestNodeList(unittest.TestCase):
     FIXTURE_TEXT = '''
@@ -319,15 +331,14 @@ class TestNodeList(unittest.TestCase):
             <l>11</l>
             <l>a</l>
             <l>y</l>
+            <sub id="007">
+               <part>side-a</part>
+               <part>side-b</part>
+            </sub>
         </foo>
     '''
     
     def setUp(self):
-        class ListTestObject(xmlmap.XmlObject):
-            str = xmlmap.StringListField('baz')
-            int = xmlmap.IntegerListField('bar')
-            letters = xmlmap.StringListField('l')
-            empty = xmlmap.StringListField('missing')
 
         # parseString wants a url. let's give it a proper one.
         url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'FIXTURE_TEXT')
@@ -395,6 +406,17 @@ class TestNodeList(unittest.TestCase):
             len(self.obj.empty))
         self.assertEqual('foo', self.obj.empty[0])
 
+        # set a nodefield
+        # append node - create sublist object and append
+        newnode = SubList()
+        newnode.id = '1a'
+        newnode.parts.extend(['leg', 'foot'])
+        self.obj.nodes[0] = newnode
+        self.assertEqual(newnode.id, self.obj.nodes[0].id,
+            "subfield id attribute matches new node after set")
+        self.assertEqual(['leg', 'foot'], self.obj.nodes[0].parts,
+            "subfield parts attribute matches new node after set")
+
     def test_del(self):
         # first element
         del(self.obj.str[0])
@@ -406,11 +428,16 @@ class TestNodeList(unittest.TestCase):
         int_list = self.obj.int
         del(int_list[1])
         self.assertEqual(1, len(int_list),
-            "IntegerListField length should be 1 after deletion, got %d" % len(self.obj.str))
+            "IntegerListField length should be 1 after deletion, got %d" % len(int_list))
 
         # out of range
         self.assertRaises(IndexError, int_list.__delitem__, 4)
         self.assertRaises(IndexError, self.obj.empty.__delitem__, 0)
+
+        # delete a nodelistfield item
+        del(self.obj.nodes[0])
+        self.assertEqual(0, len(self.obj.nodes),
+            "NodeListField length should be 0 after deletion, got %d" % len(self.obj.nodes))
 
     def test_count(self):
         self.assertEqual(4, self.obj.letters.count('a'))
@@ -437,6 +464,28 @@ class TestNodeList(unittest.TestCase):
             "length of empty list after setting appending should be 1, got %d" % \
             len(self.obj.empty))
         self.assertEqual('foo', self.obj.empty[0])
+
+        # append node - create sublist object and append
+        newnode = SubList()
+        newnode.id = '1a'
+        newnode.parts.append('leg')
+        newnode.parts.append('foot')
+        self.obj.nodes.append(newnode)
+        self.assertEqual(2, len(self.obj.nodes),
+            "length of NodeListField should be 2 after appending node, got %d" \
+                % len(self.obj.nodes))
+        self.assertEqual('1a', self.obj.nodes[1].id)
+        self.assertEqual('leg', self.obj.nodes[1].parts[0])
+        self.assertEqual('foot', self.obj.nodes[1].parts[1])
+        # append another
+        node2 = SubList()
+        node2.id = '2b'
+        self.obj.nodes.append(node2)
+        self.assertEqual(3, len(self.obj.nodes),
+            "length of NodeListField should be 3 after appending second node, got %d" \
+                % len(self.obj.nodes))
+        self.assertEqual(node2.id, self.obj.nodes[2].id)
+
 
     def test_index(self):
         letters = self.obj.letters
@@ -477,6 +526,12 @@ class TestNodeList(unittest.TestCase):
         self.assertRaises(IndexError, self.obj.empty.pop, 0)
         self.assertRaises(IndexError, self.obj.empty.pop)
 
+        # node
+        node = self.obj.nodes.pop()
+        self.assert_(isinstance(node, SubList), "popped node is ")
+        self.assertEqual('007', node.id, "popped node has expected id")
+        self.assertEqual(['side-a', 'side-b'], node.parts, "popped node has expected parts")
+
     def test_extend(self):
         letters = self.obj.letters
         letters.extend(['w', 'd', '40'])
@@ -489,6 +544,19 @@ class TestNodeList(unittest.TestCase):
         new_list = ['a', 'b', 'c']
         self.obj.empty.extend(new_list)
         self.assertEqual(new_list, self.obj.empty)
+
+        # extend node list
+        node1 = SubList()
+        node1.id = '1a'
+        node1.parts.extend(['hand', 'finger'])
+        node2 = SubList()
+        node2.id = '2b'
+        self.obj.nodes.extend([node1, node2])
+        self.assertEqual(3, len(self.obj.nodes),
+            "length of nodelistfield should be 3 after extending with 2 nodes, got %d" \
+            % len(self.obj.nodes))
+        self.assertEqual(node1.id, self.obj.nodes[1].id)
+        self.assertEqual(node2.id, self.obj.nodes[2].id)        
 
     def test_insert(self):
         letters = self.obj.letters
@@ -528,6 +596,17 @@ class TestNodeList(unittest.TestCase):
         self.assertEqual('z', self.obj.empty[0],
             "empty[0] should be 'z' after inserting 'z' at 0, got '%s'" % self.obj.empty[0])
         self.assertEqual(1, len(self.obj.empty))
+
+        # insert node
+        node = SubList()
+        node.id = '1a'
+        node.parts.extend(['hand', 'finger'])
+        self.obj.nodes.insert(0, node)
+        self.assertEqual(2, len(self.obj.nodes),
+            "length of nodelistfield should be 2 after inserting node, got %d" \
+            % len(self.obj.nodes))
+        self.assertEqual(node.id, self.obj.nodes[0].id)
+        self.assertEqual(node.parts, self.obj.nodes[0].parts)
 
 
 if __name__ == '__main__':

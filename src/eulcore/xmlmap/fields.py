@@ -392,8 +392,8 @@ class NodeList(object):
         return item in self.data
 
     def __iter__(self):
-        for item in self.data:
-            yield item
+        for item in self.matches:
+            yield self.mapper.to_python(item)
 
     def __eq__(self, other):
         # FIXME: is any other comparison possible ?
@@ -426,11 +426,16 @@ class NodeList(object):
         else:
             match = self.matches[key]
 
-        xvalue = self.mapper.to_xml(value)
-        # terminal (rightmost) step informs how we update the xml
-        step = _find_terminal_step(self.xast)
-        _set_in_xml(match, xvalue, self.context, step)
-
+        if isinstance(self.mapper, NodeMapper):
+            # if this is a NodeListField, the value should be an xmlobject
+            # replace the indexed node with the node specified
+            # NOTE: lxml does not require dom-style import before append/replace
+            match.getparent().replace(match, value.node)
+        else:       # not a NodeListField - set single-node value in xml
+            # terminal (rightmost) step informs how we update the xml
+            step = _find_terminal_step(self.xast)
+            _set_in_xml(match, self.mapper.to_xml(value), self.context, step)
+        
     def __delitem__(self, key):
         self._check_key_type(key)
         if key >= len(self.matches):
@@ -439,9 +444,10 @@ class NodeList(object):
         match = self.matches[key]
         match.getparent().remove(match)
 
-        # according to python docs, 
-# Mutable sequences should provide methods append(), count(), index(), extend(),
-# insert(), pop(), remove(), reverse()  and sort()
+# according to python docs, Mutable sequences should provide the following methods:
+# append, count, index, extend, insert, pop, remove, reverse and sort
+# NOTE: not implementing sort/reverse at this time; not clear
+
     def count(self, x):
         # Return the number of times x appears in the list.
         return self.data.count(x)
@@ -470,14 +476,13 @@ class NodeList(object):
         return val
 
     def extend(self, list):
-        # Extend the list by appending all the items in the given list; equivalent to a[len(a):] = L.
+        # Extend the list by appending all the items in the given list
         for item in list:
             self.append(item)
 
     def insert(self, i, x):
         # Insert an item (x) at a given position (i).
-        if i == len(self):  # end of list or empty list
-            # insert at len(self) == append
+        if i == len(self):  # end of list or empty list: append
             self.append(x)
         elif len(self.matches) > i:
             # create a new xml node at the requested position
@@ -486,8 +491,8 @@ class NodeList(object):
             # then use default set logic
             self[i] = x
         else:
-            # FIXME: correct error?
-            raise IndexError("Can't insert '%s' at index %d" % (x, i))
+            raise IndexError("Can't insert '%s' at index %d - list length is only %d" \
+                            % (x, i, len(self)))
         
 
 
