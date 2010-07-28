@@ -2,8 +2,7 @@ import cStringIO
 import hashlib
 import logging
 
-from rdflib import URIRef
-from rdflib.Graph import Graph as RdfGraph
+from rdflib import URIRef, Graph as RdfGraph
 
 from lxml import etree
 from lxml.builder import ElementMaker

@@ -19,9 +19,8 @@ Among released packages:
 EULcore also contains several packages in unreleased beta development. Their
 dependencies are as follows:
 
- * :mod:`eulcore.fedora` depends on Python rdflib_ for RELS-EXT and
-   RISearch RDF logic. Debian/Ubuntu users can ``apt-get install
-   python-rdflib``. Other users can ``easy_install rdflib``
+ * :mod:`eulcore.fedora` depends on Python rdflib_ 3 for RELS-EXT and
+   RISearch RDF logic. Most users can ``easy_install 'rdflib>=3.0.0'``
  * :mod:`eulcore.fedora` depends on dateutil_ for timezone-aware datetimes.
    Debian/Ubuntu users can ``apt-get install python-dateutil``. Other users
    can ``easy_install dateutil``

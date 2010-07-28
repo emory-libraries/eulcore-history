@@ -2,9 +2,9 @@
 from datetime import datetime
 from dateutil.tz import tzutc
 import os
-from rdflib import URIRef
-from rdflib.Graph import Graph as RdfGraph
 import tempfile
+
+from rdflib import URIRef, Graph as RdfGraph
 
 from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject, \
         XmlDatastream, XmlDatastreamObject, RdfDatastream, RdfDatastreamObject, \

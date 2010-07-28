@@ -9,8 +9,7 @@ from cStringIO import StringIO
 from base64 import b64encode
 from urlparse import urljoin, urlsplit
 
-from rdflib import URIRef
-from rdflib.Graph import Graph
+from rdflib import URIRef, Graph
 
 from eulcore import xmlmap
 
