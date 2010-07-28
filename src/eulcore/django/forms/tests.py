@@ -178,7 +178,8 @@ class XmlObjectFormTest(unittest.TestCase):
 
     def test_exclude(self):
         # if exclude is specified, those fields should not be listed
-        myform = xmlobjectform_factory(TestObject, exclude=['id', 'bool'])
+        myform = xmlobjectform_factory(TestObject,
+            exclude=['id', 'bool', 'children.id2'])
         form = myform()
         self.assert_('int' in form.base_fields,
             'int field is present in form fields when not excluded')
@@ -188,6 +189,19 @@ class XmlObjectFormTest(unittest.TestCase):
             'bool field is not present in form fields when excluded')
         self.assert_('id' not in form.base_fields,
             'id field is not present in form fields when excluded')
+        self.assert_('children' in form.subforms,
+            'children subform is present in form fields when subfields excluded')
+        self.assert_('val' in form.subforms['children'].base_fields,
+            'val field is present in children subform fields when not excluded')
+        self.assert_('id2' not in form.subforms['children'].base_fields,
+            'id2 field is not present in children subform fields when excluded')
+
+        # another variant for excluding an entire subform
+        myform = xmlobjectform_factory(TestObject,
+            exclude=['children'])
+        form = myform()
+        self.assert_('children' not in form.subforms,
+            'children subform is not present in form fields when excluded')
 
     def test_widgets(self):
         # specify custom widget

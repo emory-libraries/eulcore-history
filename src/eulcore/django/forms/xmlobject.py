@@ -24,10 +24,22 @@ def fieldname_to_label(name):
 
 
 def _parse_field_list(fieldnames, include_parents=False):
+    """
+    Parse a list of field names, possibly including dot-separated subform
+    fields, into an internal ParsedFieldList object representing the base
+    fields and subform listed.
+    
+    :param fieldnames: a list of field names as strings. dot-separated names
+        are interpreted as subform fields.
+    :param include_parents: optional boolean, defaults to False. if True,
+        subform fields implicitly include their parent fields in the parsed
+        list.
+    """
     field_parts = (name.split('.') for name in fieldnames)
     return _collect_fields(field_parts, include_parents)
 
 def _collect_fields(field_parts_list, include_parents):
+    """utility function to enable recursion in _parse_field_list()"""
     fields = []
     subpart_lists = defaultdict(list)
 
@@ -43,26 +55,31 @@ def _collect_fields(field_parts_list, include_parents):
     subfields = dict((field, _collect_fields(subparts, include_parents))
                      for field, subparts in subpart_lists.iteritems())
 
-    return _ParsedFieldList(fields, subfields)
+    return ParsedFieldList(fields, subfields)
 
-class _ParsedFieldList(object):
+class ParsedFieldList(object):
+    """A parsed list of fields, used internally by :class:`XmlObjectForm`
+    for tracking field and exclude lists."""
     def __init__(self, fields, subfields):
         self.fields = fields
         self.subfields = subfields
         
-
 class SubformAwareModelFormOptions(ModelFormOptions):
+    """A :class:`~django.forms.models.ModelFormOptions` subclass aware of
+    fields and exclude lists, parsing them for later reference by
+    :class:`XmlObjectForm` internals."""
+
     def __init__(self, options=None):
         super(SubformAwareModelFormOptions, self).__init__(options)
 
         self.parsed_fields = None
-        if isinstance(self.fields, _ParsedFieldList):
+        if isinstance(self.fields, ParsedFieldList):
             self.parsed_fields = self.fields
         elif self.fields is not None:
             self.parsed_fields = _parse_field_list(self.fields, include_parents=True)
 
         self.parsed_exclude = None
-        if isinstance(self.exclude, _ParsedFieldList):
+        if isinstance(self.exclude, ParsedFieldList):
             self.parsed_exclude = self.exclude
         elif self.exclude is not None:
             self.parsed_exclude = _parse_field_list(self.exclude, include_parents=False)
@@ -88,18 +105,21 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
                 it will be excluded
     :param widgets: optional dictionary of widget options to be passed to form
                 field constructor, keyed on field name
+    :param options: optional :class:`~django.forms.models.ModelFormOptions`.
+                if specified then fields, exclude, and widgets will default
+                to its values.
     """
 
     # first collect fields and excludes for the form and all subforms. base
     # these on the specified options object unless overridden in args.
     fieldlist = getattr(options, 'parsed_fields', None)
-    if isinstance(fields, _ParsedFieldList):
+    if isinstance(fields, ParsedFieldList):
         fieldlist = fields
     elif fields is not None:
         fieldlist = _parse_field_list(fields, include_parents=True)
 
     excludelist = getattr(options, 'parsed_exclude', None)
-    if isinstance(fields, _ParsedFieldList):
+    if isinstance(fields, ParsedFieldList):
         fieldlist = fields
     elif exclude is not None:
         excludelist = _parse_field_list(exclude, include_parents=False)
