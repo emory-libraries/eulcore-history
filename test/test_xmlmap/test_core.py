@@ -255,5 +255,27 @@ class TestXmlObject(unittest.TestCase):
         self.assertTrue(obj.generic == obj.bar,
             'different xmlobject classes pointing at the same node are considered equal')
 
+    def test_quickinit(self):
+        class XmlObj(xmlmap.XmlObject):
+            ROOT_NAME = 'foo'
+            id = xmlmap.StringField('@id')
+            strings = xmlmap.StringListField('str')
+            int = xmlmap.IntegerField('int')
+            bool = xmlmap.SimpleBooleanField('bool', 'yes', 'no')
+
+        init_values = {
+            'id': '2b',
+            # NOTE: setting a listfield like this is currently not supported (but would be cool)
+            #'strings': ['one', 'two', 'three'],
+            'int': 5,
+            'bool': True
+            }
+        obj = XmlObj(**init_values)
+        self.assertEqual(init_values['id'], obj.id)
+        self.assertEqual(init_values['int'], obj.int)
+        self.assertEqual(init_values['bool'], obj.bool)
+
+
+
 if __name__ == '__main__':
     main()

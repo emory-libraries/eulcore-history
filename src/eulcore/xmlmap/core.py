@@ -2,7 +2,7 @@ import cStringIO
 from lxml import etree
 from lxml.builder import ElementMaker
 
-from eulcore.xmlmap.fields import Field
+from eulcore.xmlmap.fields import Field, NodeList
 
 __all__ = [ 'XmlObject', 'parseUri', 'parseString', 'loadSchema',
     'load_xmlobject_from_string', 'load_xmlobject_from_file' ]
@@ -129,6 +129,10 @@ class XmlObject(object):
     Programs can also pass an optional dictionary to the constructor to
     specify namespaces for XPath evaluation.
 
+    If keyword arguments are passed in to the constructor, they will be used to
+    set initial values for the corresponding fields on the :class:`XmlObject`.
+    (Only currently supported for non-list fields.)
+
     Custom equality/non-equality tests: two instances of :class:`XmlObject` are
     considered equal if they point to the same lxml element node.
     """
@@ -169,7 +173,7 @@ class XmlObject(object):
     """
     # NOTE: DTD and RNG validation could be handled similarly to XSD validation logic
 
-    def __init__(self, node=None, context=None):
+    def __init__(self, node=None, context=None, **kwargs):
         if node is None:
             node = self._build_root_element()
 
@@ -195,6 +199,10 @@ class XmlObject(object):
         if self.XSD_SCHEMA is not None and self.xmlschema is None:
             # load xml schema if one is defined and has not already been loaded
             self.xmlschema = loadSchema(self.XSD_SCHEMA)
+
+        for field, value in kwargs.iteritems():
+            # TODO (maybe): handle setting/creating list fields
+            setattr(self, field, value)
 
     def _build_root_element(self):
         opts = {}
