@@ -90,10 +90,11 @@ Hey, nonny-nonny."""
         self.assertRaises(Exception, self.rest_api.getDatastreamDissemination,
             "bogus:pid", "BOGUS")
 
+    # NOTE: getDissemination not available in REST API until Fedora 3.3
     #def test_getDissemination(self):
         # testing with built-in fedora dissemination
         # getting 404
-        #profile = self.rest_api.getDissemination(self.pid, "fedora-system:3", "viewObjectProfile")
+    #    profile = self.rest_api.getDissemination(self.pid, "fedora-system:3", "viewObjectProfile")
 
     def test_getObjectHistory(self):
         history, url = self.rest_api.getObjectHistory(self.pid)
@@ -440,6 +441,11 @@ class TestAPI_A_LITE(FedoraTestCase):
         self.assert_('<dc:description>' in dc)
         self.assert_('<dc:identifier>%s</dc:identifier>' % self.pid in dc)
 
+    def testGetDissemination(self):
+        # testing with built-in fedora dissemination
+        content, url = self.api_a.getDissemination(self.pid, "fedora-system:3", "viewObjectProfile")
+        self.assert_('<h3>Object Profile View</h3>' in content)
+        self.assert_('A partially-prepared test object</td>' in content)
 
 class TestAPI_M_LITE(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
