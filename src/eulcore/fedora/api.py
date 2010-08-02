@@ -71,13 +71,15 @@ class REST_API(HTTP_API_Base):
         url = 'objects/%s/datastreams/%s/content?%s' % (pid, dsID, urlencode(http_args))
         return self.read(url)
 
-    def getDissemination(self, pid, sdefPid, method, method_params={}):
-        # /objects/{pid}/methods/{sdefPid}/{method} ? [method parameters]
-        # not working/implemented?  getting 404
-        uri = 'objects/%s/methods/%s/%s/' % (pid, sdefPid, method)
-        if method_params:
-            uri += '?' + urlencode(method_params)
-        return self.read(uri)
+    # NOTE: getDissemination not available in REST API until Fedora 3.3
+    # - use the API-A Lite version until we no longer support Fedora 3.2
+    #def getDissemination(self, pid, sdefPid, method, method_params={}):
+        # - use API-A Lite version until then
+        # /objects/{pid}/methods/{sdefPid}/{method} ? [method parameters]        
+        #uri = 'objects/%s/methods/%s/%s' % (pid, sdefPid, method)
+        #if method_params:
+        #    uri += '?' + urlencode(method_params)
+        #return self.read(uri)
 
     def getObjectHistory(self, pid):
         # /objects/{pid}/versions ? [format]
@@ -411,6 +413,13 @@ class API_A_LITE(HTTP_API_Base):
         :rtype: string
         """
         return self.read('get/%s/%s' % (pid, ds_name))
+
+    def getDissemination(self, pid, sdefPid, method, method_params={}):
+        # /get/PID/sDefPID/methodName*[/dateTime][?parmArray]*
+        uri = 'get/%s/%s/%s' % (pid, sdefPid, method)
+        if method_params:
+            uri += '?' + urlencode(method_params)
+        return self.read(uri)
 
 
 class API_M_LITE(HTTP_API_Base):
