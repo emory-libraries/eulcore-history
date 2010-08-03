@@ -3,6 +3,7 @@ from datetime import datetime
 from dateutil.tz import tzutc
 import mimetypes
 import random
+import re
 import string
 from cStringIO import StringIO
 
@@ -91,10 +92,17 @@ def auth_headers(username, password):
         return {}
 
 class RequestFailed(IOError):
+    error_regex = re.compile('<pre>.*\n(.*)\n', re.MULTILINE)
     def __init__(self, response):
         super(RequestFailed, self).__init__('%d %s' % (response.status, response.reason))
         self.code = response.status
         self.reason = response.reason
+        if response.status == 500:
+            # when Fedora gives a 500 error, it includes a stack-trace - pulling first line as detail
+            # NOTE: this is likely to break if and when Fedora error responses change
+            match = self.error_regex.findall(response.read())
+            if len(match):
+                self.detail = match[0]
 
 
 class RequestContextManager(object):

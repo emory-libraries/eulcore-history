@@ -1,9 +1,10 @@
+import csv
 from urllib import urlencode
 
 from eulcore.fedora.api import HTTP_API_Base, ApiFacade
 from eulcore.fedora.models import DigitalObject, URI_HAS_MODEL
 # FIXME: should risearch be moved to apis?
-from eulcore.fedora.util import RelativeOpener, parse_rdf, parse_xml_object
+from eulcore.fedora.util import RelativeOpener, parse_rdf, parse_xml_object, RequestFailed
 from eulcore.fedora.xml import SearchResults, NewPids
 
 # a repository object, basically a handy facade for easy api access
@@ -38,11 +39,14 @@ class Repository(object):
         self.fedora_root = root
         self.username = username
         self.password = password
+        self._risearch = None
 
     @property
     def risearch(self):
         "instance of :class:`ResourceIndex`, with the same root url and credentials"
-        return ResourceIndex(self.opener)
+        if self._risearch is None:
+            self._risearch = ResourceIndex(self.opener)
+        return self._risearch
 
     def get_next_pid(self, namespace=None, count=None):
         """
@@ -217,29 +221,67 @@ class ObjectTypeDescriptor(object):
         except:
             return None
 
-
+class UnrecognizedQueryLanguage(EnvironmentError):
+    pass
 
 class ResourceIndex(HTTP_API_Base):
     "Python object for accessing Fedora's Resource Index."
 
-    def find_statements(self, spo_query):
-        """
-        Run an SPO (subject-predicate-object) query and return the results as RDF.
+    RISEARCH_FLUSH_ON_QUERY = False
+    """Specify whether or not RI search queries should specify flush=true to obtain
+    the most recent results.  If flush is specified to the query method, that
+    takes precedence.
 
-        :param spo_query: SPO query as a string
-        :rtype: :class:`rdflib.ConjunctiveGraph`
+    Irrelevant if Fedora RIsearch is configured with syncUpdates = True.
+    """
+
+    def find_statements(self, query, language='spo', type='triples', flush=None):
+        """
+        Run a query in a format supported by the Fedora Resource Index (e.g., SPO
+        os Sparql) and return the results.
+
+        :param query: query as a string
+        :param language: query language to use; defaults to 'spo'
+        :param type: type of query - tuples or triples; defaults to 'triples'
+        :param flush: flush results to get recent changes; defaults to False
+        :rtype: :class:`rdflib.ConjunctiveGraph` when type is ``triples``; list
+            of dictionaries (keys based on return fields) when type is ``tuples``
         """
         risearch_url = 'risearch?'
         http_args = {
-            'type': 'triples',
-            'lang': 'spo',
-            'format': 'N-Triples',
-            'query': spo_query,
+            'type': type,
+            'lang': language,
+            'query': query,
         }
+        if type == 'triples':
+            format = 'N-Triples'
+        elif type == 'tuples':
+            format = 'CSV'
+        # else - error/exception ?
+        http_args['format'] = format
+
+        # if flush parameter was not specified, use class setting
+        if flush is None:
+            flush = self.RISEARCH_FLUSH_ON_QUERY
+        http_args['flush'] = 'true' if flush else 'false'
 
         rel_url = risearch_url + urlencode(http_args)
-        data, abs_url = self.read(rel_url)
-        return parse_rdf(data, abs_url, format='n3')
+        try:
+            data, abs_url = self.read(rel_url)
+            # parse the result according to requested format
+            if format == 'N-Triples':
+                return parse_rdf(data, abs_url, format='n3')
+            elif format == 'CSV':
+                # reader expects a file or a list; for now, just split the string
+                # TODO: when we can return url contents as file-like objects, use that
+                return csv.DictReader(data.split('\n'))     
+        except RequestFailed, f:
+            if 'Unrecognized query language' in f.detail:
+                raise UnrecognizedQueryLanguage(f.detail)
+            # could also see 'Unsupported output format' 
+            else:
+                raise f
+        
 
     def spo_search(self, subject=None, predicate=None, object=None):
         """
@@ -301,3 +343,12 @@ class ResourceIndex(HTTP_API_Base):
         """
         for statement in self.spo_search(subject=subject, predicate=predicate):
             yield str(statement[2])
+
+    def sparql_query(self, query, flush=None):
+        """
+        Run a Sparql query.
+
+        :param query: sparql query string
+        :rtype: list of dictionary
+        """
+        return self.find_statements(query, language='sparql', type='tuples', flush=flush)
