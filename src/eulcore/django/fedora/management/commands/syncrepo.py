@@ -39,6 +39,9 @@ class Command(BaseCommand):
     def load_initial_objects(self):
         # look for any .xml files in apps under fixtures/initial_objects
         # and attempt to load them as Fedora objects
+        # NOTE! any fixtures should have pids specified, or new versions of the
+        # fixture will be created every time syncrepo runs
+
 
         app_module_paths =  []
         # monkey see django code, monkey do
@@ -71,16 +74,17 @@ class Command(BaseCommand):
                             print "Loaded fixture %s as %s" % (f, pid)
                         load_count += 1
                     except RequestFailed, rf:
-                        if 'ObjectExistsException' in rf.detail:
-                            if self.verbosity > 1:
-                                print "Fixture %s has already been loaded" % f
-                        elif 'ObjectValidityException' in rf.detail:
-                            # could also look for: fedora.server.errors.ValidationException
-                            # (e.g., RELS-EXT about does not match pid)
-                            print "Error: fixture %s is not a valid Repository object" % f
-                        elif hasattr(rf, 'detail'):
-                            # if there is at least a detail message, display that
-                            print "Error ingesting %s: %s" % (f, rf.detail)
+                        if hasattr(rf, 'detail'):
+                            if 'ObjectExistsException' in rf.detail:
+                                if self.verbosity > 1:
+                                    print "Fixture %s has already been loaded" % f
+                            elif 'ObjectValidityException' in rf.detail:
+                                # could also look for: fedora.server.errors.ValidationException
+                                # (e.g., RELS-EXT about does not match pid)
+                                print "Error: fixture %s is not a valid Repository object" % f
+                            else:
+                                # if there is at least a detail message, display that
+                                print "Error ingesting %s: %s" % (f, rf.detail)
                         else:
                             raise rf
 
