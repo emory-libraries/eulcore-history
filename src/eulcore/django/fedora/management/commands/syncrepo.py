@@ -19,7 +19,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.verbosity = int(options.get('verbosity', 1))
 
-        # FIXME/TODO: add count/summary info for content models objects created
+        # FIXME/TODO: add count/summary info for content models objects created ?
+        if self.verbosity > 1:
+            print "Generating content models for %d classes" % len(DigitalObject.defined_types)
         for cls in DigitalObject.defined_types.itervalues():
             self.process_class(cls)
             
@@ -28,7 +30,7 @@ class Command(BaseCommand):
     def process_class(self, cls):
         try:
             ContentModel.for_class(cls, self.repo)
-        except ValueError:
+        except ValueError, v:
             # for_class raises a ValueError when a class has >1
             # CONTENT_MODELS.
             if self.verbosity > 1:
@@ -55,9 +57,10 @@ class Command(BaseCommand):
         fixture_count = 0
         load_count = 0
         
-        for path in app_fixture_paths:            
+        for path in app_fixture_paths:
             fixtures = glob.iglob(path)
             for f in fixtures:
+                # FIXME: is there a sane, sensible way to shorten file path for error/success messages?
                 fixture_count += 1
                 with open(f) as fixture_data:
                     # rather than pulling PID from fixture and checking if it already exists,
@@ -72,7 +75,12 @@ class Command(BaseCommand):
                             if self.verbosity > 1:
                                 print "Fixture %s has already been loaded" % f
                         elif 'ObjectValidityException' in rf.detail:
+                            # could also look for: fedora.server.errors.ValidationException
+                            # (e.g., RELS-EXT about does not match pid)
                             print "Error: fixture %s is not a valid Repository object" % f
+                        elif hasattr(rf, 'detail'):
+                            # if there is at least a detail message, display that
+                            print "Error ingesting %s: %s" % (f, rf.detail)
                         else:
                             raise rf
 
