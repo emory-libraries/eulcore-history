@@ -97,12 +97,22 @@ class RequestFailed(IOError):
         super(RequestFailed, self).__init__('%d %s' % (response.status, response.reason))
         self.code = response.status
         self.reason = response.reason
-        if response.status == 500:
+        if response.status == 500:            
+            content = response.read()
             # when Fedora gives a 500 error, it includes a stack-trace - pulling first line as detail
             # NOTE: this is likely to break if and when Fedora error responses change
-            match = self.error_regex.findall(response.read())
-            if len(match):
-                self.detail = match[0]
+            if response.msg.gettype() == 'text/plain':
+                # for plain text, first line of stack-trace is first line of text
+                self.detail = content.split('\n')[0]
+            else:
+                # for html, stack trace is wrapped with a <pre> tag; using regex to grab first line
+                match = self.error_regex.findall(content)
+                if len(match):
+                    self.detail = match[0]
+
+# custom exceptions?  fedora errors:
+# fedora.server.errors.ObjectValidityException
+# ObjectExistsException
 
 
 class RequestContextManager(object):
