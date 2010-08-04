@@ -79,9 +79,9 @@ Hey, nonny-nonny."""
 
         # with date-time param
         now_dc, url = self.rest_api.getDatastreamDissemination(self.pid, "DC",
-            asOfDateTime=datetime.utcnow())
+            asOfDateTime=datetime.utcnow().replace(tzinfo=tzutc()))
         self.assertEqual(dc, now_dc)    # should be unchanged
-        
+
         # bogus datastream
         self.assertRaises(Exception, self.rest_api.getDatastreamDissemination,
             self.pid, "BOGUS")
@@ -117,8 +117,11 @@ Hey, nonny-nonny."""
         # unchecked: objDissIndexViewURL, objItemIndexViewURL
 
         # with time
-        profile_now, url = self.rest_api.getObjectProfile(self.pid, asOfDateTime=datetime.utcnow())
-        self.assertEqual(profile, profile_now)
+        profile_now, url = self.rest_api.getObjectProfile(self.pid,
+                        asOfDateTime=datetime.utcnow().replace(tzinfo=tzutc()))
+        # NOTE: profile content is not exactly the same because it includes a datetime attribute
+        self.assert_('pid="%s"' % self.pid in profile_now)
+        self.assert_('<objLabel>A partially-prepared test object</objLabel>' in profile_now)
 
         # bogus pid        
         self.assertRaises(Exception, self.rest_api.getObjectHistory, "bogus:pid")
@@ -229,8 +232,11 @@ Hey, nonny-nonny."""
         self.assert_('<dsVersionable>true</dsVersionable>' in ds_profile)
 
         # with date param
-        ds_profile_now, url = self.rest_api.getDatastream(self.pid, "DC", asOfDateTime=datetime.utcnow())
-        self.assertEqual(ds_profile, ds_profile_now)
+        ds_profile_now, url = self.rest_api.getDatastream(self.pid, "DC",
+                        asOfDateTime=datetime.utcnow().replace(tzinfo=tzutc()))
+        # NOTE: contents are not exactly equal because 'now' version includes a dateTime attribute
+        self.assert_('<dsLabel>Dublin Core</dsLabel>' in ds_profile_now)
+        self.assert_('<dsVersionID>DC.0</dsVersionID>' in ds_profile_now)
         
         # bogus datastream id on valid pid
         self.assertRaises(Exception, self.rest_api.getDatastream, self.pid, "BOGUS")

@@ -8,7 +8,7 @@ from soaplib.client import ServiceClient, SimpleSoapClient
 from soaplib.wsgi_soap import SimpleWSGISoapApp
 
 from eulcore.fedora.util import auth_headers, encode_multipart_formdata, \
-                                get_content_type
+                                get_content_type, datetime_to_fedoratime
 
 # low-level wrappers for Fedora APIs
 
@@ -64,10 +64,18 @@ class REST_API(HTTP_API_Base):
         return self.read('objects?' + urlencode(http_args))
 
     def getDatastreamDissemination(self, pid, dsID, asOfDateTime=None):
+        """Get a single datastream on a Fedora object; optionally, get the version
+        as of a particular date time.
+
+        :param pid: object pid
+        :param dsID: datastream id
+        :param asOfDateTime: optional datetime; ``must`` be a non-naive datetime
+        so it can be converted to a date-time format Fedora can understand
+        """
         # /objects/{pid}/datastreams/{dsID}/content ? [asOfDateTime] [download]
         http_args = {}
         if asOfDateTime:
-            http_args['asOfDateTime'] = asOfDateTime
+            http_args['asOfDateTime'] = datetime_to_fedoratime(asOfDateTime)
         url = 'objects/%s/datastreams/%s/content?%s' % (pid, dsID, urlencode(http_args))
         return self.read(url)
 
@@ -85,11 +93,18 @@ class REST_API(HTTP_API_Base):
         # /objects/{pid}/versions ? [format]
         return self.read('objects/%s/versions?%s' % (pid, urlencode(self.format_xml)))
 
-    def getObjectProfile(self, pid, asOfDateTime=None): # date?
+    def getObjectProfile(self, pid, asOfDateTime=None):
+        """Get top-level information aboug a single Fedora object; optionally,
+        retrieve information as of a particular date-time.
+
+        :param pid: object pid
+        :param asOfDateTime: optional datetime; ``must`` be a non-naive datetime
+        so it can be converted to a date-time format Fedora can understand
+        """
         # /objects/{pid} ? [format] [asOfDateTime]
         http_args = {}
         if asOfDateTime:
-            http_args['asOfDateTime'] = asOfDateTime
+            http_args['asOfDateTime'] = datetime_to_fedoratime(asOfDateTime)
         http_args.update(self.format_xml)
         url = 'objects/%s?%s' % (pid, urlencode(http_args))
         return self.read(url)
@@ -192,12 +207,20 @@ class REST_API(HTTP_API_Base):
         return self.read(uri)
 
     def getDatastream(self, pid, dsID, asOfDateTime=None, validateChecksum=False):
+        """Get information about a single datastream on a Fedora object; optionally,
+        get information for the version of the datastream as of a particular date time.
+
+        :param pid: object pid
+        :param dsID: datastream id
+        :param asOfDateTime: optional datetime; ``must`` be a non-naive datetime
+        so it can be converted to a date-time format Fedora can understand
+        """
         # /objects/{pid}/datastreams/{dsID} ? [asOfDateTime] [format] [validateChecksum]
         http_args = {}
         if validateChecksum:
             http_args['validateChecksum'] = validateChecksum
         if asOfDateTime:
-            http_args['asOfDateTime'] = asOfDateTime
+            http_args['asOfDateTime'] = datetime_to_fedoratime(asOfDateTime)
         http_args.update(self.format_xml)        
         uri = 'objects/%s/datastreams/%s' % (pid, dsID) + '?' + urlencode(http_args)
         return self.read(uri)
