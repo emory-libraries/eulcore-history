@@ -582,7 +582,7 @@ class DigitalObject(object):
         return self.info.label
     def _set_label(self, val):
         self.info.label = val
-        self.info_modified = True
+        self.info_modified = True       # only if new val is different!
     label = property(_get_label, _set_label, None, "object label")
 
     def _get_owner(self):
@@ -889,6 +889,14 @@ class DigitalObject(object):
     def getDissemination(self, service_pid, method, params={}):
         return self.api.getDissemination(self.pid, service_pid, method, method_params=params)
 
+    def getDatastreamObject(self, dsid):
+        "Get any datastream on this object as a :class:`DatastreamObject`"
+        if dsid in self.ds_list:
+            ds_info = self.ds_list[dsid]
+            # FIXME: can we take advantage of Datastream descriptor? or at least use dscashe ?            
+            return DatastreamObject(self, dsid, label=ds_info.label, mimetype=ds_info.mimeType)
+        # exception if not ?
+
     def add_relationship(self, rel_uri, object):
         """
         Add a new relationship to the RELS-EXT for this object.
@@ -955,7 +963,7 @@ class ContentModel(DigitalObject):
     @staticmethod
     def for_class(cls, repo):
         full_name = '%s.%s' % (cls.__module__, cls.__name__)
-        cmodels = cls.CONTENT_MODELS
+        cmodels = getattr(cls, 'CONTENT_MODELS', None)
         if not cmodels:
             logger.debug('%s has no content models' % (full_name,))
             return None
