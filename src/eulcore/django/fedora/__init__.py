@@ -1,6 +1,8 @@
+from django.conf import settings
+from django.core.management import call_command
+
 from eulcore.django.testsetup import starting_tests, finished_tests
 from eulcore.django.fedora.server import Repository
-from django.conf import settings
 
 _stored_default_fedora_root = None
 _stored_default_fedora_pidspace = None
@@ -24,6 +26,9 @@ def _use_test_fedora(sender, **kwargs):
     elif getattr(settings, "FEDORA_PIDSPACE", None):
         settings.FEDORA_PIDSPACE = "%s-test" % settings.FEDORA_PIDSPACE
     print "Using Fedora pidspace: %s" % settings.FEDORA_PIDSPACE
+
+    # run syncrepo to load any content models or fixtures
+    call_command('syncrepo')
 
 def _restore_fedora_root(sender, **kwargs):
     global _stored_default_fedora_root
