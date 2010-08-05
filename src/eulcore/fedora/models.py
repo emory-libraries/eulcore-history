@@ -376,13 +376,24 @@ class RdfDatastreamObject(DatastreamObject):
     as an RDF graph.
     """
     default_mimetype = "application/rdf+xml"
-    # FIXME: override _set_content to handle setting content?
+    # prefixes for namespaces expected to be used in RELS-EXT
+    default_namespaces = {
+        'fedora-model': 'info:fedora/fedora-system:def/model#',
+        'fedora-rels-ext': 'info:fedora/fedora-system:def/relations-external#'
+        }
 
+    # FIXME: override _set_content to handle setting content?
     def _convert_content(self, data, url):
-        return parse_rdf(data, url)
+        return self._bind_prefixes(parse_rdf(data, url))
 
     def _bootstrap_content(self):
-        return RdfGraph()
+        return self._bind_prefixes(RdfGraph())
+
+    def _bind_prefixes(self, graph):
+        # bind any specified prefixes so that serialized xml will be human-readable
+        for prefix, namespace in self.default_namespaces.iteritems():
+            graph.bind(prefix, namespace)
+        return graph
 
     def _content_as_node(self):
         graph = self.content
