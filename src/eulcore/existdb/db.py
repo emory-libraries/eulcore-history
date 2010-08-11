@@ -1,5 +1,5 @@
 # file existdb\db.py
-# 
+#
 #   Copyright 2010 Emory University General Library
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,9 @@ an eXist-db_ database and executing XQuery_ queries against it.
 
 from functools import wraps
 import xmlrpclib
+from socket import error as socket_error
+from urllib import unquote_plus
+
 from eulcore import xmlmap
 
 __all__ = ['ExistDB', 'QueryResult', 'ExistDBException']
@@ -35,8 +38,9 @@ def _wrap_xmlrpc_fault(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except xmlrpclib.Fault, e:
-            raise ExistDBException(e)
+        except (socket_error, xmlrpclib.Fault, \
+            xmlrpclib.ProtocolError, xmlrpclib.ResponseError), e:
+                raise ExistDBException(e)
         # FIXME: could we catch IOerror (connection reset) and try again ?
         # occasionally getting this error (so far exclusively in unit tests)
         # error: [Errno 104] Connection reset by peer
@@ -334,6 +338,26 @@ class ExistDB:
         """
         self.server.releaseQueryResult(result_id)
 
+    @_wrap_xmlrpc_fault
+    def setPermissions(self, resource, permissions):
+        """Set permissions on a resource in eXist.
+
+        :param resource: full path to a collection or document in eXist
+        :param permissions: int or string permissions statement
+        """
+        # TODO: support setting owner, group ?
+        self.server.setPermissions(resource, permissions)
+
+    @_wrap_xmlrpc_fault
+    def getPermissions(self, resource):
+        """Retrieve permissions for a resource in eXist.
+
+        :param resource: full path to a collection or document in eXist
+        :rtype: ExistPermissions
+        """
+        return ExistPermissions(self.server.getPermissions(resource))
+
+
     def loadCollectionIndex(self, collection_name, index, overwrite=True):
         """Load an index configuration for the specified collection.
         Creates the eXist system config collection if it is not already there,
@@ -407,6 +431,19 @@ class ExistDB:
         # collection indexes information must be stored under system/config/db/collection_name
         return self._configCollectionName(collection_name) + "/collection.xconf"
 
+class ExistPermissions:
+    "Permissions for an eXist resource - owner, group, and active permissions."
+    def __init__(self, data):
+        self.owner = data['owner']
+        self.group = data['group']
+        self.permissions = data['permissions']
+
+    def __str__(self):
+        return "owner: %s; group: %s; permissions: %s" % (self.owner, self.group, self.permissions)
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, str(self))
+
 
 class QueryResult(xmlmap.XmlObject):
     """The results of an eXist XQuery query"""
@@ -477,16 +514,34 @@ class QueryResult(xmlmap.XmlObject):
 class ExistDBException(Exception):
     """A handy wrapper for all errors returned by the eXist server."""
 
-    def message(self):
+    rpc_prefix = 'RpcConnection: '
+
+    def message(self):        
         "Rough conversion of xmlrpc fault string into something human-readable."
-        preamble, message = str(self).strip("""'<>""").split('RpcConnection: ')
-        # xmldb and xpath calls may have additional error strings:
-        message = message.replace('org.exist.xquery.XPathException: ', '')
-        message = message.replace('XMLDB exception caught: ', '')
-        message = message.replace('[at line 1, column 1]', '')
+        orig_except = self.args[0]
+        if isinstance(orig_except, socket_error):
+            # socket error is a tuple of errno, error string
+            message = 'I/O Error: %s' % orig_except[1]
+        elif isinstance(orig_except, xmlrpclib.ProtocolError):
+            message = 'XMLRPC Error at %(url)s: %(code)s %(msg)s' % {
+                    'url': orig_except.url,
+                    'code': orig_except.errcode,
+                    'msg': unquote_plus(orig_except.errmsg)
+            }
+        # xmlrpclib.ResponseError ?
+        elif self.rpc_prefix in str(self):
+            # RpcConnection error generally reports eXist-specific errors
+            preamble, message = str(self).strip("""'<>\"""").split(self.rpc_prefix)
+            # xmldb and xpath calls may have additional error strings:
+            message = message.replace('org.exist.xquery.XPathException: ', '')
+            message = message.replace('XMLDB exception caught: ', '')
+            message = message.replace('[at line 1, column 1]', '')
+        else:
+            # if all else fails, display the exception as a string
+            message = str(original_exception)
         return message
+
  
 # possible sub- exception types:
 # document not found (getDoc,remove)
 # collection not found 
-

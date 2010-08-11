@@ -368,5 +368,17 @@ class ExistDBTest(unittest.TestCase):
         # non-existent collection
         self.assertRaises(db.ExistDBException, self.db.reindexCollection, "notacollection")
 
+    def test_getPermissions(self):
+        perms = self.db.getPermissions('/db' + self.COLLECTION + '/hello.xml')
+        self.assert_(isinstance(perms, db.ExistPermissions))
+        self.assertEqual('guest', perms.owner)
+        self.assertEqual('guest', perms.group)
+        self.assertEqual(493, perms.permissions)    # FIXME: will this always be true?
+
+    def test_setPermissions(self):
+        self.db.setPermissions('/db' + self.COLLECTION + '/hello.xml', 'other=-update')
+        perms = self.db.getPermissions('/db' + self.COLLECTION + '/hello.xml')
+        self.assertEqual(492, perms.permissions)   
+
 if __name__ == '__main__':
     main()
