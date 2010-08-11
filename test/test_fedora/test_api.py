@@ -3,15 +3,20 @@
 from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
 from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE, API_M
 from eulcore.fedora.server import URI_HAS_MODEL
-from eulcore.fedora.util import RelativeOpener
+from eulcore.fedora.util import RelativeOpener, fedoratime_to_datetime
 from testcore import main
-from datetime import date, datetime
+
+from datetime import date, datetime, timedelta
 from dateutil.tz import tzutc
 from time import sleep
 import tempfile
 import re
 
+from lxml import etree
+
 # TODO: test for errors - bad pid, dsid, etc
+
+ONE_SEC = timedelta(seconds=1)
 
 class TestREST_API(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
@@ -77,10 +82,16 @@ Hey, nonny-nonny."""
         self.assert_("<dc:description>This object has more data" in dc)
         self.assert_("<dc:identifier>%s</dc:identifier>" % self.pid in dc)
 
+        # get server datetime param (the hard way) for testing
+        dsprofile_data, url = self.rest_api.getDatastream(self.pid, "DC")
+        dsprofile_node = etree.fromstring(dsprofile_data, base_url=url)
+        created_s = dsprofile_node.xpath('string(dsCreateDate)')
+        created = fedoratime_to_datetime(created_s)
+
         # with date-time param
-        now_dc, url = self.rest_api.getDatastreamDissemination(self.pid, "DC",
-            asOfDateTime=datetime.utcnow().replace(tzinfo=tzutc()))
-        self.assertEqual(dc, now_dc)    # should be unchanged
+        postcreate_dc, url = self.rest_api.getDatastreamDissemination(self.pid, "DC",
+            asOfDateTime=created + ONE_SEC)
+        self.assertEqual(dc, postcreate_dc)    # unchanged within its first sec
 
         # bogus datastream
         self.assertRaises(Exception, self.rest_api.getDatastreamDissemination,
@@ -116,9 +127,14 @@ Hey, nonny-nonny."""
         self.assert_('<objState>A</objState>' in profile)
         # unchecked: objDissIndexViewURL, objItemIndexViewURL
 
+        # get server datetime param (the hard way) for testing
+        profile_node = etree.fromstring(profile, base_url=url)
+        created_s = profile_node.xpath('string(objCreateDate)')
+        created = fedoratime_to_datetime(created_s)
+
         # with time
         profile_now, url = self.rest_api.getObjectProfile(self.pid,
-                        asOfDateTime=datetime.utcnow().replace(tzinfo=tzutc()))
+                        asOfDateTime=created + ONE_SEC)
         # NOTE: profile content is not exactly the same because it includes a datetime attribute
         self.assert_('pid="%s"' % self.pid in profile_now)
         self.assert_('<objLabel>A partially-prepared test object</objLabel>' in profile_now)
@@ -231,9 +247,14 @@ Hey, nonny-nonny."""
         self.assert_('<dsControlGroup>X</dsControlGroup>' in ds_profile)
         self.assert_('<dsVersionable>true</dsVersionable>' in ds_profile)
 
+        # get server datetime param (the hard way) for testing
+        dsprofile_node = etree.fromstring(ds_profile, base_url=url)
+        created_s = dsprofile_node.xpath('string(dsCreateDate)')
+        created = fedoratime_to_datetime(created_s)
+
         # with date param
         ds_profile_now, url = self.rest_api.getDatastream(self.pid, "DC",
-                        asOfDateTime=datetime.utcnow().replace(tzinfo=tzutc()))
+                        asOfDateTime=created + ONE_SEC)
         # NOTE: contents are not exactly equal because 'now' version includes a dateTime attribute
         self.assert_('<dsLabel>Dublin Core</dsLabel>' in ds_profile_now)
         self.assert_('<dsVersionID>DC.0</dsVersionID>' in ds_profile_now)
