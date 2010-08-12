@@ -18,6 +18,7 @@ from datetime import datetime
 from lxml import etree
 from lxml.builder import ElementMaker
 from eulcore.xpath import ast, parse, serialize
+from types import ListType
 
 __all__ = [
     'StringField', 'StringListField',
@@ -170,9 +171,12 @@ def _find_terminal_step(xast):
     return None
 
 def _find_xml_node(xpath, node, context):
+    #In some cases the this will return a value not a node
     matches = node.xpath(xpath, **context)
-    if matches:
+    if matches and isinstance(matches, ListType):
         return matches[0]
+    elif matches:
+        return matches
 
 def _create_xml_node(xast, node, context, insert_index=None):
     if isinstance(xast, ast.Step):
