@@ -406,7 +406,7 @@ class ExistQueryTest__FullText(unittest.TestCase):
         self.assertEqual(4, fqs.count(),
             "highlight filter returns all documents even though search term is not present")
             
-        fqs = self.qs.filter(highlight='one')
+        fqs = self.qs.filter(highlight='one').order_by('id')
         self.assert_('<exist:match' in fqs[0].serialize())
 
 
@@ -492,8 +492,7 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery(xpath='/el')
         xq.xq_var = '$n'
         xq.return_also({'myid':'@id', 'some_name':'name'})
-        self.assert_('{$n/@*}' in xq._constructReturn())
-        self.assert_('{$n/*}' in xq._constructReturn())
+        self.assert_('{$n}' in xq._constructReturn())
         self.assert_('<field>{$n/@id}</field>' in xq._constructReturn())
 
     def test_return_also__fulltext_score(self):
@@ -508,7 +507,7 @@ class XqueryTest(unittest.TestCase):
         xq.xq_var = '$n'
         xq.return_also({'fulltext_score':''})
         xq.add_filter('.', 'highlight', 'dog star')
-        self.assert_('{$n/*[ft:query(., "dog star") or 1]}' in xq.getQuery())
+        self.assert_('/el[ft:query(., "dog star") or 1]' in xq.getQuery())
 
 
     def test_set_limits(self):

@@ -25,6 +25,7 @@ stand-in replacement in any context that expects one.
 """
 
 from types import BooleanType
+from lxml import etree
 
 from eulcore.xmlmap import load_xmlobject_from_string
 from eulcore.xmlmap.fields import StringField, DateField, NodeField, NodeListField
@@ -160,14 +161,6 @@ class QuerySet(object):
         Any number of these filter arguments may be passed. This method
         returns an updated copy of the QuerySet: It does not modify the
         original.
-
-        **NOTE:** full-text filters require an eXist lucene index configured on
-        the fields being searched.  If you use fulltext or highlighting filters
-        in combination with :meth:`also`, you must configure an index on all fields
-        under the requested node, e.g.::
-
-            <text match="//node/*"/>
-
         """
         # possible future lookup types:
         #   gt/gte,lt/lte, endswith, range, date, isnull (?), regex (?)
@@ -395,7 +388,7 @@ class QuerySet(object):
             if self.model is None or self.query._distinct:
                 self._result_cache[i] = item.data
             else:
-                obj = load_xmlobject_from_string(item.data, self.return_type)
+                obj = self._init_item(item.data)
                 # make queryTime method available when retrieving a single item
                 setattr(obj, 'queryTime', self.queryTime)
                 self._result_cache[i] = obj
@@ -422,6 +415,16 @@ class QuerySet(object):
                 self._return_type = _create_return_class(self.model, self.additional_fields,
                         override_xpaths=self.query.get_return_xpaths())
         return self._return_type
+
+    def _init_item(self, data):
+        # when there are additional fields, the main node is the first node under returned xml
+        if self.additional_fields:
+            # basically do the simplest form of what load_xmlobject_from_string does
+            element = etree.fromstring(data)
+            # instead of root element, pass in first child node to xmlobject constructor
+            return self.return_type(element[0])
+        else:
+            return load_xmlobject_from_string(data, self.return_type)
 
     def __iter__(self):
         """Iterate through available results."""
@@ -730,10 +733,11 @@ class Xquery(object):
             if self.return_fields:
                 rblocks = []
             elif self.additional_return_fields:
-                filter = [ '[%s]' % (f,) for f in self._return_filters ]
+                rblocks = ["{%s}" % self.xq_var]
+                #filter = [ '[%s]' % (f,) for f in self._return_filters ]
                 # return everything under matched node - all attributes, all nodes
-                rblocks = ["{%s/@*}" % self.xq_var,
-                           "{%s/*%s}" % (self.xq_var, ''.join(filter))]
+                #rblocks = ["{%s/@*}" % self.xq_var,
+                #           "{%s/*%s}" % (self.xq_var, ''.join(filter))]
                     # apply any return filters specified to main node
                     # NOTE: currently, full-text search highlighting gets lost
                     # in returned xml without this additional filter
@@ -883,11 +887,16 @@ class Xquery(object):
         fields = dict(self.return_fields, **self.additional_return_fields)
         xpaths = {}
         i = 0
+        prefix = ''
+        if self.additional_return_fields:
+            # when there are additional return fields, all extra fields
+            # are one step up relative to main node
+            prefix = '../'
         for name in fields.keys():
             if name in self.special_fields:
-                xpaths[name] = name
+                xpaths[name] = prefix + name
             else:
-                xpaths[name] = self.return_xpaths[i]
+                xpaths[name] = prefix + self.return_xpaths[i]
                 i += 1
         return xpaths
 
