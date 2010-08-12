@@ -224,7 +224,7 @@ class Reference(xmlmap.XmlObject):
     "link type"
     target = xmlmap.StringField("@target")
     "link target"
-    value = xmlmap.StringField(".")
+    value = xmlmap.NodeField(".", xmlmap.XmlObject)
     "text content of the reference"
 
     def __unicode__(self):
@@ -242,7 +242,8 @@ class PointerGroup(xmlmap.XmlObject):
 
 class IndexEntry(xmlmap.XmlObject):
     "Index entry in an archival description index."
-    name = xmlmap.StringField("corpname|famname|function|genreform|geogname|name|namegrp|occupation|persname|title|subject")
+    name = xmlmap.NodeField("corpname|famname|function|genreform|geogname|name|namegrp|occupation|persname|title|subject",
+                            xmlmap.XmlObject)
     "access element, e.g. name or subject"
     ptrgroup = xmlmap.NodeField("ptrgrp", PointerGroup)
     ":class:`PointerGroup` - group of references for this index entry"
