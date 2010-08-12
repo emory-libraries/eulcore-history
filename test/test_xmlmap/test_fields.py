@@ -159,10 +159,12 @@ class TestFields(unittest.TestCase):
     def testIntegerField(self):
         class TestObject(xmlmap.XmlObject):
             val = xmlmap.IntegerField('bar[2]/baz')
+            count = xmlmap.IntegerField('count(//bar)')
             missing = xmlmap.IntegerField('missing')
 
         obj = TestObject(self.fixture)
         self.assertEqual(obj.val, 13)
+        self.assertEqual(obj.count, 2)
         self.assertEqual(obj.missing, None)
         # undefined if >1 matched nodes
 
@@ -186,13 +188,11 @@ class TestFields(unittest.TestCase):
     def testItemField(self):
         class TestObject(xmlmap.XmlObject):
             letter = xmlmap.ItemField('substring(bar/baz, 1, 1)')
-            count = xmlmap.ItemField('count(//bar)')
             missing = xmlmap.ItemField('missing')
 
         obj = TestObject(self.fixture)
         self.assertEqual(obj.letter, '4')
         self.assertEqual(obj.missing, None)
-        self.assertTrue(obj.count > 0)
 
     def testBooleanField(self):        
         class TestObject(xmlmap.XmlObject):

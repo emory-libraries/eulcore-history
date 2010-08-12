@@ -18,7 +18,7 @@ from datetime import datetime
 from lxml import etree
 from lxml.builder import ElementMaker
 from eulcore.xpath import ast, parse, serialize
-from types import ListType
+from types import ListType, FloatType
 
 __all__ = [
     'StringField', 'StringListField',
@@ -86,7 +86,9 @@ class NumberMapper(Mapper):
     def to_python(self, node):
         if node is None:
             return None
-        if isinstance(node, basestring):
+        #xpath functions such as count
+        #return a float and need to  converted to int
+        if isinstance(node, basestring) or isinstance(node, FloatType):
             return int(node)     # FIXME: not equivalent to xpath number()...
         return self.XPATH(node)
 
