@@ -13,6 +13,7 @@ from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_TEST_COLLECTION
 
 class QuerySubModel(xmlmap.XmlObject):
     subname = xmlmap.StringField("subname")
+    ssc = xmlmap.NodeField('subsubclass', xmlmap.XmlObject)
 
 class QueryTestModel(xmlmap.XmlObject):
             id = xmlmap.StringField('@id')
@@ -249,6 +250,10 @@ class ExistQueryTest(unittest.TestCase):
         fqs = self.qs.filter(id='one').only('substring')
         self.assertEqual('o', fqs[0].substring)
 
+        # sub-subclass
+        fqs = self.qs.filter(id='one').only('sub__ssc')
+        self.assert_(isinstance(fqs[0], QueryTestModel))
+
     def test_only_hash(self):
         fqs = self.qs.only('hash')
         # no filters, should return all 3 test objects
@@ -340,6 +345,7 @@ class ExistQueryTest__FullText(unittest.TestCase):
             <lucene>
                 <analyzer class="org.apache.lucene.analysis.standard.StandardAnalyzer"/>
                 <text qname="description"/>
+                <text qname="root"/>
             </lucene>
         </index>
     </collection>
@@ -375,11 +381,22 @@ class ExistQueryTest__FullText(unittest.TestCase):
         self.assertNotEqual(fqs[0].fulltext_score, None)
         self.assert_(float(fqs[0].fulltext_score) > 0.5)    # full-text score should be a float
 
-    def test_fulltext_autohighlight(self):
+    def test_fulltext_highlight(self):
         fqs = self.qs.filter(description__fulltext_terms='only two')
-        # result from fulltext search - xml should have exist:match tags
+        # result from fulltext search - by default, xml should have exist:match tags
         self.assert_('<exist:match' in fqs[0].serialize())
-        
+
+        fqs = self.qs.filter(description__fulltext_terms='only two', highlight=False)
+        # with highlighting disabled, should not have exist:match tags
+        self.assert_('<exist:match' not in fqs[0].serialize())
+
+    def test_highlight(self):
+        fqs = self.qs.filter(highlight='supercalifragilistic')
+        self.assertEqual(4, fqs.count(),
+            "highlight filter returns all documents even though search term is not present")
+            
+        fqs = self.qs.filter(highlight='one')
+        self.assert_('<exist:match' in fqs[0].serialize())
 
 
 
@@ -428,6 +445,11 @@ class XqueryTest(unittest.TestCase):
         xq.add_filter('.', 'fulltext_terms', 'dog')
         self.assertEquals('/el[ft:query(., "dog")]', xq.getQuery())
 
+    def test_filters_highlight(self):
+        xq = Xquery(xpath='/el')
+        xq.add_filter('.', 'highlight', 'dog star')
+        self.assertEquals('/el[ft:query(., "dog star") or 1]', xq.getQuery())
+
     def test_filter_escaping(self):
         xq = Xquery(xpath='/el')
         xq.add_filter('.', 'contains', '"&')
@@ -469,6 +491,13 @@ class XqueryTest(unittest.TestCase):
         xq.return_also({'fulltext_score':''})
         self.assert_('let $fulltext_score := ft:score($n)' in xq.getQuery())
         self.assert_('<fulltext_score>{$fulltext_score}</fulltext_score>' in xq._constructReturn())
+
+    def test_return_also__highlight(self):
+        xq = Xquery(xpath='/el')
+        xq.xq_var = '$n'
+        xq.return_also({'fulltext_score':''})
+        xq.add_filter('.', 'highlight', 'dog star')
+        self.assert_('{$n/node()[ft:query(., "dog star") or 1]}' in xq.getQuery())
 
 
     def test_set_limits(self):

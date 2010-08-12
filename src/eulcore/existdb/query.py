@@ -83,7 +83,7 @@ class QuerySet(object):
         self._start = 0
         self._stop = None
         self._return_type = None
-        self._highlight_matches = False
+        self._highlight_matches = None
 
     def __del__(self):
         # release any queries in eXist 
@@ -144,6 +144,11 @@ class QuerySet(object):
          * ``fulltext_terms`` -- the field or object contains any of the the argument
            terms anywhere in the full text; requires a properly configured lucene index.
            Recommend using fulltext_score for ordering, in return fields.
+         * ``highlight`` - highlight search terms; when used with ``fulltext_terms``,
+           should be specified as a boolean (enabled by default); when used separately,
+           takes a string using the same search format as ``fultext_terms``, but
+           content will be returned even if it does not include the search terms.
+           Requires a properly configured lucene index.
 
         Field may be in the format of field__subfield when field is an NodeField
         or NodeListField and subfield is a configured element on that object.
@@ -171,11 +176,20 @@ class QuerySet(object):
                 xpath = _join_field_xpath(fields) or '.'
                 lookuptype = rest or 'exact'
 
-            qscopy.query.add_filter(xpath, lookuptype, value)
+            # highlighting is only an xquery filter when passed as a string
+            if lookuptype != 'highlight' or \
+                lookuptype == 'highlight' and isinstance(value, basestring):
+                qscopy.query.add_filter(xpath, lookuptype, value)
 
             # enable highlighting when a full-text query is used
             if lookuptype == 'fulltext_terms':
                 qscopy._highlight_matches = True
+
+            if lookuptype == 'highlight':
+                if isinstance(value, basestring):
+                    qscopy._highlight_matches = True
+                else:
+                    qscopy._highlight_matches = value
 
         # return copy query string so additional filters can be added or get() called
         return qscopy
@@ -504,7 +518,7 @@ class Xquery(object):
 
     xpath = '/node()'       # default generic xpath
     xq_var = '$n'           # xquery variable to use when constructing flowr query
-    available_filters = ['contains', 'startswith', 'exact', 'fulltext_terms']
+    available_filters = ['contains', 'startswith', 'exact', 'fulltext_terms', 'highlight']
     special_fields =  ['fulltext_score', 'last_modified', 'hash',
         'document_name', 'collection_name']
 
@@ -516,6 +530,7 @@ class Xquery(object):
         # remove leading / from collection name (if any)
         self.collection = collection.lstrip('/') if collection is not None else None
         self.filters = []
+        self._return_filters = []
         # sort information - field to sort on, ascending/descending
         self.order_by = None
         self.order_mode = None
@@ -536,6 +551,7 @@ class Xquery(object):
     def getCopy(self):
         xq = Xquery(xpath=self.xpath, collection=self.collection)
         xq.filters += self.filters
+        xq._return_filters += self._return_filters
         xq.order_by = self.order_by
         xq.order_mode = self.order_mode
         xq._distinct = self._distinct
@@ -641,6 +657,7 @@ class Xquery(object):
          * startswith
          * exact
          * fulltext_terms - full-text query; requires lucene index configured in exist
+         * highlight - run a full-text query, but return even if no matches
 
         """
         # possibilities to be added:
@@ -658,6 +675,12 @@ class Xquery(object):
             filter = '%s = %s' % (xpath, _quote_as_string_literal(value))
         if type == 'fulltext_terms':
             filter = 'ft:query(%s, %s)' % (xpath, _quote_as_string_literal(value))
+        if type == 'highlight':
+            filter = 'ft:query(%s, %s) or 1' % (xpath, _quote_as_string_literal(value))
+            # special-case: when additional fields, this filter must be applied
+            # to main return node to ensure highlighting does not get lost
+            self._return_filters.append(filter)
+
         self.filters.append(filter)
 
 
@@ -690,8 +713,13 @@ class Xquery(object):
             if self.return_fields:
                 rblocks = []
             elif self.additional_return_fields:
+                filter = [ '[%s]' % (f,) for f in self._return_filters ]
                 # return everything under matched node - all attributes, all nodes
-                rblocks = ["{%s/@*}" % self.xq_var, "{%s/node()}" % self.xq_var]
+                rblocks = ["{%s/@*}" % self.xq_var,
+                           "{%s/node()%s}" % (self.xq_var, ''.join(filter))]
+                    # apply any return filters specified to main node
+                    # NOTE: currently, full-text search highlighting gets lost
+                    # in returned xml without this additional filter
                 
             fields = dict(self.return_fields, **self.additional_return_fields)
             for name, xpath in fields.iteritems():
