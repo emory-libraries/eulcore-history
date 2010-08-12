@@ -83,7 +83,7 @@ class QuerySet(object):
         self._start = 0
         self._stop = None
         self._return_type = None
-        self._highlight_matches = None
+        self._highlight_matches = False
 
     def __del__(self):
         # release any queries in eXist 
@@ -143,6 +143,8 @@ class QuerySet(object):
            value.
          * ``fulltext_terms`` -- the field or object contains any of the the argument
            terms anywhere in the full text; requires a properly configured lucene index.
+           By default, highlighting is enabled when this filter is used.  To turn it off,
+           specify an additional filter of highlight=False.
            Recommend using fulltext_score for ordering, in return fields.
          * ``highlight`` - highlight search terms; when used with ``fulltext_terms``,
            should be specified as a boolean (enabled by default); when used separately,
