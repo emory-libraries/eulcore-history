@@ -390,6 +390,17 @@ class ExistQueryTest__FullText(unittest.TestCase):
         # with highlighting disabled, should not have exist:match tags
         self.assert_('<exist:match' not in fqs[0].serialize())
 
+        # order of args in the same filter should not matter
+        fqs = self.qs.filter(highlight=False, description__fulltext_terms='only two')
+        # with highlighting disabled, should not have exist:match tags
+        self.assert_('<exist:match' not in fqs[0].serialize())
+
+        # separate filters should also work
+        fqs = self.qs.filter(description__fulltext_terms='only two').filter(highlight=False)
+        # with highlighting disabled, should not have exist:match tags
+        self.assert_('<exist:match' not in fqs[0].serialize())
+
+
     def test_highlight(self):
         fqs = self.qs.filter(highlight='supercalifragilistic')
         self.assertEqual(4, fqs.count(),
@@ -482,7 +493,7 @@ class XqueryTest(unittest.TestCase):
         xq.xq_var = '$n'
         xq.return_also({'myid':'@id', 'some_name':'name'})
         self.assert_('{$n/@*}' in xq._constructReturn())
-        self.assert_('{$n/node()}' in xq._constructReturn())
+        self.assert_('{$n/*}' in xq._constructReturn())
         self.assert_('<field>{$n/@id}</field>' in xq._constructReturn())
 
     def test_return_also__fulltext_score(self):
@@ -497,7 +508,7 @@ class XqueryTest(unittest.TestCase):
         xq.xq_var = '$n'
         xq.return_also({'fulltext_score':''})
         xq.add_filter('.', 'highlight', 'dog star')
-        self.assert_('{$n/node()[ft:query(., "dog star") or 1]}' in xq.getQuery())
+        self.assert_('{$n/*[ft:query(., "dog star") or 1]}' in xq.getQuery())
 
 
     def test_set_limits(self):

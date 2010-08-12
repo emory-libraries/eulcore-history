@@ -24,6 +24,8 @@ stand-in replacement in any context that expects one.
 
 """
 
+from types import BooleanType
+
 from eulcore.xmlmap import load_xmlobject_from_string
 from eulcore.xmlmap.fields import StringField, DateField, NodeField, NodeListField
 from eulcore.xmlmap.core import XmlObjectType
@@ -148,7 +150,7 @@ class QuerySet(object):
            Recommend using fulltext_score for ordering, in return fields.
          * ``highlight`` - highlight search terms; when used with ``fulltext_terms``,
            should be specified as a boolean (enabled by default); when used separately,
-           takes a string using the same search format as ``fultext_terms``, but
+           takes a string using the same search format as ``fulltext_terms``, but
            content will be returned even if it does not include the search terms.
            Requires a properly configured lucene index.
 
@@ -158,6 +160,13 @@ class QuerySet(object):
         Any number of these filter arguments may be passed. This method
         returns an updated copy of the QuerySet: It does not modify the
         original.
+
+        **NOTE:** full-text filters require an eXist lucene index configured on
+        the fields being searched.  If you use fulltext or highlighting filters
+        in combination with :meth:`also`, you must configure an index on all fields
+        under the requested node, e.g.::
+
+            <text match="//node/*"/>
 
         """
         # possible future lookup types:
@@ -180,18 +189,24 @@ class QuerySet(object):
 
             # highlighting is only an xquery filter when passed as a string
             if lookuptype != 'highlight' or \
-                lookuptype == 'highlight' and isinstance(value, basestring):
+                lookuptype == 'highlight' and not isinstance(value, BooleanType):
                 qscopy.query.add_filter(xpath, lookuptype, value)
 
             # enable highlighting when a full-text query is used
             if lookuptype == 'fulltext_terms':
-                qscopy._highlight_matches = True
+                # boolean highlight setting overrides default 
+                if 'highlight' in kwargs and isinstance(kwargs['highlight'], BooleanType):
+                    qscopy._highlight_matches = kwargs['highlight']
+                else:
+                    qscopy._highlight_matches = True
 
             if lookuptype == 'highlight':
-                if isinstance(value, basestring):
-                    qscopy._highlight_matches = True
-                else:
+                if isinstance(value, BooleanType):
+                    # boolean - only triggers eXist highlighting in xml return
                     qscopy._highlight_matches = value
+                else:
+                    # terms to highlight - enable highlighting in xml return
+                    qscopy._highlight_matches = True
 
         # return copy query string so additional filters can be added or get() called
         return qscopy
@@ -718,7 +733,7 @@ class Xquery(object):
                 filter = [ '[%s]' % (f,) for f in self._return_filters ]
                 # return everything under matched node - all attributes, all nodes
                 rblocks = ["{%s/@*}" % self.xq_var,
-                           "{%s/node()%s}" % (self.xq_var, ''.join(filter))]
+                           "{%s/*%s}" % (self.xq_var, ''.join(filter))]
                     # apply any return filters specified to main node
                     # NOTE: currently, full-text search highlighting gets lost
                     # in returned xml without this additional filter
