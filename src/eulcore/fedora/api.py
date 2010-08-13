@@ -1,4 +1,4 @@
-# file fedora\api.py
+# file fedora/api.py
 # 
 #   Copyright 2010 Emory University General Library
 #

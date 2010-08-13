@@ -1,4 +1,4 @@
-# file django\fedora\management\commands\syncrepo.py
+# file django/fedora/management/commands/syncrepo.py
 # 
 #   Copyright 2010 Emory University General Library
 #

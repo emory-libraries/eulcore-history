@@ -1,4 +1,4 @@
-# file django\ldap\backends.py
+# file django/ldap/backends.py
 # 
 #   Copyright 2010 Emory University General Library
 #

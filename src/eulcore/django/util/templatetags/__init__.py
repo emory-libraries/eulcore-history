@@ -1,4 +1,4 @@
-# file django\util\templatetags\__init__.py
+# file django/util/templatetags/__init__.py
 # 
 #   Copyright 2010 Emory University General Library
 #

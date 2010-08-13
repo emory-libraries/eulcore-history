@@ -1,4 +1,4 @@
-# file django\emory_ldap\migrations\__init__.py
+# file django/emory_ldap/migrations/__init__.py
 # 
 #   Copyright 2010 Emory University General Library
 #

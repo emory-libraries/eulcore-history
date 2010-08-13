@@ -1,4 +1,4 @@
-# file django\ldap\__init__.py
+# file django/ldap/__init__.py
 # 
 #   Copyright 2010 Emory University General Library
 #

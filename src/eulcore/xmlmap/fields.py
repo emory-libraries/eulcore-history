@@ -1,4 +1,4 @@
-# file xmlmap\fields.py
+# file xmlmap/fields.py
 # 
 #   Copyright 2010 Emory University General Library
 #

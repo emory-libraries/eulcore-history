@@ -1,4 +1,4 @@
-# file xpath\parserules.py
+# file xpath/parserules.py
 # 
 #   Copyright 2010 Emory University General Library
 #

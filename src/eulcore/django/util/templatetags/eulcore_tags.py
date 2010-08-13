@@ -1,4 +1,4 @@
-# file django\util\templatetags\eulcore_tags.py
+# file django/util/templatetags/eulcore_tags.py
 # 
 #   Copyright 2010 Emory University General Library
 #

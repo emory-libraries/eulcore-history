@@ -1,4 +1,4 @@
-# file existdb\db.py
+# file existdb/db.py
 #
 #   Copyright 2010 Emory University General Library
 #

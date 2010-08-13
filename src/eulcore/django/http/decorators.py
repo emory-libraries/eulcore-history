@@ -1,4 +1,4 @@
-# file django\http\decorators.py
+# file django/http/decorators.py
 # 
 #   Copyright 2010 Emory University General Library
 #

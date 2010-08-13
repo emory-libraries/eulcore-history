@@ -1,4 +1,4 @@
-# file django\emory_ldap\admin.py
+# file django/emory_ldap/admin.py
 # 
 #   Copyright 2010 Emory University General Library
 #

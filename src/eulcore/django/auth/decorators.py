@@ -1,4 +1,4 @@
-# file django\auth\decorators.py
+# file django/auth/decorators.py
 # 
 #   Copyright 2010 Emory University General Library
 #

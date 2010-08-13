@@ -1,4 +1,4 @@
-# file django\existdb\models.py
+# file django/existdb/models.py
 # 
 #   Copyright 2010 Emory University General Library
 #

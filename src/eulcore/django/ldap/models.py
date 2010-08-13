@@ -1,4 +1,4 @@
-# file django\ldap\models.py
+# file django/ldap/models.py
 # 
 #   Copyright 2010 Emory University General Library
 #

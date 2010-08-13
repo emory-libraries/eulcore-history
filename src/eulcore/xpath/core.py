@@ -1,4 +1,4 @@
-# file xpath\core.py
+# file xpath/core.py
 # 
 #   Copyright 2010 Emory University General Library
 #

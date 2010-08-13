@@ -1,4 +1,4 @@
-# file xmlmap\dc.py
+# file xmlmap/dc.py
 # 
 #   Copyright 2010 Emory University General Library
 #

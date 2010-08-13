@@ -1,4 +1,4 @@
-# file django\http\tests.py
+# file django/http/tests.py
 # 
 #   Copyright 2010 Emory University General Library
 #

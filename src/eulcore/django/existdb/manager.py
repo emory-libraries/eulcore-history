@@ -1,4 +1,4 @@
-# file django\existdb\manager.py
+# file django/existdb/manager.py
 # 
 #   Copyright 2010 Emory University General Library
 #

@@ -1,4 +1,4 @@
-# file django\soap\testclient.py
+# file django/soap/testclient.py
 # 
 #   Copyright 2010 Emory University General Library
 #

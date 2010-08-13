@@ -1,4 +1,4 @@
-# file xpath\ast.py
+# file xpath/ast.py
 # 
 #   Copyright 2010 Emory University General Library
 #

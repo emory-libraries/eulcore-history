@@ -1,4 +1,4 @@
-# file django\existdb\tests.py
+# file django/existdb/tests.py
 # 
 #   Copyright 2010 Emory University General Library
 #

@@ -1,4 +1,4 @@
-# file xmlmap\eadmap.py
+# file xmlmap/eadmap.py
 # 
 #   Copyright 2010 Emory University General Library
 #

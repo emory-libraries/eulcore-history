@@ -1,4 +1,4 @@
-# file xmlmap\__init__.py
+# file xmlmap/__init__.py
 # 
 #   Copyright 2010 Emory University General Library
 #

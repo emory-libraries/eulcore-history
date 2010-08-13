@@ -1,4 +1,4 @@
-# file django\auth\tests.py
+# file django/auth/tests.py
 # 
 #   Copyright 2010 Emory University General Library
 #

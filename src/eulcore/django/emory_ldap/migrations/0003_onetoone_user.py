@@ -1,4 +1,4 @@
-# file django\emory_ldap\migrations\0003_onetoone_user.py
+# file django/emory_ldap/migrations/0003_onetoone_user.py
 # 
 #   Copyright 2010 Emory University General Library
 #

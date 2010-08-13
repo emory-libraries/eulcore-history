@@ -1,4 +1,4 @@
-# file django\fedora\server.py
+# file django/fedora/server.py
 # 
 #   Copyright 2010 Emory University General Library
 #

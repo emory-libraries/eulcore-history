@@ -1,4 +1,4 @@
-# file django\emory_ldap\migrations\0002_profiles_for_everybody.py
+# file django/emory_ldap/migrations/0002_profiles_for_everybody.py
 # 
 #   Copyright 2010 Emory University General Library
 #

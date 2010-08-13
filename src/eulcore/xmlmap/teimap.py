@@ -1,4 +1,4 @@
-# file xmlmap\teimap.py
+# file xmlmap/teimap.py
 # 
 #   Copyright 2010 Emory University General Library
 #

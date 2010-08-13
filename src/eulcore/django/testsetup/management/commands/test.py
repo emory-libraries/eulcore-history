@@ -1,4 +1,4 @@
-# file django\testsetup\management\commands\test.py
+# file django/testsetup/management/commands/test.py
 # 
 #   Copyright 2010 Emory University General Library
 #

@@ -1,4 +1,4 @@
-# file fedora\server.py
+# file fedora/server.py
 # 
 #   Copyright 2010 Emory University General Library
 #

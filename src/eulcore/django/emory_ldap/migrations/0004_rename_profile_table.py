@@ -1,4 +1,4 @@
-# file django\emory_ldap\migrations\0004_rename_profile_table.py
+# file django/emory_ldap/migrations/0004_rename_profile_table.py
 # 
 #   Copyright 2010 Emory University General Library
 #

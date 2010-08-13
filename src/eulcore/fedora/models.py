@@ -1,4 +1,4 @@
-# file fedora\models.py
+# file fedora/models.py
 # 
 #   Copyright 2010 Emory University General Library
 #

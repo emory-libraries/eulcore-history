@@ -1,4 +1,4 @@
-# file django\emory_ldap\tests.py
+# file django/emory_ldap/tests.py
 # 
 #   Copyright 2010 Emory University General Library
 #

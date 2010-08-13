@@ -1,4 +1,4 @@
-# file django\soap\app.py
+# file django/soap/app.py
 # 
 #   Copyright 2010 Emory University General Library
 #

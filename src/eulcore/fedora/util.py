@@ -1,4 +1,4 @@
-# file fedora\util.py
+# file fedora/util.py
 # 
 #   Copyright 2010 Emory University General Library
 #

@@ -1,4 +1,4 @@
-# file django\util\views.py
+# file django/util/views.py
 # 
 #   Copyright 2010 Emory University General Library
 #

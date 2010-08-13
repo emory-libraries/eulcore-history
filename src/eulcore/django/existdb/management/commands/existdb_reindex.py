@@ -1,4 +1,4 @@
-# file django\existdb\management\commands\existdb_reindex.py
+# file django/existdb/management/commands/existdb_reindex.py
 # 
 #   Copyright 2010 Emory University General Library
 #

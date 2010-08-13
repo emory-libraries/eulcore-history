@@ -1,4 +1,4 @@
-# file django\test\testcase.py
+# file django/test/testcase.py
 # 
 #   Copyright 2010 Emory University General Library
 #

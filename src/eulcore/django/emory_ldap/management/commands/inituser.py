@@ -1,4 +1,4 @@
-# file django\emory_ldap\management\commands\inituser.py
+# file django/emory_ldap/management/commands/inituser.py
 # 
 #   Copyright 2010 Emory University General Library
 #

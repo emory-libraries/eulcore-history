@@ -1,4 +1,4 @@
-# file django\auth\models.py
+# file django/auth/models.py
 # 
 #   Copyright 2010 Emory University General Library
 #

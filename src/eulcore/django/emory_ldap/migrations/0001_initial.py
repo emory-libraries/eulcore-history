@@ -1,4 +1,4 @@
-# file django\emory_ldap\migrations\0001_initial.py
+# file django/emory_ldap/migrations/0001_initial.py
 # 
 #   Copyright 2010 Emory University General Library
 #

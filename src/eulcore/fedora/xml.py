@@ -1,4 +1,4 @@
-# file fedora\xml.py
+# file fedora/xml.py
 # 
 #   Copyright 2010 Emory University General Library
 #

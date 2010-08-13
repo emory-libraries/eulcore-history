@@ -1,4 +1,4 @@
-# file django\http\models.py
+# file django/http/models.py
 # 
 #   Copyright 2010 Emory University General Library
 #
