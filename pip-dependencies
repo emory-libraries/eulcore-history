@@ -7,3 +7,5 @@ python-dateutil
 soaplib==0.8.1
 python-ldap
 unittest-xml-reporting
+sphinx
+coverage
