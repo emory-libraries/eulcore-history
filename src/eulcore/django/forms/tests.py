@@ -37,8 +37,8 @@ class TestObject(xmlmap.XmlObject):
     int = xmlmap.IntegerField('bar[2]/baz')
     bool = xmlmap.SimpleBooleanField('boolean', 'yes', 'no')
     longtext = xmlmap.StringField('longtext', normalize=True)
+    child = xmlmap.NodeField('bar[1]', TestSubobject)
     #children = xmlmap.NodeListField('bar', TestSubobject)      # lists not handled yet
-    children = xmlmap.NodeField('bar', TestSubobject)
     my_opt = xmlmap.StringField('opt', choices=['a', 'b', 'c'])
 
 FIXTURE_TEXT = '''
@@ -62,8 +62,8 @@ class XmlObjectFormTest(unittest.TestCase):
 
     # sample POST data for testing form update logic (used by multiple tests)
     post_data = {
-        'children-id2': 'two',
-        'children-val': 2,
+        'child-id2': 'two',
+        'child-val': 2,
         # include base form data so form will be valid
         'longtext': 'completely new text content',
         'int': 21,
@@ -166,7 +166,7 @@ class XmlObjectFormTest(unittest.TestCase):
 
     def test_specified_fields(self):
         # if fields are specified, only they should be listed
-        myfields = ['int', 'bool', 'children.val']
+        myfields = ['int', 'bool', 'child.val']
         myform = xmlobjectform_factory(TestObject, fields=myfields)
         form = myform()
         self.assert_('int' in form.base_fields,
@@ -176,12 +176,12 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_('id' not in form.base_fields,
             'id field is not present in form fields when not specified in field list')
 
-        self.assert_('children' in form.subforms,
-            'children field is present in subforms when specified in nested field list')
-        self.assert_('val' in form.subforms['children'].base_fields,
-            'val field present in children subform fields when specified in nested field list')
-        self.assert_('id2' not in form.subforms['children'].base_fields,
-            'id2 field is not present in children subform fields when not specified in nested field list')
+        self.assert_('child' in form.subforms,
+            'child field is present in subforms when specified in nested field list')
+        self.assert_('val' in form.subforms['child'].base_fields,
+            'val field present in child subform fields when specified in nested field list')
+        self.assert_('id2' not in form.subforms['child'].base_fields,
+            'id2 field is not present in child subform fields when not specified in nested field list')
 
         # form field order should match order in fields list
         self.assertEqual(form.base_fields.keys(), ['int', 'bool'])
@@ -195,7 +195,7 @@ class XmlObjectFormTest(unittest.TestCase):
     def test_exclude(self):
         # if exclude is specified, those fields should not be listed
         myform = xmlobjectform_factory(TestObject,
-            exclude=['id', 'bool', 'children.id2'])
+            exclude=['id', 'bool', 'child.id2'])
         form = myform()
         self.assert_('int' in form.base_fields,
             'int field is present in form fields when not excluded')
@@ -205,19 +205,19 @@ class XmlObjectFormTest(unittest.TestCase):
             'bool field is not present in form fields when excluded')
         self.assert_('id' not in form.base_fields,
             'id field is not present in form fields when excluded')
-        self.assert_('children' in form.subforms,
-            'children subform is present in form fields when subfields excluded')
-        self.assert_('val' in form.subforms['children'].base_fields,
-            'val field is present in children subform fields when not excluded')
-        self.assert_('id2' not in form.subforms['children'].base_fields,
-            'id2 field is not present in children subform fields when excluded')
+        self.assert_('child' in form.subforms,
+            'child subform is present in form fields when subfields excluded')
+        self.assert_('val' in form.subforms['child'].base_fields,
+            'val field is present in child subform fields when not excluded')
+        self.assert_('id2' not in form.subforms['child'].base_fields,
+            'id2 field is not present in child subform fields when excluded')
 
         # another variant for excluding an entire subform
         myform = xmlobjectform_factory(TestObject,
-            exclude=['children'])
+            exclude=['child'])
         form = myform()
-        self.assert_('children' not in form.subforms,
-            'children subform is not present in form fields when excluded')
+        self.assert_('child' not in form.subforms,
+            'child subform is not present in form fields when excluded')
 
     def test_widgets(self):
         # specify custom widget
@@ -234,7 +234,7 @@ class XmlObjectFormTest(unittest.TestCase):
 
     def test_default_field_order(self):
         # form field order should correspond to field order in xmlobject, which is:
-        # id, int, bool, longtext, [children]
+        # id, int, bool, longtext, [child]
         field_names = self.update_form.base_fields.keys()
         self.assertEqual('id', field_names[0],
             "first field in xmlobject ('id') is first in form fields")
@@ -290,7 +290,7 @@ class XmlObjectFormTest(unittest.TestCase):
                 model = TestObject
                 fields = ['id', 'bool', 'longtext'] # fields with simple, top-level xpaths
                 # creation for nested node not yet supported in xmlmap - excluding int
-                exclude = ['children']      # exclude subform to simplify testing
+                exclude = ['child']      # exclude subform to simplify testing
 
         new_form = SimpleForm({'id': 'A1', 'bool': True, 'longtext': 'la-di-dah'})
         self.assertTrue(new_form.is_valid())
@@ -324,7 +324,7 @@ class XmlObjectFormTest(unittest.TestCase):
 
     def test_subforms(self):
         # nodefields should be created as subforms on the object
-        subform = self.new_form.subforms['children']
+        subform = self.new_form.subforms['child']
         self.assert_(isinstance(subform, XmlObjectForm),
             'form has an XmlObjectForm subform')
 
@@ -334,7 +334,7 @@ class XmlObjectFormTest(unittest.TestCase):
                 (expected, got))
         self.assertEqual(TestSubobject, subform.Meta.model,
             "xmlobject class 'TestSubobject' correctly set as model in subform class Meta")
-        expected, got = 'children', subform.prefix
+        expected, got = 'child', subform.prefix
         self.assertEqual(expected, got,
             "subform prefix is set to the name of the corresponding nodefield; expected %s, got %s" \
                 % (expected, got))
@@ -343,7 +343,7 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_('id2' in subform.base_fields, 'int field is present in subform fields')
 
         # subform is initialized with appropriate instance data
-        subform = self.update_form.subforms['children']
+        subform = self.update_form.subforms['child']
         # initial values from subobject portion of test fixture
         expected, got = 'forty-two', subform.initial['id2']
         self.assertEqual(expected, got,
@@ -356,16 +356,16 @@ class XmlObjectFormTest(unittest.TestCase):
 
         # initialize with request data to test subform validation / instance update
         update_form = TestForm(self.post_data, instance=self.testobj)
-        subform = update_form.subforms['children']
+        subform = update_form.subforms['child']
         self.assertTrue(update_form.is_valid()) 
         # nodefield instance should be set by main form update
         instance = update_form.update_instance()        
-        self.assertEqual(2, instance.children.val)
-        self.assertEqual('two', instance.children.id2)
+        self.assertEqual(2, instance.child.val)
+        self.assertEqual('two', instance.child.id2)
 
     def test_is_valid(self):
         # missing required fields for main form but not subform
-        form = TestForm({'int': 21, 'children-id2': 'two', 'children-val': 2 })
+        form = TestForm({'int': 21, 'child-id2': 'two', 'child-val': 2 })
         self.assertFalse(form.is_valid(),
             "form is not valid when required top-level fields are missing")
         # no subform fields
