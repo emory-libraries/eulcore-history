@@ -29,7 +29,11 @@ COLLECTION = EXISTDB_TEST_COLLECTION
 FIXTURE_ONE = '''
     <root id="one">
         <name>one</name>
-        <description>this one has one one</description>
+        <description>this one has one one
+        <exist:match xmlns:exist="http://exist.sourceforge.net/NS/exist">MATCHED TEXT 1</exist:match>
+        <exist:match xmlns:exist="http://exist.sourceforge.net/NS/exist">MATCHED TEXT 2</exist:match>
+        </description>
+
         <wacky_node_name>42</wacky_node_name>
         <sub>
            <subname>la</subname>
@@ -408,6 +412,10 @@ class ExistQueryTest__FullText(unittest.TestCase):
             
         fqs = self.qs.filter(highlight='one').order_by('id')
         self.assert_('<exist:match' in fqs[0].serialize())
+
+    def test_match_count(self):
+        fqs = self.qs.filter(id='one').only('match_count')
+        self.assertEqual(fqs[0].match_count, 2, "two matched words should be found")
 
 
 

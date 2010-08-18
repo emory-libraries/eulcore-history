@@ -14,6 +14,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+#How TO Add A Special Field To The QuerySet:
+# 1. Near the top of the class Xquery, add the field name to the special_fields list variable
+# 2. In the getQuery function in the section "define any special fields that have been requested" add an elif case for your field
+# 3. It is possible that you will need to add an elif case in the _create_return_class function to return the correct type
+# 4. Make sure the the correct fieldType is imported
+
 """Provide a prettier, more Pythonic approach to eXist-db access.
 
 This module provides :class:`QuerySet` modeled after `Django QuerySet`_
@@ -28,7 +34,7 @@ from types import BooleanType
 from lxml import etree
 
 from eulcore.xmlmap import load_xmlobject_from_string
-from eulcore.xmlmap.fields import StringField, DateField, NodeField, NodeListField
+from eulcore.xmlmap.fields import IntegerField, StringField, DateField, NodeField, NodeListField
 from eulcore.xmlmap.core import XmlObjectType
 from eulcore.xpath import ast, parse, serialize
 from eulcore.existdb.exceptions import DoesNotExist, ReturnedMultiple
@@ -490,6 +496,8 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None,
             # name, to match how additional field results are constructed by Xquery object
             if name == 'last_modified':     # special case field
                 field_type = DateField
+            elif name == 'match_count':
+                    field_type = IntegerField
             elif fields is None or isinstance(fields, basestring):
                 field_type = StringField	# handle special cases like fulltext score
             else:
@@ -540,7 +548,7 @@ class Xquery(object):
     xq_var = '$n'           # xquery variable to use when constructing flowr query
     available_filters = ['contains', 'startswith', 'exact', 'fulltext_terms', 'highlight']
     special_fields =  ['fulltext_score', 'last_modified', 'hash',
-        'document_name', 'collection_name']
+        'document_name', 'collection_name', 'match_count']
 
     
     def __init__(self, xpath=None, collection=None):
@@ -623,6 +631,9 @@ class Xquery(object):
                     elif field == 'last_modified':
                         val = 'xmldb:last-modified(util:collection-name(%(var)s), util:document-name(%(var)s))' % \
                             {'var': self.xq_var }
+                    elif field == 'match_count':
+                        val = 'count(%(var)s//exist:match)' % {'var': self.xq_var }
+
                     # define an xquery variable with the same name as the special field
                     let.append('let $%s := %s' % (field, val))
 
