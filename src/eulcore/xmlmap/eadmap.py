@@ -19,9 +19,11 @@ from eulcore import xmlmap
 # xmlmap objects for various sections of an ead
 # organized from smallest/lowest level to highest level
 
+EAD_NAMESPACE = 'urn:isbn:1-931666-22-9'
+
 class _EadBase(xmlmap.XmlObject):
     '''Common EAD namespace declarations, for use by all EAD XmlObject instances.'''
-    ROOT_NS = 'urn:isbn:1-931666-22-9'
+    ROOT_NS = EAD_NAMESPACE
     ROOT_NAME = 'ead'
     ROOT_NAMESPACES = {
         'e' : ROOT_NS,
