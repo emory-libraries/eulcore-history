@@ -14,10 +14,10 @@ class TestEad(unittest.TestCase):
     def setUp(self):
         self.ead = load_xmlobject_from_file(self.FIXTURE_FILE, EncodedArchivalDescription)
 
-    def testInit(self):
+    def test_init(self):
         self.assert_(isinstance(self.ead, EncodedArchivalDescription))
 
-    def testBasicFields(self):
+    def test_basic_fields(self):
         self.assertEqual(unicode(self.ead.title), "Seamus Heaney collection, 1972-1997")
         self.assertEqual(unicode(self.ead.eadid), u'heaney653')
         self.assertEqual(self.ead.id, "heaney653-011")
@@ -32,12 +32,16 @@ class TestEad(unittest.TestCase):
         self.assert_("12 oversized papers (OP)" in self.ead.physical_desc)
         self.assert_("materials relating to Irish poet Seamus Heaney" in unicode(self.ead.abstract))
 
+    def test_validation(self):
+        # EAD objects can now be validated aginst XSD schema
+        self.assertTrue(self.ead.schema_valid())
+
     def test_eadid(self):
         self.assert_(isinstance(self.ead.eadid, EadId))
         eadid = self.ead.eadid
         self.assertEqual('heaney653', eadid.value)
         self.assertEqual('heaney653.xml', eadid.identifier)
-        self.assertEqual('us', eadid.country)
+        self.assertEqual('US', eadid.country)
         self.assertEqual('geu-s', eadid.maintenance_agency)
         self.assertEqual('http://some.pid.org/ark:/1234/567', eadid.url)
 
