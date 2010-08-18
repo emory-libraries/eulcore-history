@@ -1,39 +1,44 @@
 #!/usr/bin/env python
 
-import unittest
 from datetime import datetime
+import unittest
 
 from eulcore import xmlmap
 from eulcore.existdb.db import ExistDB
-from eulcore.existdb.exceptions import DoesNotExist, ReturnedMultiple
-from eulcore.existdb.query import QuerySet, Xquery
+from eulcore.existdb.exceptions import DoesNotExist
+from eulcore.existdb.exceptions import ReturnedMultiple
+from eulcore.existdb.query import QuerySet
+from eulcore.existdb.query import Xquery
+from test_existdb.test_db import EXISTDB_SERVER_URL
+from test_existdb.test_db import EXISTDB_TEST_COLLECTION
 from testcore import main
-
-from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_TEST_COLLECTION
 
 class QuerySubModel(xmlmap.XmlObject):
     subname = xmlmap.StringField("subname")
     ssc = xmlmap.NodeField('subsubclass', xmlmap.XmlObject)
 
 class QueryTestModel(xmlmap.XmlObject):
-            id = xmlmap.StringField('@id')
-            name = xmlmap.StringField('name')
-            description = xmlmap.StringField('description')
-            wnn = xmlmap.IntegerField('wacky_node_name')
-            sub = xmlmap.NodeField("sub", QuerySubModel)
-            or_field = xmlmap.StringField('name|description|@id')
-            substring = xmlmap.StringField('substring(name, 1, 1)')
+    ROOT_NAMESPACES = {'ex' : 'http://example.com/'}
+    id = xmlmap.StringField('@id')
+    name = xmlmap.StringField('name')
+    description = xmlmap.StringField('description')
+    wnn = xmlmap.IntegerField('wacky_node_name')
+    sub = xmlmap.NodeField("sub", QuerySubModel)
+    or_field = xmlmap.StringField('name|description|@id')
+    substring = xmlmap.StringField('substring(name, 1, 1)')
+    nsfield = xmlmap.StringField('ex:field')
 
 COLLECTION = EXISTDB_TEST_COLLECTION
 
 FIXTURE_ONE = '''
-    <root id="one">
+    <root id="one" xmlns:ex='http://example.com/'>
         <name>one</name>
         <description>this one has one one</description>
         <wacky_node_name>42</wacky_node_name>
         <sub>
            <subname>la</subname>
         </sub>
+        <ex:field>namespaced</ex:field>
     </root>
 '''
 FIXTURE_TWO = '''
@@ -130,44 +135,44 @@ class ExistQueryTest(unittest.TestCase):
     def test_filter_field(self):
         fqs = self.qs.filter(name="one")
         self.assertEqual(1, fqs.count(), "count returns 1 when filtered on name = 'one' (got %s)"
-            % self.qs.count())
+                         % self.qs.count())
         self.assertEqual("one", fqs[0].name, "name matches filter")
         self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_xpath(self):
         fqs = self.qs.filter(id="abc")
         self.assertEqual(1, fqs.count(), "count returns 1 when filtered on @id = 'abc' (got %s)"
-            % self.qs.count())
+                         % self.qs.count())
         self.assertEqual("two", fqs[0].name, "name returned is correct for id filter")
         self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_contains(self):
         fqs = self.qs.filter(name__contains="o")
         self.assertEqual(3, fqs.count(),
-            "should get 3 matches for filter on name contains 'o' (got %s)" % fqs.count())
+                         "should get 3 matches for filter on name contains 'o' (got %s)" % fqs.count())
         self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_contains_special(self):
         fqs = self.qs.filter(description__contains=' "quote" ')
         self.assertEqual(1, fqs.count(),
-            "should get 1 match for filter on desc contains ' \"quote\" ' (got %s)" % fqs.count())
+                         "should get 1 match for filter on desc contains ' \"quote\" ' (got %s)" % fqs.count())
         self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
         fqs = self.qs.filter(description__contains=' &!')
         self.assertEqual(1, fqs.count(),
-            "should get 1 match for filter on desc contains ' &!' (got %s)" % fqs.count())
+                         "should get 1 match for filter on desc contains ' &!' (got %s)" % fqs.count())
         self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_field_startswith(self):
         fqs = self.qs.filter(name__startswith="o")
         self.assertEqual(1, fqs.count(),
-            "should get 1 match for filter on name starts with 'o' (got %s)" % fqs.count())
+                         "should get 1 match for filter on name starts with 'o' (got %s)" % fqs.count())
         self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
     def test_filter_subobject_field(self):
         fqs = self.qs.filter(sub__subname="la")
         self.assertEqual(1, fqs.count(),
-            "should get 1 match for filter on sub_subname = 'la' (got %s)" % fqs.count())
+                         "should get 1 match for filter on sub_subname = 'la' (got %s)" % fqs.count())
 
     def test_get(self):
         result  = self.qs.get(contains="two")
@@ -224,7 +229,7 @@ class ExistQueryTest(unittest.TestCase):
         self.qs.only('name')
         self.assert_('element name {' not in self.qs.query.getQuery(), "main queryset unchanged by only()")
         
-        fqs = self.qs.filter(id='one').only('name','id', 'sub', 'or_field')
+        fqs = self.qs.filter(id='one').only('name', 'id', 'sub', 'or_field')
         self.assert_(isinstance(fqs[0], QueryTestModel))	# actually a Partial type derived from this
         # attributes that should be present
         self.assertNotEqual(fqs[0].id, None)
@@ -243,7 +248,7 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual(42, fqs[0].wnn)
 
         # nested field return
-        fqs = self.qs.filter(id='one').only('name','id', 'sub__subname')
+        fqs = self.qs.filter(id='one').only('name', 'id', 'sub__subname')
         self.assertEqual('la', fqs[0].sub.subname)
 
         # xpath function return
@@ -260,7 +265,7 @@ class ExistQueryTest(unittest.TestCase):
         for result in fqs:
             # each return object should have a 40-character SHA-1 hash checksum
             self.assertEqual(40, len(result.hash),
-                'xquery result should have 40-character checksum, got %s' % result.hash)
+                             'xquery result should have 40-character checksum, got %s' % result.hash)
                 
     def test_document_name(self):
         fqs = self.qs.filter(id='one').only('document_name')
@@ -303,8 +308,8 @@ class ExistQueryTest(unittest.TestCase):
         qs = QuerySet(using=self.db, collection=COLLECTION, model=SubqueryTestModel, xpath='//name')
         name = qs.also('parent_id').get(name__exact='two')
         self.assertEqual('abc', name.parent_id,
-            "parent id set correctly when returning at name level with also parent_id specified; should be 'abc', got '"
-            + name.parent_id + "'")
+                         "parent id set correctly when returning at name level with also parent_id specified; should be 'abc', got '"
+                         + name.parent_id + "'")
 
     def test_also_subfield(self):
         class SubqueryTestModel(xmlmap.XmlObject):
@@ -318,10 +323,10 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual(42, name.parent.wnn)
 
     def test_getDocument(self):
-      obj = self.qs.getDocument("f1.xml")
-      self.assert_(isinstance(obj, QueryTestModel),
-            "object returned by getDocument is instance of QueryTestModel")
-      self.assertEqual("one", obj.name)
+        obj = self.qs.getDocument("f1.xml")
+        self.assert_(isinstance(obj, QueryTestModel),
+                     "object returned by getDocument is instance of QueryTestModel")
+        self.assertEqual("one", obj.name)
 
     def test_distinct(self):
         qs = QuerySet(using=self.db, collection=COLLECTION, xpath='//name')
@@ -332,6 +337,10 @@ class ExistQueryTest(unittest.TestCase):
         self.assert_('four' in vals)
         self.assert_('abc' not in vals)
 
+    def test_namespaces(self):
+        # filter on a field with a namespace
+        fqs = self.qs.filter(nsfield='namespaced').all()
+        self.assertEqual('namespaced', fqs[0].nsfield)
 
 class ExistQueryTest__FullText(unittest.TestCase):
     # when full-text indexing is enabled, eXist must index files when they are loaded to the db
@@ -359,7 +368,7 @@ class ExistQueryTest__FullText(unittest.TestCase):
         load_fixtures(self.db)
 
         self.qs = QuerySet(using=self.db, xpath='/root',
-            collection=COLLECTION, model=QueryTestModel)
+                           collection=COLLECTION, model=QueryTestModel)
 
     def tearDown(self):
         self.db.removeCollection(COLLECTION)
@@ -368,7 +377,7 @@ class ExistQueryTest__FullText(unittest.TestCase):
     def test_filter_fulltext_terms(self):
         fqs = self.qs.filter(description__fulltext_terms='only two')
         self.assertEqual(1, fqs.count(),
-            "should get 1 match for fulltext_terms search on = 'only two' (got %s)" % fqs.count())
+                         "should get 1 match for fulltext_terms search on = 'only two' (got %s)" % fqs.count())
 
     def test_order_by__fulltext_score(self):
         fqs = self.qs.filter(description__fulltext_terms='one').order_by('-fulltext_score')
@@ -404,7 +413,7 @@ class ExistQueryTest__FullText(unittest.TestCase):
     def test_highlight(self):
         fqs = self.qs.filter(highlight='supercalifragilistic')
         self.assertEqual(4, fqs.count(),
-            "highlight filter returns all documents even though search term is not present")
+                         "highlight filter returns all documents even though search term is not present")
             
         fqs = self.qs.filter(highlight='one').order_by('id')
         self.assert_('<exist:match' in fqs[0].serialize())
@@ -570,8 +579,16 @@ class XqueryTest(unittest.TestCase):
         self.assertEqual('<field>{$n/name|$n/title}</field>', xq.prep_xpath('/name|title', return_field=True))
         # multiple ORs
         self.assertEqual('<field>{$n/name|$n/title|$n/@year}</field>',
-                xq.prep_xpath('/name|/title|@year', return_field=True))
+                         xq.prep_xpath('/name|/title|@year', return_field=True))
 
+    def test_namespaces(self):
+        xq = Xquery(xpath='/foo:el', namespaces={'foo': 'urn:foo#'})
+        ns_declaration = '''declare namespace foo='urn:foo#';'''
+        # xpath-only xquery should have namespace declaration
+        self.assert_(ns_declaration in xq.getQuery())
+        # full FLOWR xquery should also have declaration
+        xq.return_only({'id':'@id'})
+        self.assert_(ns_declaration in xq.getQuery())
 
 
 if __name__ == '__main__':
