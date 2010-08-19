@@ -3,10 +3,6 @@
 import sys
 from django.core.management import setup_environ
 
-def setup_test_environ():
-    from django_tester import settings
-    setup_environ(settings)
-
 def run_django_tests(argv=None, extras=[]):
     # this code inlined (with simplifications) from relevant manage.py code
     
@@ -17,6 +13,18 @@ def run_django_tests(argv=None, extras=[]):
     # use our settings file to bootstrap the test environment, then switch
     # to the official one.
     setup_test_environ()
+
+    if test_apps and test_apps[0] == 'shell':
+        _execute_manager(argv)
+    else:
+        if _execute_tests(test_apps, extras):
+            sys.exit(1)
+
+def setup_test_environ():
+    from django_tester import settings
+    setup_environ(settings)
+
+def _execute_tests(test_apps=[], extras=[]):
     from django.conf import settings
 
     # FIXME: if we don't import existdb here, starting_tests doesn't get
@@ -37,8 +45,12 @@ def run_django_tests(argv=None, extras=[]):
                 extra_tests=extras)
     finished_tests.send(None)
 
-    if failures:
-        sys.exit(failures)
+    return failures
+
+def _execute_manager(argv=None):
+    from django.core.management import ManagementUtility
+    utility = ManagementUtility(argv)
+    utility.execute()
 
 if __name__ == '__main__':
     run_django_tests()
