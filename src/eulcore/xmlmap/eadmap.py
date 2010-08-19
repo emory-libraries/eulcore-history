@@ -26,7 +26,7 @@ class Note(xmlmap.XmlObject):
 
 class Section(xmlmap.XmlObject):
     """Generic EAD section.  Currently only has mappings for head, paragraph, and note."""
-    head   = xmlmap.StringField("head")
+    head   = xmlmap.NodeField("head", xmlmap.XmlObject)
     "heading - `head`"
     content = xmlmap.NodeListField("p", xmlmap.XmlObject)       # ??
     "list of paragraphs - `p`"
