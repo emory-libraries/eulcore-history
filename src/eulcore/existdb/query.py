@@ -570,7 +570,9 @@ class Xquery(object):
         # remove leading / from collection name (if any)
         self.collection = collection.lstrip('/') if collection is not None else None
         self.filters = []
+        # info for filters that use special fields & require let/where in xquery
         self.where_filters = []
+        self.where_fields = []
         # sort information - field to sort on, ascending/descending
         self.order_by = None
         self.order_mode = None
@@ -592,6 +594,7 @@ class Xquery(object):
         xq = Xquery(xpath=self.xpath, collection=self.collection)
         xq.filters += self.filters
         xq.where_filters += self.where_filters
+        xq.where_fields = self.where_fields
         xq.order_by = self.order_by
         xq.order_mode = self.order_mode
         xq._distinct = self._distinct
@@ -629,7 +632,8 @@ class Xquery(object):
             let = []
             for field in self.special_fields:
                 if field == self.order_by or field in self.return_fields \
-                        or field in self.additional_return_fields:
+                        or field in self.additional_return_fields \
+                        or field in self.where_fields:
                     # determine how to calculate the value of the requested field
                     if field == 'fulltext_score':
                         val = 'ft:score(%s)' % self.xq_var
@@ -717,8 +721,9 @@ class Xquery(object):
         _xpath = xpath
         if xpath in self.special_fields:
             # filters on pre-defined 'special' fields need a little extra handling
-            # - add to additional fields to ensure special field is defined as xq variable
-            self.return_also({xpath:''})
+            # add to list of 'where' fields to ensure special field is defined as xq variable
+            # - can't know if user wants a return only or a return also
+            self.where_fields.append(xpath)
             # - adjust filter xpath to use $, to reference xq variable for special field
             _xpath = '$%s' % xpath
         
