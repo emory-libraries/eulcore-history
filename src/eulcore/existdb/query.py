@@ -649,7 +649,7 @@ class Xquery(object):
                         val = 'xmldb:last-modified(util:collection-name(%(var)s), util:document-name(%(var)s))' % \
                             {'var': self.xq_var }
                     elif field == 'match_count':
-                        val = 'count(%(var)s//exist:match)' % {'var': self.xq_var }
+                        val = 'count(util:expand(%(var)s)//exist:match)' % {'var': self.xq_var }
 
                     # define an xquery variable with the same name as the special field
                     let.append('let $%s := %s' % (field, val))
