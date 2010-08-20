@@ -17,6 +17,7 @@
 import unittest
 
 from django import forms
+from django.forms.formsets import BaseFormSet
 
 from eulcore import xmlmap
 from eulcore.xmlmap.fields import DateField     # not yet supported - testing for errors
@@ -38,7 +39,7 @@ class TestObject(xmlmap.XmlObject):
     bool = xmlmap.SimpleBooleanField('boolean', 'yes', 'no')
     longtext = xmlmap.StringField('longtext', normalize=True)
     child = xmlmap.NodeField('bar[1]', TestSubobject)
-    #children = xmlmap.NodeListField('bar', TestSubobject)      # lists not handled yet
+    children = xmlmap.NodeListField('bar', TestSubobject)
     my_opt = xmlmap.StringField('opt', choices=['a', 'b', 'c'])
 
 FIXTURE_TEXT = '''
@@ -70,8 +71,18 @@ class XmlObjectFormTest(unittest.TestCase):
         'bool': False,
         'id': 'b',
         'my_opt': 'c',
+        # children formset
+        'children-TOTAL_FORMS': 5,
+        'children-INITIAL_FORMS': 2,
+        'children-0-id2': 'two',
+        'children-0-val': 2,
+        'children-1-id2': 'twenty-one',
+        'children-1-val': 21,
+        'children-2-id2': 'five',
+        'children-2-val': 5,
+        'children-3-id2': 'four',
+        'children-3-val': 20,
         }
-
 
     def setUp(self):
         # instance of form with no test object
@@ -363,13 +374,59 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertEqual(2, instance.child.val)
         self.assertEqual('two', instance.child.id2)
 
+    def test_formsets(self):
+        # nodelistfields should be created as formsets on the object
+        formset = self.new_form.formsets['children']
+        self.assert_(isinstance(formset, BaseFormSet),
+            'form has a BaseFormSet formset')
+        self.assertEqual('TestSubobjectXmlObjectFormFormSet', formset.__class__.__name__)
+
+        subform = formset.forms[0]
+        self.assert_(isinstance(subform, XmlObjectForm),
+            'formset forms are XmlObjectForms')
+        self.assertEqual('TestSubobjectXmlObjectForm', subform.__class__.__name__)
+        self.assertEqual('children-0', subform.prefix)
+
+        # subform fields
+        self.assert_('val' in subform.base_fields,
+            'val field is present in subform fields')
+        self.assert_('id2' in subform.base_fields,
+            'id2 field is present in subform fields')
+
+        # initialize with an instance and verify initial values
+        formset = self.update_form.formsets['children']
+        self.assertEqual('forty-two', formset.forms[0].initial['id2'])
+        self.assertEqual(42, formset.forms[0].initial['val'])
+        self.assertEqual(None, formset.forms[1].initial['id2'])
+        self.assertEqual(13, formset.forms[1].initial['val'])
+
+        # initialize with an instance and form data
+        update_form = TestForm(self.post_data, instance=self.testobj)
+        formset = update_form.formsets['children']
+        self.assertTrue(update_form.is_valid())
+        self.assertTrue(formset.is_valid())
+        instance = update_form.update_instance()
+        self.assertEqual(4, len(instance.children))
+        self.assertEqual('two', instance.children[0].id2)
+        self.assertEqual(2, instance.children[0].val)
+        self.assertEqual('twenty-one', instance.children[1].id2)
+        self.assertEqual(21, instance.children[1].val)
+        self.assertEqual('five', instance.children[2].id2)
+        self.assertEqual(5, instance.children[2].val)
+        self.assertEqual('four', instance.children[3].id2)
+        self.assertEqual(20, instance.children[3].val)
+
+
     def test_is_valid(self):
-        # missing required fields for main form but not subform
-        form = TestForm({'int': 21, 'child-id2': 'two', 'child-val': 2 })
+        # missing required fields for main form but not subform or formsets
+        form = TestForm({'int': 21, 'child-id2': 'two', 'child-val': 2,
+                         'children-TOTAL_FORMS': 5, 'children-INITIAL_FORMS': 2, })
         self.assertFalse(form.is_valid(),
             "form is not valid when required top-level fields are missing")
-        # no subform fields
-        form = TestForm({'int': 21, 'bool': True, 'id': 'b', 'longtext': 'short'})
+
+        # no subform fields but have formsets
+        form = TestForm({'int': 21, 'bool': True, 'id': 'b', 'longtext': 'short',
+                         'children-TOTAL_FORMS': 5, 'children-INITIAL_FORMS': 2, })
         self.assertFalse(form.is_valid(),
             "form is not valid when required subform fields are missing")
 
