@@ -173,6 +173,17 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual(1, fqs.count(),
             "should get 1 match for filter on sub_subname = 'la' (got %s)" % fqs.count())
 
+    def test_filter_in(self):
+        fqs = self.qs.filter(id__in=['abc','xyz', 'qrs'])
+        self.assertEqual(2, fqs.count(),
+            "should get 2 match for filter on id in list (got %s)" % fqs.count())
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+
+        fqs = self.qs.filter(document_name__in=['f1.xml','f2.xml'])
+        self.assertEqual(2, fqs.count(),
+            "should get 2 match for filter on document name in list (got %s)" % fqs.count())
+        self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
+
     def test_get(self):
         result  = self.qs.get(contains="two")
         self.assert_(isinstance(result, QueryTestModel), "get() with contains returns single result")
@@ -473,6 +484,17 @@ class XqueryTest(unittest.TestCase):
         xq = Xquery(xpath='/el')
         xq.add_filter('.', 'contains', '"&')
         self.assertEquals('/el[contains(., """&amp;")]', xq.getQuery())
+
+    def test_filter_in(self):
+        xq = Xquery(xpath='/el')
+        xq.add_filter('@id', 'in', ['a', 'b', 'c'])
+        self.assertEquals('/el[contains(("a","b","c"), @id)]', xq.getQuery())
+
+        # filter on a 'special' field - requires let & where statements
+        xq = Xquery(xpath='/el')
+        xq.add_filter('document_name', 'in', ['a.xml', 'b.xml'])
+        self.assert_('let $document_name' in xq.getQuery())
+        self.assert_('where contains(("a.xml","b.xml"), $document_name)' in xq.getQuery())
 
     def test_return_only(self):
         xq = Xquery(xpath='/el')
