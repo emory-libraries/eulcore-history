@@ -38,6 +38,8 @@ from eulcore.xmlmap.fields import IntegerField, StringField, DateField, NodeFiel
 from eulcore.xmlmap.core import XmlObjectType
 from eulcore.xpath import ast, parse, serialize
 from eulcore.existdb.exceptions import DoesNotExist, ReturnedMultiple
+import logging
+logger = logging.getLogger(__name__)
 
 __all__ = ['QuerySet', 'Xquery']
 
@@ -456,7 +458,7 @@ class QuerySet(object):
 
     def _runQuery(self):
         """Execute the currently configured query."""
-#        print "DEBUG: exist query:\n", self.query.getQuery()
+        logger.debug( "exist query:\n%s"% (self.query.getQuery()) )
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
     def getDocument(self, docname):
@@ -509,6 +511,7 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None,
                 field_type = DateField
             elif name == 'match_count':
                     field_type = IntegerField
+                    logger.debug("FIELD:%s: TYPE:%s" % (name, field_type))
             elif fields is None or isinstance(fields, basestring):
                 field_type = StringField	# handle special cases like fulltext score
             else:
