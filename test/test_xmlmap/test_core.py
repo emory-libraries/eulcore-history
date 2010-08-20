@@ -167,6 +167,11 @@ class TestXmlObject(unittest.TestCase):
         xml_s = self.obj.serialize()        
         self.assert_("<baz>42</baz>" in xml_s)
 
+        # serialize subobjects
+        baz = self.obj.node.xpath('bar/baz[1]')[0]
+        baz_obj = xmlmap.XmlObject(baz)
+        self.assertEqual('<baz>42</baz>', baz_obj.serialize().strip())
+
     def test_serialize_tofile(self):
         FILE = tempfile.TemporaryFile()
         self.obj.serialize(stream=FILE)

@@ -287,7 +287,7 @@ class XmlObject(object):
 
         # NOTE: etree c14n doesn't seem to like fedora info: URIs
         #self.node.getroottree().write_c14n(stream)
-        stream.write(etree.tostring(self.node.getroottree(), encoding='UTF-8', pretty_print=pretty))
+        stream.write(etree.tostring(self.node, encoding='UTF-8', pretty_print=pretty))
 
         if string_mode:
             data = stream.getvalue()
