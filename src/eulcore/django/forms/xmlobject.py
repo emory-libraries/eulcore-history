@@ -494,19 +494,31 @@ class XmlObjectForm(BaseForm):
         parts = []
         parts.append(super(XmlObjectForm, self)._html_output(normal_row, error_row, row_ender,
                 help_text_html, errors_on_separate_row))
+
+        def _subform_output(subform):
+            return subform._html_output(normal_row, error_row, row_ender, help_text_html, errors_on_separate_row)
+
         for name, subform in self.subforms.iteritems():
-            # pass the configured html section to subform in case of any sub-subforms
-            subform._html_section = self._html_section
-            subform_html = subform._html_output(normal_row, error_row, row_ender,
-                    help_text_html, errors_on_separate_row)
-            # if html section is configured, add section label and wrapper for
-            if self._html_section is not None:
-                parts.append(self._html_section %
-                    {'label': fieldname_to_label(name), 'content': subform_html} )
-            else:
-                parts.append(subform_html)
+            parts.append(self._html_subform_output(subform, name, _subform_output))
+
+        for name, formset in self.formsets.iteritems():
+            parts.append(unicode(formset.management_form))
+            for subform in formset.forms:
+                parts.append(self._html_subform_output(subform, name, _subform_output))
 
         return mark_safe(u'\n'.join(parts))
+
+    def _html_subform_output(self, subform, name, _html_output):
+        # pass the configured html section to subform in case of any sub-subforms
+        subform._html_section = self._html_section
+        subform_html = _html_output(subform)
+        # if html section is configured, add section label and wrapper for
+        if self._html_section is not None:
+            return self._html_section % \
+                {'label': fieldname_to_label(name), 'content': subform_html}
+        else:
+            return subform_html
+        
 
     # intercept the three standard html output formats to set an appropriate section format
     def as_table(self):
