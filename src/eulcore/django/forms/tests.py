@@ -436,3 +436,17 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertTrue(form.is_valid(),
             "form is valid when top-level and subform required fields are present")
 
+
+    def test_not_required(self):
+        class MyForm(TestForm):
+            id = forms.CharField(label='my id', required=False)
+
+        data = self.post_data.copy()
+        data['id'] = ''
+        form = MyForm(data)
+        self.assertTrue(form.is_valid(),
+            'form is valid when non-required override field is empty')
+        instance = form.update_instance()
+        # empty string should actually remove node frome the xml
+        self.assertEqual(None, instance.id)
+        self.assertEqual(0, instance.node.xpath('count(@id)'))

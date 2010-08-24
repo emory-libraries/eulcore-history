@@ -429,6 +429,11 @@ class XmlObjectForm(BaseForm):
             if opts.exclude and name in opts.parsed_exclude.fields:
                 continue
             if name in self.cleaned_data:
+                # special case: we don't want empty attributes and elements
+                # for fields which returned no data from the form
+                # converting '' to None and letting XmlObject handle
+                if self.cleaned_data[name] == '':
+                    self.cleaned_data[name] = None
                 setattr(self.instance, name, self.cleaned_data[name])
 
         # update sub-model portions via any subforms
