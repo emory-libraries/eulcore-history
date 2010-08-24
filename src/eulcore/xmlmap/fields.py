@@ -746,6 +746,10 @@ class SchemaField(Field):
         self.xpath = xpath
         self.schema_type = schema_type
 
+        # SchemaField does not use common Field init logic; handle creation counter
+        self.creation_counter = Field.creation_counter
+        Field.creation_counter += 1
+
     def get_field(self, schema):
         """Get the requested type definition from the schema and return the
         appropriate :class:`~eulcore.xmlmap.fields.Field`.
@@ -761,8 +765,12 @@ class SchemaField(Field):
         # TODO: possibly also useful to look for pattern restrictions
         
         basetype = type.base_type()
-        if basetype == 'string':            
-            return StringField(self.xpath, **kwargs)
+        if basetype == 'string':
+            # copy original creation counter to newly created field
+            # to preserve declaration order
+            newfield = StringField(self.xpath, **kwargs)
+            newfield.creation_counter = self.creation_counter
+            return newfield
         else:
             raise Exception("basetype %s is not yet supported by SchemaField" % basetype)
 
