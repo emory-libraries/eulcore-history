@@ -388,7 +388,7 @@ class XmlObjectForm(BaseForm):
 
     def _init_subforms(self, data=None, prefix=None):
         # initialize each subform class with the appropriate model instance and data
-        self.subforms = {}
+        self.subforms = SortedDict()    # create as sorted dictionary to preserve order
         for name, subform in self.__class__.subforms.iteritems():
             # instantiate the new form with the current field as instance, if available
             if self.instance is not None:
@@ -499,7 +499,7 @@ class XmlObjectForm(BaseForm):
 
         for name, subform in self.subforms.iteritems():
             parts.append(self._html_subform_output(subform, name, _subform_output))
-
+        
         for name, formset in self.formsets.iteritems():
             parts.append(unicode(formset.management_form))
             for subform in formset.forms:
