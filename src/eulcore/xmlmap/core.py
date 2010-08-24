@@ -49,6 +49,8 @@ class _FieldDescriptor(object):
     def __set__(self, obj, value):        
         return self.field.set_for_node(obj.node, obj.context, value)
 
+    def __delete__(self, obj):
+        return self.field.delete_for_node(obj.node, obj.context)
 
 class XmlObjectType(type):
 

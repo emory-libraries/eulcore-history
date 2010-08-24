@@ -60,13 +60,18 @@ class Field(object):
     def set_for_node(self, node, context, value):
         return self.manager.set(self.xpath, self.parsed_xpath, node, context, self.mapper, value)
 
+    def delete_for_node(self, node, context):
+        return self.manager.delete(self.xpath, self.parsed_xpath, node, context, self.mapper)
 
 # data mappers to translate between identified xml nodes and Python values
 
 class Mapper(object):
     # generic mapper to_xml function
     def to_xml(self, value):
-        return unicode(value)
+        if value is None:
+            return value
+        else:
+            return unicode(value)
 
 class StringMapper(Mapper):
     XPATH = etree.XPath('string()')
@@ -380,6 +385,13 @@ class SingleNodeManager(object):
             step = _find_terminal_step(xast)
             _set_in_xml(match, xvalue, context, step)
 
+    def delete(self, xpath, xast, node, context, mapper):
+        match = _find_xml_node(xpath, node, context)
+        # match must be None. if it exists, delete it.
+        if match is not None:
+            _remove_xml(xast, node, context)
+            
+
 class NodeList(object):
     """Custom List-like object to handle ListFields like :class:`IntegerListField`,
     :class:`StringListField`, and :class:`NodeListField`, which allows for getting,
@@ -546,6 +558,12 @@ class NodeList(object):
 class NodeListManager(object):
     def get(self, xpath, node, context, mapper, xast):
         return NodeList(xpath, node, context, mapper, xast)
+
+    def delete(self, xpath, xast, node, context, mapper):
+        list = self.get(xpath, node, context, mapper, xast)
+        [list.remove(x) for x in list]
+
+
 
 # finished field classes mixing a manager and a mapper
 

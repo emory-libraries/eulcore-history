@@ -142,6 +142,37 @@ class TestFields(unittest.TestCase):
         # attempting to set a node that contains non-text nodes - error
         self.assertRaises(Exception, obj.__setattr__, "mixed", "whoops")
 
+        # set an existing string value to None
+        # - attribute
+        obj.id = None
+        # check that attribute was removed from the xml
+        self.assertEqual(0, obj.node.xpath('count(@id)'))
+        self.assertEqual(None, obj.id)
+        # - element
+        obj.val = None
+        # check that node is removed from the xml
+        self.assertEqual(0, obj.node.xpath('count(bar[1]/baz)'))
+        self.assertEqual(None, obj.val)
+
+        # set to empty string - should store empty string and NOT remove the node
+        # - attribute
+        obj.id = ''
+        # check that attribute was removed from the xml
+        self.assertEqual('', obj.node.xpath('string(@id)'))
+        self.assertEqual('', obj.id)
+        # - element
+        obj.val = ''
+        # check that node is removed from the xml
+        self.assertEqual('', obj.node.xpath('string(bar[1]/baz)'))
+        self.assertEqual('', obj.val)
+
+        # delete
+        delattr(obj, 'spacey')
+        # check that node is removed from the xml
+        self.assertEqual(0, obj.node.xpath('count(spacey)'))
+        self.assertEqual(None, obj.spacey)
+
+
     def testStringListField(self):
         class TestObject(xmlmap.XmlObject):
             vals = xmlmap.StringListField('bar/baz')
@@ -154,6 +185,12 @@ class TestFields(unittest.TestCase):
 
         # access normalized string list field
         self.assertEqual("this text needs to be normalized", obj.spacey[0])
+
+        # delete list field
+        delattr(obj, 'spacey')
+        # check that node is removed from the xml
+        self.assertEqual(0, obj.node.xpath('count(spacey)'))
+        self.assertEqual([], obj.spacey)
 
 
     def testIntegerField(self):
