@@ -174,25 +174,25 @@ class ExistQueryTest(unittest.TestCase):
     def test_filter_in(self):
         fqs = self.qs.filter(id__in=['abc','xyz', 'qrs'])
         self.assertEqual(2, fqs.count(),
-            "should get 2 match for filter on id in list (got %s)" % fqs.count())
+            "should get 2 matches for filter on id in list (got %s)" % fqs.count())
         self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
         fqs = self.qs.filter(document_name__in=['f1.xml','f2.xml'])
         self.assertEqual(2, fqs.count(),
-            "should get 2 match for filter on document name in list (got %s)" % fqs.count())
+            "should get 2 matches for filter on document name in list (got %s)" % fqs.count())
         self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
         # filtering on a special field - should still be able to return/access it via only
         fqs = self.qs.filter(document_name__in=['f1.xml','f2.xml']).only('id', 'document_name')
         fqs.order_by('document_name')
         self.assertEqual(2, fqs.count(),
-            "should get 2 match for filter on document name in list (got %s)" % fqs.count())
+            "should get 2 matches for filter on document name in list (got %s)" % fqs.count())
         self.assertEqual('f1.xml', fqs[0].document_name)
 
         fqs = self.qs.filter(document_name__in=['f1.xml','f2.xml']).also('id', 'document_name')
         fqs.order_by('document_name')
         self.assertEqual(2, fqs.count(),
-            "should get 2 match for filter on document name in list (got %s)" % fqs.count())
+            "should get 2 matches for filter on document name in list (got %s)" % fqs.count())
         self.assertEqual('f1.xml', fqs[0].document_name)
 
     def test_get(self):
