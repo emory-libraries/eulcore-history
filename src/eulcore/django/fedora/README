@@ -23,7 +23,7 @@ Projects that use this module should include the following settings in their
     # Fedora Repository settings
     FEDORA_ROOT = 'http://fedora.host.name:8080/fedora/'
     FEDORA_USER = 'user'
-    FEDORA_PASS = 'password'
+    FEDORA_PASSWORD = 'password'
     FEDORA_PIDSPACE = 'changeme'
     FEDORA_TEST_ROOT = 'http://fedora.host.name:8180/fedora/'
     FEDORA_TEST_PIDSPACE = 'testme'

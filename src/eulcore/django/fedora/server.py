@@ -29,7 +29,7 @@ class Repository(server.Repository):
         if username is None and hasattr(settings, 'FEDORA_USER'):
             username = settings.FEDORA_USER
         if password is None and hasattr(settings, 'FEDORA_PASS'):
-            password = settings.FEDORA_PASS
+            password = settings.FEDORA_PASSWORD
         super(Repository, self).__init__(settings.FEDORA_ROOT, username, password)
 
         if hasattr(settings, 'FEDORA_PIDSPACE'):
