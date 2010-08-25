@@ -18,47 +18,56 @@ from eulcore import xmlmap
 
 # TODO: generic/base tei xml object with common attributes?
 
-class TeiDiv(xmlmap.XmlObject):
-    id       = xmlmap.StringField('@id')
+TEI_NAMESPACE = 'http://www.tei-c.org/ns/1.0'
+
+class _TeiBase(xmlmap.XmlObject):
+    '''Common TEI namespace declarations, for use by all TEI XmlObject instances.'''
+    ROOT_NS = TEI_NAMESPACE
+    ROOT_NAME = 'tei'
+    ROOT_NAMESPACES = {
+        'tei' : ROOT_NS,
+    }
+
+class TeiDiv(_TeiBase):
+    id       = xmlmap.StringField('@xml:id')
     type     = xmlmap.StringField('@type')
-    author   = xmlmap.StringField('docAuthor')
+    author   = xmlmap.StringField('tei:docAuthor')
     title    = xmlmap.StringField('@n')  # is this mapping relevant/valid/useful?
     text     = xmlmap.StringField('.')   # short-hand mapping for full text of a div (e.g., for short divs)
     # reference to top-level elements, e.g. for retrieving a single div
-    doctitle = xmlmap.StringField('ancestor::TEI.2/teiHeader/fileDesc/titleStmt/title')
-    doc_id   = xmlmap.StringField('ancestor::TEI.2/@id')
-    div      = xmlmap.NodeListField('div', 'self')
+    doctitle = xmlmap.StringField('ancestor::tei:TEI/tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:title')
+    doc_id   = xmlmap.StringField('ancestor::tei:TEI/@xml:id')
+    div      = xmlmap.NodeListField('tei:div', 'self')
 
-class TeiSection(xmlmap.XmlObject):
+class TeiSection(_TeiBase):
     # top-level sections -- front/body/back
-    div = xmlmap.NodeListField('div', TeiDiv)
+    div = xmlmap.NodeListField('tei:div', TeiDiv)
 
 # note: not currently mapped to any of the existing tei objects...  where to add?
-class TeiFigure(xmlmap.XmlObject):
+class TeiFigure(_TeiBase):
     entity      = xmlmap.StringField("@entity")
     # TODO: ana should be a more generic attribute, common to many elements...
     ana         = xmlmap.StringField("@ana")    # FIXME: how to split on spaces? should be a list...
-    head        = xmlmap.StringField("head")
-    description = xmlmap.StringField("figDesc")
+    head        = xmlmap.StringField("tei:head")
+    description = xmlmap.StringField("tei:figDesc")
 
 # currently not mapped... should it be mapped by default? at what level?
-class TeiInterp(xmlmap.XmlObject):
-    id          = xmlmap.StringField("@id")
+class TeiInterp(_TeiBase):
+    id          = xmlmap.StringField("@xml:id")
     value       = xmlmap.StringField("@value")
 
-class TeiInterpGroup(xmlmap.XmlObject):
+class TeiInterpGroup_TeiBase):
     type        = xmlmap.StringField("@type")
-    interp      = xmlmap.NodeListField("interp", TeiInterp)
+    interp      = xmlmap.NodeListField("tei:interp", TeiInterp)
 
 class Tei(xmlmap.XmlObject):
     """xmlmap object for a TEI (Text Encoding Initiative) XML document """
-    id     = xmlmap.StringField('@id')
-    title  = xmlmap.StringField('teiHeader/fileDesc/titleStmt/title')
-    author = xmlmap.StringField('teiHeader/fileDesc/titleStmt/author')
-    editor = xmlmap.StringField('teiHeader/fileDesc/titleStmt/editor')
+    id     = xmlmap.StringField('@xml:id')
+    title  = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:title')
+    author = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:author')
+    editor = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:editor')
 
-    front  = xmlmap.NodeField('text/front', TeiSection)
-    body   = xmlmap.NodeField('text/body', TeiSection)
-    back   = xmlmap.NodeField('text/back', TeiSection)
-    
+    front  = xmlmap.NodeField('tei:text/tei:front', TeiSection)
+    body   = xmlmap.NodeField('tei:text/tei:body', TeiSection)
+    back   = xmlmap.NodeField('tei:text/tei:back', TeiSection)
 
