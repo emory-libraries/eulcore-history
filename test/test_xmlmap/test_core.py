@@ -180,6 +180,11 @@ class TestXmlObject(unittest.TestCase):
         self.assert_("<baz>13</baz>" in FILE.read())
         FILE.close()
 
+    def test_serializeDocument(self):
+        obj = xmlmap.load_xmlobject_from_string(TestXmlObjectStringInit.VALID_XML)
+        xmlstr = obj.serializeDocument()
+        self.assert_('<!DOCTYPE a' in xmlstr)
+
     def test_isvalid(self):
         # attempting schema-validation on an xmlobject with no schema should raise an exception
         self.assertRaises(Exception, self.obj.schema_valid)

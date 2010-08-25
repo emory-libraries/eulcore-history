@@ -274,13 +274,29 @@ class XmlObject(object):
         return True
 
     def serialize(self, stream=None, pretty=False):
-        """Serialize the contents of the XmlObject to a stream.
+        """Serialize the contents of the XmlObject to a stream.  Serializes
+        current node only; for the entire XML document, use :meth:`serializeDocument`.
 
         If no stream is specified, returns a string.
         :param stream: stream or other file-like object to write content to (optional)
         :param pretty: pretty-print the XML output; boolean, defaults to False
         :rtype: stream passed in or an instance of :class:`cStringIO.StringIO`
         """
+        return self._serialize(self.node, stream=stream, pretty=pretty)
+
+    def serializeDocument(self, stream=None, pretty=False):
+        """Serialize the contents of the entire XML document (including Doctype
+        declaration, if there is one) for the current XmlObject to a stream.
+
+        If no stream is specified, returns a string.
+        :param stream: stream or other file-like object to write content to (optional)
+        :param pretty: pretty-print the XML output; boolean, defaults to False
+        :rtype: stream passed in or an instance of :class:`cStringIO.StringIO`
+        """
+        return self._serialize(self.node.getroottree(), stream=stream, pretty=pretty)
+
+    def _serialize(self, node, stream=None, pretty=False):
+        # actual logic of xml serialization
         if stream is None:
             string_mode = True
             stream = cStringIO.StringIO()
@@ -288,14 +304,13 @@ class XmlObject(object):
             string_mode = False
 
         # NOTE: etree c14n doesn't seem to like fedora info: URIs
-        #self.node.getroottree().write_c14n(stream)
-        stream.write(etree.tostring(self.node, encoding='UTF-8', pretty_print=pretty))
+        stream.write(etree.tostring(node, encoding='UTF-8', pretty_print=pretty))
 
         if string_mode:
             data = stream.getvalue()
             stream.close()
             return data
-        
+
         return stream
 
     def is_valid(self):
