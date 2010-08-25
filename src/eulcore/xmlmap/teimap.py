@@ -56,11 +56,11 @@ class TeiInterp(_TeiBase):
     id          = xmlmap.StringField("@xml:id")
     value       = xmlmap.StringField("@value")
 
-class TeiInterpGroup_TeiBase):
+class TeiInterpGroup(_TeiBase):
     type        = xmlmap.StringField("@type")
     interp      = xmlmap.NodeListField("tei:interp", TeiInterp)
 
-class Tei(xmlmap.XmlObject):
+class Tei(_TeiBase):
     """xmlmap object for a TEI (Text Encoding Initiative) XML document """
     id     = xmlmap.StringField('@xml:id')
     title  = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:title')
