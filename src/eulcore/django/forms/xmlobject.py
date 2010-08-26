@@ -189,27 +189,26 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
         # datefield ? - not yet well-supported; leaving out for now        
         # ... should probably distinguish between date and datetime field
         
-        elif isinstance(field, xmlmap.fields.NodeField):
-            # define a new xmlobject form for the nodefield class
+        elif isinstance(field, xmlmap.fields.NodeField) or \
+            isinstance(field, xmlmap.fields.NodeListField):
+            # define a new xmlobject form for the nodefield or nodelistfield class
             # grab any options passed in for fields under this one
             subform_opts = {
                 'fields': fieldlist.subfields[name] if fieldlist and name in fieldlist.subfields else None,
                 'exclude': excludelist.subfields[name] if excludelist and name in excludelist.subfields else None,
                 'widgets': widgets[name] if widgets and name in widgets else None,
             }
+            # if a subform class was declared, use that as form class in factory call
             if name in declared_subforms:
                 subform_opts['form'] = declared_subforms[name]
-            subforms[name] = xmlobjectform_factory(field.node_class, **subform_opts)
-        elif isinstance(field, xmlmap.fields.NodeListField):
-            subform_opts = {
-                'fields': fieldlist.subfields[name] if fieldlist and name in fieldlist.subfields else None,
-                'exclude': excludelist.subfields[name] if excludelist and name in excludelist.subfields else None,
-                'widgets': widgets[name] if widgets and name in widgets else None,
-            }
-            if name in declared_subforms:
-                subform_opts['form'] = declared_subforms[name]
+
+            # create the subform class
             subform = xmlobjectform_factory(field.node_class, **subform_opts)
-            formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet)
+            # store subform or generate and store formset, depending on field type
+            if isinstance(field, xmlmap.fields.NodeField):
+                subforms[name] = subform
+            elif isinstance(field, xmlmap.fields.NodeListField):
+                formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet)
 
         else:
             # raise exception for unsupported fields
