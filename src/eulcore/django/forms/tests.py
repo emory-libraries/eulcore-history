@@ -29,7 +29,7 @@ from eulcore.django.forms.xmlobject import XmlObjectFormType
 
 class TestSubobject(xmlmap.XmlObject):
     ROOT_NAME = 'bar'
-    val = xmlmap.IntegerField('baz')
+    val = xmlmap.IntegerField('baz', required=False)
     id2 = xmlmap.StringField('@id')
 
 class TestObject(xmlmap.XmlObject):
@@ -37,7 +37,7 @@ class TestObject(xmlmap.XmlObject):
     id = xmlmap.StringField('@id')
     int = xmlmap.IntegerField('bar[2]/baz')
     bool = xmlmap.SimpleBooleanField('boolean', 'yes', 'no')
-    longtext = xmlmap.StringField('longtext', normalize=True)
+    longtext = xmlmap.StringField('longtext', normalize=True, required=False)
     child = xmlmap.NodeField('bar[1]', TestSubobject)
     children = xmlmap.NodeListField('bar', TestSubobject)
     my_opt = xmlmap.StringField('opt', choices=['a', 'b', 'c'])
@@ -129,6 +129,9 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertEqual(expected, got, "form field label should be set to " + \
             "xmlmap field name; expected %s, got %s" % (expected, got))
 
+        # required value from xmlobject field
+        self.assertFalse(formfields['longtext'].required,
+            'form field generated from xmlobject field with required=False is not required')
 
     def test_field_value_from_instance(self):
         # when form is initialized from an xmlobject instance, form should 
@@ -352,6 +355,10 @@ class XmlObjectFormTest(unittest.TestCase):
         # subform fields - uses same logic tested above, so doesn't need thorough testing here
         self.assert_('val' in subform.base_fields, 'val field is present in subform fields')
         self.assert_('id2' in subform.base_fields, 'int field is present in subform fields')
+
+        # required setting from xmlobject field
+        self.assertFalse(subform.base_fields['val'].required,
+            'form field generated from xmlobject field with required=False is not required')
 
         # subform is initialized with appropriate instance data
         subform = self.update_form.subforms['child']

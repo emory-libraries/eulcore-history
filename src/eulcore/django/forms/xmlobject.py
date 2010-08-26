@@ -171,10 +171,19 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
             kwargs = {}
         # get apppropriate form widget based on xmlmap field type
         field_type = None
+
+        # if the xmlmap field knows whether or not it is required, use for form
+        if field.required is not None:
+            kwargs['required'] = field.required
+            
         if hasattr(field, 'choices') and field.choices:
             # if a field has choices defined, use a choice field (no matter what base type)
             field_type = ChoiceField
             kwargs['choices'] = [(val, val) for val in field.choices]
+            # FIXME: how to properly do non-required choice field?
+            # if field is optional, add a blank choice at the beginning of the list
+            if field.required == False and '' not in field.choices:
+                kwargs['choices'].insert(0, ('', '--'))
         elif isinstance(field, xmlmap.fields.StringField):
             field_type = CharField
         elif isinstance(field, xmlmap.fields.IntegerField):
