@@ -56,10 +56,23 @@ __all__ = [ 'lexer', 'parser', 'parse', 'serialize' ]
 # fix.
 
 OPERATOR_FORCERS = set([
+    # @, ::, (, [
     'ABBREV_AXIS_AT', 'AXIS_SEP', 'OPEN_PAREN', 'OPEN_BRACKET',
+    # Operators: OperatorName
     'AND_OP', 'OR_OP', 'MOD_OP', 'DIV_OP', 'MULT_OP',
-    'PATH_SEP', 'ABBREV_PATH_SEP', 'UNION_OP', 'PLUS_OP', 'MINUS_OP',
+    # Operators: MultiplyOperator
+    'PATH_SEP',
+    # Operators: /, //, |, +, -
+    'ABBREV_PATH_SEP', 'UNION_OP', 'PLUS_OP', 'MINUS_OP',
+    # Operators: =. !=, <, <=, >, >=
     'EQUAL_OP', 'REL_OP',
+
+    # Also need to add : . Official XPath lexing rules are in terms of
+    # QNames, but we produce QNames in the parse layer. We need to include :
+    # here to force foo:div to be a single step, otherwise that last div
+    # would be interpreted as an operator (where standard xpath would just
+    # call it part of the qname)
+    'COLON',
 ])
 NODE_TYPES = set(['comment', 'text', 'processing-instruction', 'node'])
 class LexerWrapper(lex.Lexer):

@@ -113,6 +113,11 @@ class ParseTest(unittest.TestCase):
         self.assert_(isinstance(xp.right.node_test, ast.NameTest))
         self.assertEqual('div', xp.right.node_test.name)
 
+        xp = xpath.parse('''div:div''')
+        self.assert_(isinstance(xp, ast.Step))
+        self.assertEqual('div', xp.node_test.prefix)
+        self.assertEqual('div', xp.node_test.name)
+
         xp = xpath.parse('''node/node()''')
         self.assert_(isinstance(xp, ast.BinaryExpression))
         self.assertEqual('/', xp.op)
