@@ -21,7 +21,7 @@ from django.forms.formsets import BaseFormSet
 
 from eulcore import xmlmap
 from eulcore.xmlmap.fields import DateField     # not yet supported - testing for errors
-from eulcore.django.forms import XmlObjectForm, xmlobjectform_factory
+from eulcore.django.forms import XmlObjectForm, xmlobjectform_factory, SubformField
 from eulcore.django.forms.xmlobject import XmlObjectFormType
 
 
@@ -450,3 +450,41 @@ class XmlObjectFormTest(unittest.TestCase):
         # empty string should actually remove node frome the xml
         self.assertEqual(None, instance.id)
         self.assertEqual(0, instance.node.xpath('count(@id)'))
+
+    def test_override_subform(self):
+        class MySubForm(XmlObjectForm):
+            id2 = forms.URLField(label="my id")
+            class Meta:
+                model = TestSubobject
+
+        class MyForm(TestForm):
+            child = SubformField(formclass=MySubForm, label="TEST ME")
+            class Meta:
+                model = TestObject
+                fields = ['id', 'int', 'child']
+
+        form = MyForm()
+        self.assert_(isinstance(form.subforms['child'], MySubForm),
+            "child subform should be instance of MySubForm, got %s instead" % \
+            form.subforms['child'].__class__)
+        self.assertEqual('my id', form.subforms['child'].fields['id2'].label)        
+        self.assert_('TEST ME' not in str(form),
+                "subform pseudo-field should not appear in form output")
+
+    def test_override_formset(self):
+        class MySubForm(XmlObjectForm):
+            id2 = forms.URLField(label="my id")
+            class Meta:
+                model = TestSubobject
+
+        class MyForm(TestForm):
+            children = SubformField(formclass=MySubForm, label="TEST ME")
+
+        form = MyForm()
+        self.assert_(isinstance(form.formsets['children'].forms[0], MySubForm),
+            "children formset form should be instance of MySubForm, got %s instead" % \
+            form.formsets['children'].forms[0].__class__)
+        self.assertEqual('my id', form.formsets['children'].forms[0].fields['id2'].label)
+        self.assert_('TEST ME' not in str(form),
+                "subform pseudo-field should not appear in form output")
+

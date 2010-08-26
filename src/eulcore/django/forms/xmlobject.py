@@ -21,7 +21,7 @@ from collections import defaultdict
 from string import capwords
 
 from django.forms import BaseForm, CharField, IntegerField, BooleanField, \
-        ChoiceField
+        ChoiceField, Field
 from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.forms import get_declared_fields
 from django.forms.formsets import formset_factory, BaseFormSet
@@ -102,13 +102,16 @@ class SubformAwareModelFormOptions(ModelFormOptions):
             self.parsed_exclude = _parse_field_list(self.exclude, include_parents=False)
 
 
-def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, options=None):
+def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, options=None,
+        declared_subforms=None):
     """
-    Returns two sorted dictionaries (:class:`django.utils.datastructures.SortedDict`).
+    Returns three sorted dictionaries (:class:`django.utils.datastructures.SortedDict`).
      * The first is a dictionary of form fields based on the
        :class:`~eulcore.xmlmap.XmlObject` class fields and their types.
      * The second is a sorted dictionary of subform classes for any fields of type
        :class:`~eulcore.xmlmap.fields.NodeField` on the model.
+     * The third is a sorted dictionary of formsets for any fields of type
+       :class:`~eulcore.xmlmap.fields.NodeListField` on the model.
 
     Default sorting (within each dictionary) is by XmlObject field creation order.
 
@@ -125,6 +128,10 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
     :param options: optional :class:`~django.forms.models.ModelFormOptions`.
                 if specified then fields, exclude, and widgets will default
                 to its values.
+    :param declared_subforms: optional dictionary of field names and form classes;
+                if specified, the specified form class will be used to initialize
+                the corresponding subform (for a :class:`~eulcore.xmlmap.fields.NodeField`)
+                or a formset (for a :class:`~eulcore.xmlmap.fields.NodeListField`)
     """
 
     # first collect fields and excludes for the form and all subforms. base
@@ -150,7 +157,7 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
     formsets = {}
     field_order = {}
 
-    for name, field in model._fields.iteritems():
+    for name, field in model._fields.iteritems():  
         if fieldlist and not name in fieldlist.fields:
             # if specific fields have been requested and this is not one of them, skip it
             continue
@@ -190,6 +197,8 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
                 'exclude': excludelist.subfields[name] if excludelist and name in excludelist.subfields else None,
                 'widgets': widgets[name] if widgets and name in widgets else None,
             }
+            if name in declared_subforms:
+                subform_opts['form'] = declared_subforms[name]
             subforms[name] = xmlobjectform_factory(field.node_class, **subform_opts)
         elif isinstance(field, xmlmap.fields.NodeListField):
             subform_opts = {
@@ -197,6 +206,8 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
                 'exclude': excludelist.subfields[name] if excludelist and name in excludelist.subfields else None,
                 'widgets': widgets[name] if widgets and name in widgets else None,
             }
+            if name in declared_subforms:
+                subform_opts['form'] = declared_subforms[name]
             subform = xmlobjectform_factory(field.node_class, **subform_opts)
             formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet)
 
@@ -288,16 +299,25 @@ class XmlObjectFormType(type):
     for any :class:`~eulcore.xmlmap.fields.NodeField` to the Form object.
     """
     def __new__(cls, name, bases, attrs):
-        # do we need to handle inheritance like django does?
-        declared_fields = get_declared_fields(bases, attrs, False)
-        
+        # let django do all the work of finding declared/inherited fields
+        tmp_fields = get_declared_fields(bases, attrs, False)
+        declared_fields = {}
+        declared_subforms = {}
+        # sort declared fields into sub-form overrides and regular fields
+        for fname, f in tmp_fields.iteritems():
+            if isinstance(f, SubformField):
+                declared_subforms[fname] = f.formclass
+            else:
+                declared_fields[fname] = f
+
         new_class = super(XmlObjectFormType, cls).__new__(cls, name, bases, attrs)
 
         # use django's default model form options for fields, exclude, widgets, etc.
         opts = new_class._meta =  SubformAwareModelFormOptions(getattr(new_class, 'Meta',  None))
         if opts.model:
             # if a model is defined, get xml fields and any subform classes
-            fields, subforms, formsets = formfields_for_xmlobject(opts.model, options=opts)
+            fields, subforms, formsets = formfields_for_xmlobject(opts.model, options=opts,
+                    declared_subforms=declared_subforms)
 
             # Override default model fields with any custom declared ones
             # (plus, include all the other declared fields).
@@ -313,7 +333,7 @@ class XmlObjectFormType(type):
             fields = declared_fields
             new_class.subforms = {}
             new_class.formsets = {}
-            
+
         new_class.declared_fields = declared_fields
         new_class.base_fields = fields
         return new_class
@@ -620,3 +640,30 @@ class BaseXmlObjectFormSet(BaseFormSet):
             if form.has_changed():
                 form.update_instance()
                 self.instances.append(form.instance)
+
+
+class SubformField(Field):
+    """This is a seudo-form field: use to override the form class of a subform or
+    formset that belongs to an :class:`XmlObjectForm`.
+
+    Note that if you specify a list of fields, the subform or formset needs to
+    be included in that list or it will not be displayed when the form is generated.
+
+    Example usage::
+
+        class MyFormPart(XmlObjectForm):
+            id = StringField(label='my id', required=False)
+            ...
+
+        class MyForm(XmlObjectForm):
+            part = SubformField(formclass=MyFormPart)
+            ...
+
+    In this example, the subform ``part`` on an instance of **MyForm** will be
+    created as an instance of **MyFormPart**.
+    """
+    def __init__(self, formclass=None, *args, **kwargs):
+        if formclass is not None:
+            self.formclass = formclass
+        # may not need to actually call init since we don't really use this as a field
+        super(SubformField, self).__init__(*args, **kwargs)
