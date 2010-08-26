@@ -286,16 +286,18 @@ class XmlObject(object):
 
     def serializeDocument(self, stream=None, pretty=False):
         """Serialize the contents of the entire XML document (including Doctype
-        declaration, if there is one) for the current XmlObject to a stream.
+        declaration, if there is one), with an XML declaration, for the current
+        XmlObject to a stream.
 
         If no stream is specified, returns a string.
         :param stream: stream or other file-like object to write content to (optional)
         :param pretty: pretty-print the XML output; boolean, defaults to False
         :rtype: stream passed in or an instance of :class:`cStringIO.StringIO`
         """
-        return self._serialize(self.node.getroottree(), stream=stream, pretty=pretty)
+        return self._serialize(self.node.getroottree(), stream=stream, pretty=pretty,
+                                xml_declaration=True)
 
-    def _serialize(self, node, stream=None, pretty=False):
+    def _serialize(self, node, stream=None, pretty=False, xml_declaration=False):
         # actual logic of xml serialization
         if stream is None:
             string_mode = True
@@ -304,7 +306,8 @@ class XmlObject(object):
             string_mode = False
 
         # NOTE: etree c14n doesn't seem to like fedora info: URIs
-        stream.write(etree.tostring(node, encoding='UTF-8', pretty_print=pretty))
+        stream.write(etree.tostring(node, encoding='UTF-8', pretty_print=pretty,
+                                    xml_declaration=xml_declaration))
 
         if string_mode:
             data = stream.getvalue()
