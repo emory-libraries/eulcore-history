@@ -64,8 +64,8 @@ class Tei(_TeiBase):
     """xmlmap object for a TEI (Text Encoding Initiative) XML document """
     id     = xmlmap.StringField('@xml:id')
     title  = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:title')
-    author = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:author')
-    editor = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:editor')
+    author = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:author/tei:name/tei:choice/tei:sic')
+    editor = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:editor/tei:name/tei:choice/tei:sic')
 
     front  = xmlmap.NodeField('tei:text/tei:front', TeiSection)
     body   = xmlmap.NodeField('tei:text/tei:body', TeiSection)
