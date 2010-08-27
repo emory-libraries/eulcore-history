@@ -110,15 +110,29 @@ class LexerWrapper(lex.Lexer):
         clone = self.clone()
         return clone.token()
 
+# try to build the lexer with cached lex table generation. this will fail if
+# the user doesn't have write perms on the source directory. in that case,
+# try again without lex table generation.
 lexdir = os.path.dirname(lexrules.__file__)
-lexer = lex.lex(module=lexrules, optimize=1, outputdir=lexdir, 
-    reflags=re.UNICODE)
+lexer = None
+try:
+    lexer = lex.lex(module=lexrules, optimize=1, outputdir=lexdir, 
+        reflags=re.UNICODE)
+except IOError, e:
+    import errno
+    if e.errno != errno.EACCES:
+        raise
+if lexer is None:
+    lexer = lex.lex(module=lexrules, reflags=re.UNICODE)
+# then dynamically rewrite the lexer class to use the wonky override logic
+# above
 lexer.__class__ = LexerWrapper
 lexer.last = None
 
 # build the parser. This will generate a parsetab.py in the eulcore.xpath
-# directory. Other than that, it's much less exciting than the lexer
-# wackiness.
+# directory. Unlike lex, though, this just logs a complaint when it fails
+# (contrast lex's explosion). Other than that, it's much less exciting
+# than the lexer wackiness.
 parsedir = os.path.dirname(parserules.__file__)
 parser = yacc.yacc(module=parserules, outputdir=parsedir, debug=0)
 parse = parser.parse
