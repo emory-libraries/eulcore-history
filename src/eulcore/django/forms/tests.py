@@ -495,3 +495,29 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_('TEST ME' not in str(form),
                 "subform pseudo-field should not appear in form output")
 
+    def test_override_subform_formset(self):
+        # test nested override - a subform with a formset
+        class MyTestSubObj(TestSubobject):
+            parts = xmlmap.NodeListField('parts', TestSubobject)
+            
+        class MySubFormset(XmlObjectForm):
+            uri = forms.URLField(label='uri')
+            class Meta:
+                model = MyTestSubObj
+
+        class MySubForm(XmlObjectForm):
+            parts = SubformField(formclass=MySubFormset)
+            class Meta:
+                model = MyTestSubObj
+            
+        class MyTestObj(TestObject):
+            child = xmlmap.NodeField('bar[1]', MyTestSubObj)
+
+        class MyForm(TestForm):
+            child = SubformField(formclass=MySubForm, label="TEST ME")
+            class Meta:
+                model = MyTestObj
+
+        form = MyForm()
+        subformset = form.subforms['child'].formsets['parts'].forms[0]
+        self.assert_(isinstance(subformset, MySubFormset))
