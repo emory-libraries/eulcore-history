@@ -21,14 +21,14 @@ class Repository(server.Repository):
     """Connect to a Fedora Repository based on configuration in ``settings.py``.
 
     This class is a simple wrapper to initialize :class:`eulcore.fedora.server.Repository`,
-    based on Fedora connection parameters in a Django settings file.
+    based on Fedora connection parameters in a Django settings file.  If username
+    and password are specified, they will override fedora credentials configured
+    in Django settings.
     """
-    def __init__(self):
-        username = None
-        password = None
-        if hasattr(settings, 'FEDORA_USER'):
+    def __init__(self, username=None, password=None):
+        if username is None and hasattr(settings, 'FEDORA_USER'):
             username = settings.FEDORA_USER
-        if hasattr(settings, 'FEDORA_PASS'):
+        if password is None and hasattr(settings, 'FEDORA_PASS'):
             password = settings.FEDORA_PASS
         super(Repository, self).__init__(settings.FEDORA_ROOT, username, password)
 

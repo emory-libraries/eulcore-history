@@ -56,10 +56,23 @@ __all__ = [ 'lexer', 'parser', 'parse', 'serialize' ]
 # fix.
 
 OPERATOR_FORCERS = set([
+    # @, ::, (, [
     'ABBREV_AXIS_AT', 'AXIS_SEP', 'OPEN_PAREN', 'OPEN_BRACKET',
+    # Operators: OperatorName
     'AND_OP', 'OR_OP', 'MOD_OP', 'DIV_OP', 'MULT_OP',
-    'PATH_SEP', 'ABBREV_PATH_SEP', 'UNION_OP', 'PLUS_OP', 'MINUS_OP',
+    # Operators: MultiplyOperator
+    'PATH_SEP',
+    # Operators: /, //, |, +, -
+    'ABBREV_PATH_SEP', 'UNION_OP', 'PLUS_OP', 'MINUS_OP',
+    # Operators: =. !=, <, <=, >, >=
     'EQUAL_OP', 'REL_OP',
+
+    # Also need to add : . Official XPath lexing rules are in terms of
+    # QNames, but we produce QNames in the parse layer. We need to include :
+    # here to force foo:div to be a single step, otherwise that last div
+    # would be interpreted as an operator (where standard xpath would just
+    # call it part of the qname)
+    'COLON',
 ])
 NODE_TYPES = set(['comment', 'text', 'processing-instruction', 'node'])
 class LexerWrapper(lex.Lexer):
@@ -97,17 +110,31 @@ class LexerWrapper(lex.Lexer):
         clone = self.clone()
         return clone.token()
 
+# try to build the lexer with cached lex table generation. this will fail if
+# the user doesn't have write perms on the source directory. in that case,
+# try again without lex table generation.
 lexdir = os.path.dirname(lexrules.__file__)
-lexer = lex.lex(module=lexrules, optimize=1, outputdir=lexdir, 
-    reflags=re.UNICODE)
+lexer = None
+try:
+    lexer = lex.lex(module=lexrules, optimize=1, outputdir=lexdir, 
+        reflags=re.UNICODE)
+except IOError, e:
+    import errno
+    if e.errno != errno.EACCES:
+        raise
+if lexer is None:
+    lexer = lex.lex(module=lexrules, reflags=re.UNICODE)
+# then dynamically rewrite the lexer class to use the wonky override logic
+# above
 lexer.__class__ = LexerWrapper
 lexer.last = None
 
 # build the parser. This will generate a parsetab.py in the eulcore.xpath
-# directory. Other than that, it's much less exciting than the lexer
-# wackiness.
+# directory. Unlike lex, though, this just logs a complaint when it fails
+# (contrast lex's explosion). Other than that, it's much less exciting
+# than the lexer wackiness.
 parsedir = os.path.dirname(parserules.__file__)
-parser = yacc.yacc(module=parserules, outputdir=parsedir)
+parser = yacc.yacc(module=parserules, outputdir=parsedir, debug=0)
 parse = parser.parse
 
 def ptokens(s):

@@ -45,13 +45,16 @@ class TestFields(unittest.TestCase):
             val = xmlmap.StringField('baz')
 
         class TestObject(xmlmap.XmlObject):
-            child = xmlmap.NodeField('bar[1]', TestSubobject)
+            child = xmlmap.NodeField('bar[1]', TestSubobject, required=True)
             missing = xmlmap.NodeField('missing', TestSubobject)
 
         obj = TestObject(self.fixture)
         self.assertEqual(obj.child.val, '42')
         self.assertEqual(obj.missing, None)
         # undefined if >1 matched nodes
+
+        # check required
+        self.assertTrue(obj._fields['child'].required)
 
         # test instantiate on get hack
         class GetTestObject(xmlmap.XmlObject):
@@ -66,17 +69,20 @@ class TestFields(unittest.TestCase):
 
         class TestObject(xmlmap.XmlObject):
             children = xmlmap.NodeListField('bar', TestSubobject)
-            missing = xmlmap.NodeListField('missing', TestSubobject)
+            missing = xmlmap.NodeListField('missing', TestSubobject, required=False)
 
         obj = TestObject(self.fixture)
         child_vals = [ child.val for child in obj.children ]
         self.assertEqual(child_vals, [42, 13])
         self.assertEqual(obj.missing, [])
 
+        # check required
+        self.assertFalse(obj._fields['missing'].required)
+
     def testStringField(self):
         class TestObject(xmlmap.XmlObject):
-            val = xmlmap.StringField('bar[1]/baz')
-            empty = xmlmap.StringField('empty_field')
+            val = xmlmap.StringField('bar[1]/baz', required=True)
+            empty = xmlmap.StringField('empty_field', required=False)
             missing = xmlmap.StringField('missing')
             missing_ns = xmlmap.StringField('ex:missing')
             missing_att = xmlmap.StringField('@missing')
@@ -142,9 +148,44 @@ class TestFields(unittest.TestCase):
         # attempting to set a node that contains non-text nodes - error
         self.assertRaises(Exception, obj.__setattr__, "mixed", "whoops")
 
+        # set an existing string value to None
+        # - attribute
+        obj.id = None
+        # check that attribute was removed from the xml
+        self.assertEqual(0, obj.node.xpath('count(@id)'))
+        self.assertEqual(None, obj.id)
+        # - element
+        obj.val = None
+        # check that node is removed from the xml
+        self.assertEqual(0, obj.node.xpath('count(bar[1]/baz)'))
+        self.assertEqual(None, obj.val)
+
+        # set to empty string - should store empty string and NOT remove the node
+        # - attribute
+        obj.id = ''
+        # check that attribute was removed from the xml
+        self.assertEqual('', obj.node.xpath('string(@id)'))
+        self.assertEqual('', obj.id)
+        # - element
+        obj.val = ''
+        # check that node is removed from the xml
+        self.assertEqual('', obj.node.xpath('string(bar[1]/baz)'))
+        self.assertEqual('', obj.val)
+
+        # delete
+        delattr(obj, 'spacey')
+        # check that node is removed from the xml
+        self.assertEqual(0, obj.node.xpath('count(spacey)'))
+        self.assertEqual(None, obj.spacey)
+
+        # check required
+        self.assertTrue(obj._fields['val'].required)
+        self.assertFalse(obj._fields['empty'].required)
+        self.assertEqual(None, obj._fields['missing'].required)
+
     def testStringListField(self):
         class TestObject(xmlmap.XmlObject):
-            vals = xmlmap.StringListField('bar/baz')
+            vals = xmlmap.StringListField('bar/baz', required=True)
             missing = xmlmap.StringListField('missing')
             spacey = xmlmap.StringListField('spacey', normalize=True)
 
@@ -155,10 +196,18 @@ class TestFields(unittest.TestCase):
         # access normalized string list field
         self.assertEqual("this text needs to be normalized", obj.spacey[0])
 
+        # delete list field
+        delattr(obj, 'spacey')
+        # check that node is removed from the xml
+        self.assertEqual(0, obj.node.xpath('count(spacey)'))
+        self.assertEqual([], obj.spacey)
+
+        # check required
+        self.assertTrue(obj._fields['vals'].required)
 
     def testIntegerField(self):
         class TestObject(xmlmap.XmlObject):
-            val = xmlmap.IntegerField('bar[2]/baz')
+            val = xmlmap.IntegerField('bar[2]/baz', required=True)
             count = xmlmap.IntegerField('count(//bar)')
             missing = xmlmap.IntegerField('missing')
 
@@ -175,28 +224,36 @@ class TestFields(unittest.TestCase):
         # check that new value is accessible via descriptor
         self.assertEqual(obj.val, 14)
 
+        # check required
+        self.assertTrue(obj._fields['val'].required)
 
     def testIntegerListField(self):
         class TestObject(xmlmap.XmlObject):
             vals = xmlmap.IntegerListField('bar/baz')
-            missing = xmlmap.IntegerListField('missing')
+            missing = xmlmap.IntegerListField('missing', required=False)
 
         obj = TestObject(self.fixture)
         self.assertEqual(obj.vals, [42, 13])
         self.assertEqual(obj.missing, [])
 
+        # check required
+        self.assertFalse(obj._fields['missing'].required)
+
     def testItemField(self):
         class TestObject(xmlmap.XmlObject):
             letter = xmlmap.ItemField('substring(bar/baz, 1, 1)')
-            missing = xmlmap.ItemField('missing')
+            missing = xmlmap.ItemField('missing', required=False)
 
         obj = TestObject(self.fixture)
         self.assertEqual(obj.letter, '4')
         self.assertEqual(obj.missing, None)
 
+        # check required
+        self.assertFalse(obj._fields['missing'].required)
+
     def testBooleanField(self):        
         class TestObject(xmlmap.XmlObject):
-            txt_bool1 = xmlmap.SimpleBooleanField('boolean/text1', 'yes', 'no')
+            txt_bool1 = xmlmap.SimpleBooleanField('boolean/text1', 'yes', 'no', required=False)
             txt_bool2 = xmlmap.SimpleBooleanField('boolean/text2', 'yes', 'no')
             num_bool1 = xmlmap.SimpleBooleanField('boolean/num1', 1, 0)
             num_bool2 = xmlmap.SimpleBooleanField('boolean/num2', 1, 0)
@@ -241,6 +298,9 @@ class TestFields(unittest.TestCase):
         self.assertEqual(obj.node.xpath('count(boolean/@opt)'), 0)
         self.assertEqual(obj.opt_attr_bool, False)
 
+        # check required
+        self.assertFalse(obj._fields['txt_bool1'].required)
+
 
     # FIXME: DateField and DateListField are hacked together. Until we
     #   work up some proper parsing and good testing for them, they should
@@ -274,7 +334,7 @@ class TestFields(unittest.TestCase):
 
         class TestSchemaObject(xmlmap.XmlObject):
             XSD_SCHEMA = FILE.name
-            txt = xmlmap.SchemaField('/a/b', 'BType')
+            txt = xmlmap.SchemaField('/a/b', 'BType', required=True)
 
         valid = xmlmap.load_xmlobject_from_string(valid_xml, TestSchemaObject)
         self.assertEqual('some text', valid.txt, 'schema field value is accessible as text')
@@ -282,6 +342,9 @@ class TestFields(unittest.TestCase):
                 'txt SchemaField with base string in schema initialized as StringField')
         self.assertEqual(['c', 'd', 'e'], valid._fields['txt'].choices,
                 'txt SchemaField has choices based on restriction enumeration in schema')
+
+        # check required
+        self.assertTrue(valid._fields['txt'].required)
 
         FILE.close()
 

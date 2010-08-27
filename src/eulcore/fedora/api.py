@@ -352,12 +352,13 @@ class REST_API(HTTP_API_Base):
             # return success/failure and any additional information
             return (response.status == 200, response.read())        
 
-    def modifyObject(self, pid, label, ownerId, state, logMessage):
+    def modifyObject(self, pid, label, ownerId, state, logMessage=None):
         # /objects/{pid} ? [label] [ownerId] [state] [logMessage]
         http_args = {'label' : label,
                     'ownerId' : ownerId,
-                    'state' : state,
-                    'logMessage' : logMessage}
+                    'state' : state}
+        if logMessage is not None:
+            http_args['logMessage'] = logMessage
         url = 'objects/%s' % (pid,) + '?' + urlencode(http_args)
         with self.open('PUT', url, '', {}, throw_errors=False) as response:
             # returns response code 200 on success

@@ -98,6 +98,9 @@ For more details on these commands, use ``manage.py <command> help``
 
 .. automethod:: eulcore.django.forms.xmlobjectform_factory
 
+.. autoclass:: eulcore.django.forms.SubformField
+    :members:
+
 :mod:`eulcore.django.test` - Django test extensions
 ---------------------------------------------------
 

@@ -21,9 +21,10 @@ from collections import defaultdict
 from string import capwords
 
 from django.forms import BaseForm, CharField, IntegerField, BooleanField, \
-        ChoiceField
+        ChoiceField, Field
 from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.forms import get_declared_fields
+from django.forms.formsets import formset_factory, BaseFormSet
 from django.forms.models import ModelFormOptions
 from django.utils.datastructures  import SortedDict
 from django.utils.safestring  import mark_safe
@@ -101,13 +102,16 @@ class SubformAwareModelFormOptions(ModelFormOptions):
             self.parsed_exclude = _parse_field_list(self.exclude, include_parents=False)
 
 
-def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, options=None):
+def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, options=None,
+        declared_subforms=None):
     """
-    Returns two sorted dictionaries (:class:`django.utils.datastructures.SortedDict`).
+    Returns three sorted dictionaries (:class:`django.utils.datastructures.SortedDict`).
      * The first is a dictionary of form fields based on the
        :class:`~eulcore.xmlmap.XmlObject` class fields and their types.
      * The second is a sorted dictionary of subform classes for any fields of type
        :class:`~eulcore.xmlmap.fields.NodeField` on the model.
+     * The third is a sorted dictionary of formsets for any fields of type
+       :class:`~eulcore.xmlmap.fields.NodeListField` on the model.
 
     Default sorting (within each dictionary) is by XmlObject field creation order.
 
@@ -124,6 +128,10 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
     :param options: optional :class:`~django.forms.models.ModelFormOptions`.
                 if specified then fields, exclude, and widgets will default
                 to its values.
+    :param declared_subforms: optional dictionary of field names and form classes;
+                if specified, the specified form class will be used to initialize
+                the corresponding subform (for a :class:`~eulcore.xmlmap.fields.NodeField`)
+                or a formset (for a :class:`~eulcore.xmlmap.fields.NodeListField`)
     """
 
     # first collect fields and excludes for the form and all subforms. base
@@ -146,9 +154,10 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
     # collect the fields (unordered for now) that we're going to be returning
     formfields = {}
     subforms = {}
+    formsets = {}
     field_order = {}
 
-    for name, field in model._fields.iteritems():
+    for name, field in model._fields.iteritems():  
         if fieldlist and not name in fieldlist.fields:
             # if specific fields have been requested and this is not one of them, skip it
             continue
@@ -162,10 +171,19 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
             kwargs = {}
         # get apppropriate form widget based on xmlmap field type
         field_type = None
+
+        # if the xmlmap field knows whether or not it is required, use for form
+        if field.required is not None:
+            kwargs['required'] = field.required
+            
         if hasattr(field, 'choices') and field.choices:
             # if a field has choices defined, use a choice field (no matter what base type)
             field_type = ChoiceField
             kwargs['choices'] = [(val, val) for val in field.choices]
+            # FIXME: how to properly do non-required choice field?
+            # if field is optional, add a blank choice at the beginning of the list
+            if field.required == False and '' not in field.choices:
+                kwargs['choices'].insert(0, ('', '--'))
         elif isinstance(field, xmlmap.fields.StringField):
             field_type = CharField
         elif isinstance(field, xmlmap.fields.IntegerField):
@@ -180,15 +198,28 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
         # datefield ? - not yet well-supported; leaving out for now        
         # ... should probably distinguish between date and datetime field
         
-        elif isinstance(field, xmlmap.fields.NodeField):
-            # define a new xmlobject form for the nodefield class
-            # grab any options passed in for fields under this one
-            subform_opts = {
-                'fields': fieldlist.subfields[name] if fieldlist and name in fieldlist.subfields else None,
-                'exclude': excludelist.subfields[name] if excludelist and name in excludelist.subfields else None,
-                'widgets': widgets[name] if widgets and name in widgets else None,
-            }
-            subforms[name] = xmlobjectform_factory(field.node_class, **subform_opts)
+        elif isinstance(field, xmlmap.fields.NodeField) or \
+            isinstance(field, xmlmap.fields.NodeListField):
+             # if a subform class was declared, use that class exactly as is
+            if name in declared_subforms:
+                subform = declared_subforms[name]
+
+            # otherwise, define a new xmlobject form for the nodefield or
+            # nodelistfield class, using any options passed in for fields under this one
+            else:               
+                subform_opts = {
+                    'fields': fieldlist.subfields[name] if fieldlist and name in fieldlist.subfields else None,
+                    'exclude': excludelist.subfields[name] if excludelist and name in excludelist.subfields else None,
+                    'widgets': widgets[name] if widgets and name in widgets else None,
+                }
+                # create the subform class
+                subform = xmlobjectform_factory(field.node_class, **subform_opts)
+            
+            # store subform or generate and store formset, depending on field type
+            if isinstance(field, xmlmap.fields.NodeField):
+                subforms[name] = subform
+            elif isinstance(field, xmlmap.fields.NodeListField):
+                formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet)
         else:
             # raise exception for unsupported fields
             # currently doesn't handle list fields
@@ -211,6 +242,9 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
         ordered_subforms = SortedDict((name, subforms[name])
                                       for name in fieldlist.fields
                                       if name in subforms)
+        ordered_formsets = SortedDict((name, formsets[name])
+                                      for name in fieldlist.fields
+                                      if name in formsets)
     else:
         # sort on field creation counter and generate a django sorted dictionary
         ordered_fields = SortedDict(
@@ -221,10 +255,14 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
             [(field_order[key], subforms[field_order[key]]) for key in sorted(field_order.keys())
                                                 if field_order[key] in subforms ]
         )
-    return ordered_fields, ordered_subforms
+        ordered_formsets = SortedDict(
+            [(field_order[key], formsets[field_order[key]]) for key in sorted(field_order.keys())
+                                                if field_order[key] in formsets ]
+        )
+    return ordered_fields, ordered_subforms, ordered_formsets
 
 
-def xmlobject_to_dict(instance, fields=None, exclude=None):
+def xmlobject_to_dict(instance, fields=None, exclude=None, prefix=''):
     """
     Generate a dictionary based on the data in an XmlObject instance to pass as
     a Form's ``initial`` keyword argument.
@@ -243,14 +281,18 @@ def xmlobject_to_dict(instance, fields=None, exclude=None):
         if exclude and name in exclude:
             continue
         if isinstance(field, xmlmap.fields.NodeField):
-            # XXX: importing nodefields directly: will this cause key
-            # conflicts if multiple nodefields have subfields with the same
-            # names?
             nodefield = getattr(instance, name)
             if nodefield is not None:
-                data.update(xmlobject_to_dict(nodefield))   # fields/exclude
+                subprefix = '%s%s-' % (prefix, name)
+                node_data = xmlobject_to_dict(nodefield, prefix=subprefix)
+                data.update(node_data)   # FIXME: fields/exclude
+        if isinstance(field, xmlmap.fields.NodeListField):
+            for i, child in enumerate(getattr(instance, name)):
+                subprefix = '%s%s-%d-' % (prefix, name, i)
+                node_data = xmlobject_to_dict(child, prefix=subprefix)
+                data.update(node_data)   # FIXME: fields/exclude
         else:
-            data[name] = getattr(instance, name)
+            data[prefix + name] = getattr(instance, name)
 
     return data
 
@@ -266,16 +308,25 @@ class XmlObjectFormType(type):
     for any :class:`~eulcore.xmlmap.fields.NodeField` to the Form object.
     """
     def __new__(cls, name, bases, attrs):
-        # do we need to handle inheritance like django does?
-        declared_fields = get_declared_fields(bases, attrs, False)
-        
+        # let django do all the work of finding declared/inherited fields
+        tmp_fields = get_declared_fields(bases, attrs, with_base_fields=False)
+        declared_fields = {}
+        declared_subforms = {}
+        # sort declared fields into sub-form overrides and regular fields
+        for fname, f in tmp_fields.iteritems():
+            if isinstance(f, SubformField):
+                declared_subforms[fname] = f.formclass
+            else:
+                declared_fields[fname] = f
+
         new_class = super(XmlObjectFormType, cls).__new__(cls, name, bases, attrs)
 
         # use django's default model form options for fields, exclude, widgets, etc.
         opts = new_class._meta =  SubformAwareModelFormOptions(getattr(new_class, 'Meta',  None))
         if opts.model:
             # if a model is defined, get xml fields and any subform classes
-            fields, subforms = formfields_for_xmlobject(opts.model, options=opts)
+            fields, subforms, formsets = formfields_for_xmlobject(opts.model, options=opts,
+                    declared_subforms=declared_subforms)
 
             # Override default model fields with any custom declared ones
             # (plus, include all the other declared fields).
@@ -283,10 +334,15 @@ class XmlObjectFormType(type):
 
             # store all of the dynamically generated xmlobjectforms for nodefields
             new_class.subforms = subforms
+
+            # and for listfields
+            new_class.formsets = formsets
+
         else:
             fields = declared_fields
             new_class.subforms = {}
-            
+            new_class.formsets = {}
+
         new_class.declared_fields = declared_fields
         new_class.base_fields = fields
         return new_class
@@ -330,7 +386,7 @@ class XmlObjectForm(BaseForm):
     :class:`~eulcore.xmlmap.XmlObject` model, keyed on field name.  Ordered by
     field creation order or by specified fields."""
 
-    def __init__(self, data=None, instance=None, prefix=None):
+    def __init__(self, data=None, instance=None, prefix=None, **kwargs):
         opts = self._meta
         if instance is None:
             if opts.model is None:
@@ -341,23 +397,27 @@ class XmlObjectForm(BaseForm):
             self.instance = opts.model()
             # track adding new instance instead of updating existing?
 
-            object_data = {}    # no initial data
+            if 'initial' not in kwargs:
+                kwargs['initial'] = {}    # no initial data
         else:
             self.instance = instance
-            # generate dictionary of initial data based on current instance
-            object_data = xmlobject_to_dict(self.instance)  # fields, exclude?
+            if 'initial' not in kwargs:
+                # generate dictionary of initial data based on current instance
+                kwargs['initial'] = xmlobject_to_dict(self.instance)  # fields, exclude?
 
         # initialize subforms for all nodefields that belong to the xmlobject model
-        self._init_subforms(data)
+        self._init_subforms(data, prefix)
+        self._init_formsets(data, prefix)
             
-        super(XmlObjectForm, self).__init__(data=data, initial=object_data, prefix=prefix)
-        # possible additional params :
+        super_init = super(XmlObjectForm, self).__init__
+        super_init(data=data, prefix=prefix, **kwargs)
+        # other kwargs accepted by XmlObjectForm.__init__:
         #    files, auto_id, object_data,
         #    error_class, label_suffix, empty_permitted
 
-    def _init_subforms(self, data=None):
+    def _init_subforms(self, data=None, prefix=None):
         # initialize each subform class with the appropriate model instance and data
-        self.subforms = {}
+        self.subforms = SortedDict()    # create as sorted dictionary to preserve order
         for name, subform in self.__class__.subforms.iteritems():
             # instantiate the new form with the current field as instance, if available
             if self.instance is not None:
@@ -366,12 +426,27 @@ class XmlObjectForm(BaseForm):
             else:
                 subinstance = None
     
-            # FIXME: do prefixes need to be nested?
-            # e.g., subform prefix = my prefix + name
+            subprefix = name
+            if prefix:
+                subprefix = prefix + '-' + subprefix
 
             # instantiate the subform class with field data and model instance
             # - setting prefix based on field name, to distinguish similarly named fields
             self.subforms[name] = subform(data=data, instance=subinstance, prefix=name)
+
+    def _init_formsets(self, data=None, prefix=None):
+        self.formsets = {}
+        for name, formset in self.__class__.formsets.iteritems():
+            if self.instance is not None:
+                subinstances = getattr(self.instance, name, None)
+            else:
+                subinstances = None
+
+            subprefix = name
+            if prefix:
+                subprefix = prefix + '-' + subprefix
+
+            self.formsets[name] = formset(data=data, instances=subinstances, prefix=name)
 
     def update_instance(self):
         """Save bound form data into the XmlObject model instance and return the
@@ -383,11 +458,18 @@ class XmlObjectForm(BaseForm):
             if opts.exclude and name in opts.parsed_exclude.fields:
                 continue
             if name in self.cleaned_data:
+                # special case: we don't want empty attributes and elements
+                # for fields which returned no data from the form
+                # converting '' to None and letting XmlObject handle
+                if self.cleaned_data[name] == '':
+                    self.cleaned_data[name] = None
                 setattr(self.instance, name, self.cleaned_data[name])
 
         # update sub-model portions via any subforms
         for subform in self.subforms.itervalues():
             subform.update_instance()
+        for formset in self.formsets.itervalues():
+            formset.update_instance()
 
         return self.instance
     
@@ -411,7 +493,8 @@ class XmlObjectForm(BaseForm):
         :rtype: boolean
         """
         valid = super(XmlObjectForm, self).is_valid() and \
-                all([s.is_valid() for s in self.subforms.itervalues()])
+                all(s.is_valid() for s in self.subforms.itervalues()) and \
+                all(s.is_valid() for s in self.formsets.itervalues())
         # schema validation can only be done after regular validation passes,
         # because xmlobject must be updated with cleaned_data
         if valid and self.instance is not None:
@@ -444,19 +527,31 @@ class XmlObjectForm(BaseForm):
         parts = []
         parts.append(super(XmlObjectForm, self)._html_output(normal_row, error_row, row_ender,
                 help_text_html, errors_on_separate_row))
+
+        def _subform_output(subform):
+            return subform._html_output(normal_row, error_row, row_ender, help_text_html, errors_on_separate_row)
+
         for name, subform in self.subforms.iteritems():
-            # pass the configured html section to subform in case of any sub-subforms
-            subform._html_section = self._html_section
-            subform_html = subform._html_output(normal_row, error_row, row_ender,
-                    help_text_html, errors_on_separate_row)
-            # if html section is configured, add section label and wrapper for
-            if self._html_section is not None:
-                parts.append(self._html_section %
-                    {'label': fieldname_to_label(name), 'content': subform_html} )
-            else:
-                parts.append(subform_html)
+            parts.append(self._html_subform_output(subform, name, _subform_output))
+        
+        for name, formset in self.formsets.iteritems():
+            parts.append(unicode(formset.management_form))
+            for subform in formset.forms:
+                parts.append(self._html_subform_output(subform, name, _subform_output))
 
         return mark_safe(u'\n'.join(parts))
+
+    def _html_subform_output(self, subform, name, _html_output):
+        # pass the configured html section to subform in case of any sub-subforms
+        subform._html_section = self._html_section
+        subform_html = _html_output(subform)
+        # if html section is configured, add section label and wrapper for
+        if self._html_section is not None:
+            return self._html_section % \
+                {'label': fieldname_to_label(name), 'content': subform_html}
+        else:
+            return subform_html
+        
 
     # intercept the three standard html output formats to set an appropriate section format
     def as_table(self):
@@ -527,3 +622,57 @@ def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None,
     }
 
     return XmlObjectFormType(class_name, (form,), form_class_attrs)
+
+class BaseXmlObjectFormSet(BaseFormSet):
+    def __init__(self, instances, **kwargs):
+        self.instances = instances
+        if 'initial' not in kwargs:
+            kwargs['initial'] = [ xmlobject_to_dict(instance) for instance in instances ]
+        super_init = super(BaseXmlObjectFormSet, self).__init__
+        super_init(**kwargs)
+
+    def _construct_form(self, i, **kwargs):
+        try:
+            defaults = { 'instance': self.instances[i] }
+        except:
+            defaults = {}
+        defaults.update(kwargs)
+
+        super_construct = super(BaseXmlObjectFormSet, self)._construct_form
+        return super_construct(i, **defaults)
+
+    def update_instance(self):
+        for form in self.initial_forms:
+            if form.has_changed():
+                form.update_instance()
+        for form in self.extra_forms:
+            if form.has_changed():
+                form.update_instance()
+                self.instances.append(form.instance)
+
+
+class SubformField(Field):
+    """This is a seudo-form field: use to override the form class of a subform or
+    formset that belongs to an :class:`XmlObjectForm`.
+
+    Note that if you specify a list of fields, the subform or formset needs to
+    be included in that list or it will not be displayed when the form is generated.
+
+    Example usage::
+
+        class MyFormPart(XmlObjectForm):
+            id = StringField(label='my id', required=False)
+            ...
+
+        class MyForm(XmlObjectForm):
+            part = SubformField(formclass=MyFormPart)
+            ...
+
+    In this example, the subform ``part`` on an instance of **MyForm** will be
+    created as an instance of **MyFormPart**.
+    """
+    def __init__(self, formclass=None, *args, **kwargs):
+        if formclass is not None:
+            self.formclass = formclass
+        # may not need to actually call init since we don't really use this as a field
+        super(SubformField, self).__init__(*args, **kwargs)

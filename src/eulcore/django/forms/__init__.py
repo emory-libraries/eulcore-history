@@ -14,4 +14,4 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from eulcore.django.forms.xmlobject import xmlobjectform_factory, XmlObjectForm
+from eulcore.django.forms.xmlobject import xmlobjectform_factory, XmlObjectForm, SubformField

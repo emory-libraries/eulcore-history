@@ -31,14 +31,21 @@ __all__ = [
     'SchemaField',
 ]
 
-# base class for all fields
 
 class Field(object):
+    """Base class for all xmlmap fields.
+
+    Takes an optional ``required`` value to indicate that the field is required
+    or not required in the XML.  By default, required is ``None``, which indicates
+    that it is unknown whether the field is required or not.  The required value
+    for an xmlmap field should not conflict with the schema or DTD for that xml,
+    if there is one.
+    """
 
     # track each time a Field instance is created, to retain order
     creation_counter = 0
 
-    def __init__(self, xpath, manager, mapper):
+    def __init__(self, xpath, manager, mapper, required=None):
         # compile xpath in order to catch an invalid xpath at load time
         etree.XPath(xpath)
         # NOTE: not saving compiled xpath because namespaces must be
@@ -46,6 +53,7 @@ class Field(object):
         self.xpath = xpath
         self.manager = manager
         self.mapper = mapper
+        self.required = required
 
         # pre-parse the xpath for setters, etc
         self.parsed_xpath = parse(xpath)
@@ -60,13 +68,18 @@ class Field(object):
     def set_for_node(self, node, context, value):
         return self.manager.set(self.xpath, self.parsed_xpath, node, context, self.mapper, value)
 
+    def delete_for_node(self, node, context):
+        return self.manager.delete(self.xpath, self.parsed_xpath, node, context, self.mapper)
 
 # data mappers to translate between identified xml nodes and Python values
 
 class Mapper(object):
     # generic mapper to_xml function
     def to_xml(self, value):
-        return unicode(value)
+        if value is None:
+            return value
+        else:
+            return unicode(value)
 
 class StringMapper(Mapper):
     XPATH = etree.XPath('string()')
@@ -380,6 +393,13 @@ class SingleNodeManager(object):
             step = _find_terminal_step(xast)
             _set_in_xml(match, xvalue, context, step)
 
+    def delete(self, xpath, xast, node, context, mapper):
+        match = _find_xml_node(xpath, node, context)
+        # match must be None. if it exists, delete it.
+        if match is not None:
+            _remove_xml(xast, node, context)
+            
+
 class NodeList(object):
     """Custom List-like object to handle ListFields like :class:`IntegerListField`,
     :class:`StringListField`, and :class:`NodeListField`, which allows for getting,
@@ -547,6 +567,12 @@ class NodeListManager(object):
     def get(self, xpath, node, context, mapper, xast):
         return NodeList(xpath, node, context, mapper, xast)
 
+    def delete(self, xpath, xast, node, context, mapper):
+        list = self.get(xpath, node, context, mapper, xast)
+        [list.remove(x) for x in list]
+
+
+
 # finished field classes mixing a manager and a mapper
 
 class StringField(Field):
@@ -563,13 +589,13 @@ class StringField(Field):
     Supports setting values for attributes, empty nodes, or text-only nodes.
     """
     
-    def __init__(self, xpath, normalize=False, choices=None):
+    def __init__(self, xpath, normalize=False, choices=None, *args, **kwargs):
         self.choices = choices
         # FIXME: handle at a higher level, common to all/more field types?
         #        does choice list need to be checked in the python ?
         super(StringField, self).__init__(xpath,
                 manager = SingleNodeManager(),
-                mapper = StringMapper(normalize=normalize))
+                mapper = StringMapper(normalize=normalize), *args, **kwargs)
 
 class StringListField(Field):
 
@@ -584,10 +610,10 @@ class StringListField(Field):
     Actual return type is :class:`~eulcore.xmlmap.fields.NodeList`, which can be
     treated like a regular Python list, and includes set and delete functionality.
     """
-    def __init__(self, xpath, normalize=False):
+    def __init__(self, xpath, normalize=False, *args, **kwargs):
         super(StringListField, self).__init__(xpath,
                 manager = NodeListManager(),
-                mapper = StringMapper(normalize=normalize))
+                mapper = StringMapper(normalize=normalize), *args, **kwargs)
 
 class IntegerField(Field):
 
@@ -598,10 +624,10 @@ class IntegerField(Field):
     Supports setting values for attributes, empty nodes, or text-only nodes.
     """
 
-    def __init__(self, xpath):
+    def __init__(self, xpath, *args, **kwargs):
         super(IntegerField, self).__init__(xpath,
                 manager = SingleNodeManager(),
-                mapper = NumberMapper())
+                mapper = NumberMapper(), *args, **kwargs)
 
 class IntegerListField(Field):
 
@@ -613,10 +639,10 @@ class IntegerListField(Field):
     treated like a regular Python list, and includes set and delete functionality.
     """
 
-    def __init__(self, xpath):
+    def __init__(self, xpath, *args, **kwargs):
         super(IntegerListField, self).__init__(xpath,
                 manager = NodeListManager(),
-                mapper = NumberMapper())
+                mapper = NumberMapper(), *args, **kwargs)
 
 class SimpleBooleanField(Field):
 
@@ -627,10 +653,10 @@ class SimpleBooleanField(Field):
     Supports setting values for attributes, empty nodes, or text-only nodes.
     """
 
-    def __init__(self, xpath, true, false):
+    def __init__(self, xpath, true, false, *args, **kwargs):
         super(SimpleBooleanField, self).__init__(xpath,
                 manager = SingleNodeManager(),
-                mapper = SimpleBooleanMapper(true, false))
+                mapper = SimpleBooleanMapper(true, false), *args, **kwargs)
 
 
 class DateField(Field):
@@ -644,10 +670,10 @@ class DateField(Field):
        It is not part of any official release. Use it at your own risk.
     """
 
-    def __init__(self, xpath):
+    def __init__(self, xpath, *args, **kwargs):
         super(DateField, self).__init__(xpath,
                 manager = SingleNodeManager(),
-                mapper = DateMapper())
+                mapper = DateMapper(), *args, **kwargs)
 
 class DateListField(Field):
 
@@ -664,10 +690,10 @@ class DateListField(Field):
     treated like a regular Python list, and includes set and delete functionality.
     """
 
-    def __init__(self, xpath):
+    def __init__(self, xpath, *args, **kwargs):
         super(DateListField, self).__init__(xpath,
                 manager = NodeListManager(),
-                mapper = DateMapper())
+                mapper = DateMapper(), *args, **kwargs)
 
 class NodeField(Field):
 
@@ -685,10 +711,10 @@ class NodeField(Field):
     add missing fields under a NodeField to XML.)
     """
 
-    def __init__(self, xpath, node_class, instantiate_on_get=False):
+    def __init__(self, xpath, node_class, instantiate_on_get=False, *args, **kwargs):
         super(NodeField, self).__init__(xpath,
                 manager = SingleNodeManager(instantiate_on_get=instantiate_on_get),
-                mapper = NodeMapper(node_class))
+                mapper = NodeMapper(node_class), *args, **kwargs)
 
     def _get_node_class(self):
         return self.mapper.node_class
@@ -710,10 +736,10 @@ class NodeListField(Field):
     treated like a regular Python list, and includes set and delete functionality.
     """
 
-    def __init__(self, xpath, node_class):
+    def __init__(self, xpath, node_class, *args, **kwargs):
         super(NodeListField, self).__init__(xpath,
                 manager = NodeListManager(),
-                mapper = NodeMapper(node_class))
+                mapper = NodeMapper(node_class), *args, **kwargs)
 
     def _get_node_class(self):
         return self.mapper.node_class
@@ -726,10 +752,10 @@ class ItemField(Field):
     """Access the results of an XPath expression directly. An ItemField does no
     conversion on the result of evaluating the XPath expression."""
 
-    def __init__(self, xpath):
+    def __init__(self, xpath, *args, **kwargs):
         super(ItemField, self).__init__(xpath,
                 manager = SingleNodeManager(),
-                mapper = NullMapper())
+                mapper = NullMapper(), *args, **kwargs)
 
 class SchemaField(Field):
     """Schema-based field.  At class definition time, a SchemaField will be
@@ -742,9 +768,15 @@ class SchemaField(Field):
 
     Currently only supports simple string-based schema types.
     """
-    def __init__(self, xpath, schema_type):
+    def __init__(self, xpath, schema_type, *args, **kwargs):
         self.xpath = xpath
         self.schema_type = schema_type
+
+        super(SchemaField, self).__init__(xpath, manager=None, mapper=None,
+                *args, **kwargs)
+        # SchemaField does not use common Field init logic; handle creation counter
+        #self.creation_counter = Field.creation_counter
+        #Field.creation_counter += 1
 
     def get_field(self, schema):
         """Get the requested type definition from the schema and return the
@@ -761,8 +793,12 @@ class SchemaField(Field):
         # TODO: possibly also useful to look for pattern restrictions
         
         basetype = type.base_type()
-        if basetype == 'string':            
-            return StringField(self.xpath, **kwargs)
+        if basetype == 'string':
+            newfield = StringField(self.xpath, required=self.required, **kwargs)
+            # copy original creation counter to newly created field
+            # to preserve declaration order
+            newfield.creation_counter = self.creation_counter
+            return newfield
         else:
             raise Exception("basetype %s is not yet supported by SchemaField" % basetype)
 

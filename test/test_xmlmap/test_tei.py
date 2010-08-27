@@ -9,8 +9,8 @@ from testcore import main
 
 class ExtendedTei(Tei):
     # additional mappings for testing
-    figure = NodeListField('//figure', TeiFigure)
-    interpGroup = NodeListField('//interpGrp', TeiInterpGroup)
+    figure = NodeListField('//tei:figure', TeiFigure)
+    interpGroup = NodeListField('//tei:interpGrp', TeiInterpGroup)
 
 class TestTei(unittest.TestCase):
     FIXTURE_FILE = path.join(path.dirname(path.abspath(__file__)) ,
@@ -24,7 +24,7 @@ class TestTei(unittest.TestCase):
     def testBasicFields(self):
         self.assertEqual(self.tei.id, "clarke")
         self.assertEqual(self.tei.title, "A Treasury of War Poetry: Electronic Edition")
-        self.assertEqual(self.tei.author, "Various")
+        #self.assertEqual(self.tei.author, "Various")
         self.assertEqual(self.tei.editor, "George Herbert Clarke")
 
         self.assert_(isinstance(self.tei.front, TeiSection))

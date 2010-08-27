@@ -14,6 +14,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+#How TO Add A Special Field To The QuerySet:
+# 1. Near the top of the class Xquery, add the field name to the special_fields list variable
+# 2. In the getQuery function in the section "define any special fields that have been requested" add an elif case for your field
+# 3. It is possible that you will need to add an elif case in the _create_return_class function to return the correct type
+# 4. Make sure the the correct fieldType is imported
+
 """Provide a prettier, more Pythonic approach to eXist-db access.
 
 This module provides :class:`QuerySet` modeled after `Django QuerySet`_
@@ -28,10 +34,12 @@ from types import BooleanType
 from lxml import etree
 
 from eulcore.xmlmap import load_xmlobject_from_string
-from eulcore.xmlmap.fields import StringField, DateField, NodeField, NodeListField
+from eulcore.xmlmap.fields import IntegerField, StringField, DateField, NodeField, NodeListField
 from eulcore.xmlmap.core import XmlObjectType
 from eulcore.xpath import ast, parse, serialize
 from eulcore.existdb.exceptions import DoesNotExist, ReturnedMultiple
+import logging
+logger = logging.getLogger(__name__)
 
 __all__ = ['QuerySet', 'Xquery']
 
@@ -151,15 +159,19 @@ class QuerySet(object):
            terms anywhere in the full text; requires a properly configured lucene index.
            By default, highlighting is enabled when this filter is used.  To turn it off,
            specify an additional filter of highlight=False.
-           Recommend using fulltext_score for ordering, in return fields.
+           Recommend using ``fulltext_score`` for ordering, in return fields.
          * ``highlight`` - highlight search terms; when used with ``fulltext_terms``,
            should be specified as a boolean (enabled by default); when used separately,
            takes a string using the same search format as ``fulltext_terms``, but
            content will be returned even if it does not include the search terms.
            Requires a properly configured lucene index.
+         * ``in`` - field or object is present in a list of values
 
         Field may be in the format of field__subfield when field is an NodeField
         or NodeListField and subfield is a configured element on that object.
+
+        Field may also be one of the prefined 'special' fields; see :meth:`only`
+        for the list of fields.
 
         Any number of these filter arguments may be passed. This method
         returns an updated copy of the QuerySet: It does not modify the
@@ -174,10 +186,17 @@ class QuerySet(object):
         for arg, value in kwargs.iteritems():
             fields, rest = _split_fielddef(arg, self.model)
             if rest and rest not in qscopy.query.available_filters:
-                # there's leftover stuff and it's not a filter we recognize.
-                # assume the entire arg is actually one big xpath.
-                xpath = arg
-                lookuptype = 'exact'
+                # check if xpath portion is actually an xquery predefined field
+                parts = _extract_fieldpart(arg)
+                if parts[0] in qscopy.query.special_fields and \
+                        parts[1] in qscopy.query.available_filters:
+                    xpath = parts[0]
+                    lookuptype = parts[1]
+                else:
+                    # there's leftover stuff and it's not a filter we recognize.
+                    # assume the entire arg is actually one big xpath.
+                    xpath = arg
+                    lookuptype = 'exact'
             else:
                 # valid filter, or no filter at all
                 xpath = _join_field_xpath(fields) or '.'
@@ -442,7 +461,7 @@ class QuerySet(object):
 
     def _runQuery(self):
         """Execute the currently configured query."""
-#        print "DEBUG: exist query:\n", self.query.getQuery()
+        logger.debug( "exist query:\n%s"% (self.query.getQuery()) )
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
     def getDocument(self, docname):
@@ -493,6 +512,9 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None,
             # name, to match how additional field results are constructed by Xquery object
             if name == 'last_modified':     # special case field
                 field_type = DateField
+            elif name == 'match_count':
+                    field_type = IntegerField
+                    logger.debug("FIELD:%s: TYPE:%s" % (name, field_type))
             elif fields is None or isinstance(fields, basestring):
                 field_type = StringField	# handle special cases like fulltext score
             else:
@@ -541,9 +563,10 @@ class Xquery(object):
 
     xpath = '/node()'       # default generic xpath
     xq_var = '$n'           # xquery variable to use when constructing flowr query
-    available_filters = ['contains', 'startswith', 'exact', 'fulltext_terms', 'highlight']
+    available_filters = ['contains', 'startswith', 'exact', 'fulltext_terms',
+        'highlight', 'in']
     special_fields =  ['fulltext_score', 'last_modified', 'hash',
-        'document_name', 'collection_name']
+        'document_name', 'collection_name', 'match_count']
 
     
     def __init__(self, xpath=None, collection=None, namespaces=None):
@@ -554,7 +577,9 @@ class Xquery(object):
         self.collection = collection.lstrip('/') if collection is not None else None
         self.namespaces = namespaces
         self.filters = []
-        self._return_filters = []
+        # info for filters that use special fields & require let/where in xquery
+        self.where_filters = []
+        self.where_fields = []
         # sort information - field to sort on, ascending/descending
         self.order_by = None
         self.order_mode = None
@@ -575,7 +600,8 @@ class Xquery(object):
     def getCopy(self):
         xq = Xquery(xpath=self.xpath, collection=self.collection, namespaces=self.namespaces)
         xq.filters += self.filters
-        xq._return_filters += self._return_filters
+        xq.where_filters += self.where_filters
+        xq.where_fields = self.where_fields
         xq.order_by = self.order_by
         xq.order_mode = self.order_mode
         xq._distinct = self._distinct
@@ -609,7 +635,8 @@ class Xquery(object):
 
         xpath = ''.join(xpath_parts)
         # requires FLOWR instead of just XQuery  (sort, customized return, etc.)
-        if self.order_by or self.return_fields or self.additional_return_fields:
+        if self.order_by or self.return_fields or self.additional_return_fields \
+            or self.where_filters:
             # NOTE: using constructed xpath, with collection filter (if collection specified)
             flowr_for = 'for %s in %s' % (self.xq_var, xpath)
 
@@ -617,7 +644,8 @@ class Xquery(object):
             let = []
             for field in self.special_fields:
                 if field == self.order_by or field in self.return_fields \
-                        or field in self.additional_return_fields:
+                        or field in self.additional_return_fields \
+                        or field in self.where_fields:
                     # determine how to calculate the value of the requested field
                     if field == 'fulltext_score':
                         val = 'ft:score(%s)' % self.xq_var
@@ -632,11 +660,17 @@ class Xquery(object):
                     elif field == 'last_modified':
                         val = 'xmldb:last-modified(util:collection-name(%(var)s), util:document-name(%(var)s))' % \
                             {'var': self.xq_var }
+                    elif field == 'match_count':
+                        val = 'count(util:expand(%(var)s)//exist:match)' % {'var': self.xq_var }
+
                     # define an xquery variable with the same name as the special field
                     let.append('let $%s := %s' % (field, val))
 
             flowr_let = '\n'.join(let)
-            
+
+            where = ['where %s' % filter for filter in self.where_filters]
+            flowr_where = '\n'.join(where)
+
             # for now, assume sort relative to root element
             if self.order_by:                
                 if self.order_by in self.special_fields:
@@ -646,9 +680,8 @@ class Xquery(object):
                 flowr_order = 'order by %s %s' % (order_field, self.order_mode)
             else:
                 flowr_order = ''
-            flowr_where = ''
             flowr_return = self._constructReturn()
-            query = '\n'.join([flowr_for, flowr_let, flowr_order, flowr_where, flowr_return])
+            query = '\n'.join([flowr_for, flowr_let, flowr_where, flowr_order, flowr_return])
         else:
             # if FLOWR is not required, just use plain xpath
             query = xpath
@@ -689,6 +722,7 @@ class Xquery(object):
          * exact
          * fulltext_terms - full-text query; requires lucene index configured in exist
          * highlight - run a full-text query, but return even if no matches
+         * in - value is present in a list
 
         """
         # possibilities to be added:
@@ -697,22 +731,36 @@ class Xquery(object):
 
         if type not in self.available_filters:
             raise TypeError(repr(type) + ' is not a supported filter type')
+
+        _xpath = xpath
+        if xpath in self.special_fields:
+            # filters on pre-defined 'special' fields need a little extra handling
+            # add to list of 'where' fields to ensure special field is defined as xq variable
+            # - can't know if user wants a return only or a return also
+            self.where_fields.append(xpath)
+            # - adjust filter xpath to use $, to reference xq variable for special field
+            _xpath = '$%s' % xpath
         
         if type == 'contains':
-            filter = 'contains(%s, %s)' % (xpath, _quote_as_string_literal(value))
+            filter = 'contains(%s, %s)' % (_xpath, _quote_as_string_literal(value))
         if type == 'startswith':
-            filter = 'starts-with(%s, %s)' % (xpath, _quote_as_string_literal(value))
+            filter = 'starts-with(%s, %s)' % (_xpath, _quote_as_string_literal(value))
         if type == 'exact':
-            filter = '%s = %s' % (xpath, _quote_as_string_literal(value))
+            filter = '%s = %s' % (_xpath, _quote_as_string_literal(value))
         if type == 'fulltext_terms':
-            filter = 'ft:query(%s, %s)' % (xpath, _quote_as_string_literal(value))
+            filter = 'ft:query(%s, %s)' % (_xpath, _quote_as_string_literal(value))
         if type == 'highlight':
-            filter = 'ft:query(%s, %s) or 1' % (xpath, _quote_as_string_literal(value))
-            # special-case: when additional fields, this filter must be applied
-            # to main return node to ensure highlighting does not get lost
-            self._return_filters.append(filter)
-
-        self.filters.append(filter)
+            filter = 'ft:query(%s, %s) or 1' % (_xpath, _quote_as_string_literal(value))
+        if type == 'in':
+            filter = 'contains((%s), %s)' % (','.join(_quote_as_string_literal(v)
+                                                    for v in value),
+                                             _xpath)
+        if xpath in self.special_fields:
+            # filters on pre-defined fields must occur in 'where' section, after
+            # relevant xquery variable has been defined
+            self.where_filters.append(filter)
+        else:
+            self.filters.append(filter)
 
 
     def return_only(self, fields):
@@ -744,14 +792,7 @@ class Xquery(object):
             if self.return_fields:
                 rblocks = []
             elif self.additional_return_fields:
-                rblocks = ["{%s}" % self.xq_var]
-                #filter = [ '[%s]' % (f,) for f in self._return_filters ]
-                # return everything under matched node - all attributes, all nodes
-                #rblocks = ["{%s/@*}" % self.xq_var,
-                #           "{%s/*%s}" % (self.xq_var, ''.join(filter))]
-                    # apply any return filters specified to main node
-                    # NOTE: currently, full-text search highlighting gets lost
-                    # in returned xml without this additional filter
+                rblocks = ["{%s}" % self.xq_var]    # return entire node
                 
             fields = dict(self.return_fields, **self.additional_return_fields)
             for name, xpath in fields.iteritems():
