@@ -120,7 +120,7 @@ lexer.last = None
 # directory. Other than that, it's much less exciting than the lexer
 # wackiness.
 parsedir = os.path.dirname(parserules.__file__)
-parser = yacc.yacc(module=parserules, outputdir=parsedir)
+parser = yacc.yacc(module=parserules, outputdir=parsedir, debug=0)
 parse = parser.parse
 
 def ptokens(s):
