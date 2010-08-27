@@ -9,8 +9,8 @@ from testcore import main
 
 class ExtendedTei(Tei):
     # additional mappings for testing
-    figure = NodeListField('//figure', TeiFigure)
-    interpGroup = NodeListField('//interpGrp', TeiInterpGroup)
+    figure = NodeListField('//tei:figure', TeiFigure)
+    interpGroup = NodeListField('//tei:interpGrp', TeiInterpGroup)
 
 class TestTei(unittest.TestCase):
     FIXTURE_FILE = path.join(path.dirname(path.abspath(__file__)) ,
