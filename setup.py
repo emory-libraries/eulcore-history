@@ -5,6 +5,9 @@ import sys
 sys.path.append('src')
 from eulcore import __version__
 
+# importing this forces ply to generate parsetab/lextab
+import eulcore.xpath.core
+
 # fullsplit and packages calculation inspired by django setup.py
 
 def fullsplit(path):
