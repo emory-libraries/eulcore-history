@@ -403,7 +403,10 @@ class XmlObjectForm(BaseForm):
             self.instance = instance
             if 'initial' not in kwargs:
                 # generate dictionary of initial data based on current instance
-                kwargs['initial'] = xmlobject_to_dict(self.instance)  # fields, exclude?
+                kwargs['initial'] = {}
+            # allow initial data from instance to co-exist with other initial data
+            kwargs['initial'].update(xmlobject_to_dict(self.instance))  # fields, exclude?
+            # FIXME: is this backwards? should initial data override data from instance?
 
         # initialize subforms for all nodefields that belong to the xmlobject model
         self._init_subforms(data, prefix)
