@@ -1,0 +1,86 @@
+/* 
+    Document   : bluegray_standard
+    Created on : Aug 31, 2010, 3:55:39 PM
+    Author     : sturnbu
+    Description:
+        This sheet provides overrides to the standard emory libraries stylesheet
+        to give it the standard blue grey subsite look in the styleguide. Also
+        reference sites under "Centers, departments, divisions and offices" at
+        http://communications.emory.edu/web_guide/standard_templates/redesigns.html
+*/
+
+#navbar {
+    background: url(images/navigation_background_grey.gif);
+    border-left: none;
+    border-right: none;
+    color: #163B84;
+    padding: 0;
+    height: 24px;
+    margin: 0;
+    position: absolute;
+    width: 980px;
+}
+
+#navbar-inner {
+    margin: 0;
+    margin-left: 1px;
+    height: 24px;
+    width: 978px;
+}
+
+#navbar ul
+{
+    margin: 0;
+    margin-top: 3px;
+    padding: 0;
+}
+
+#navbar li /* A simple method to get navbar links to appear in one line. */
+{
+    float: left;
+    border-right-style: solid;
+    border-right-width: 1px;
+    border-right-color: #cccccc;
+}
+
+#navbar #primary .first
+{    
+    border-left-style: solid;
+    border-left-width: 1px;
+    border-left-color: #cccccc;
+}
+
+#navbar #primary a
+{
+    background: url(images/navigation_background_grey.gif);
+    color:#163B84;
+    border-right: none;
+    position: relative;
+    padding: 5px 27px;
+    font-weight: bold;
+    text-decoration: none;
+    text-transform:uppercase;
+}
+
+#navbar #primary a:hover,
+#navbar #primary a.active
+{
+    background: url(images/navigation_background_aqua.gif);
+    color:#163B84;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+#navbar #primary a.lastfill {
+    width: 100%;
+}
+
+#navbar #primary a.active {
+    background: url(images/navigation_background_grey.gif);
+}
+
+#navbar #primary a.first
+{
+    border-left: 1px solid #cccccc;
+}
