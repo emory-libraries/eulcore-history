@@ -75,6 +75,9 @@ class Manager(object):
     def filter(self, *args, **kwargs):
         return self.get_query_set().filter(*args, **kwargs)
 
+    def or_filter(self, *args, **kwargs):
+        return self.get_query_set().or_filter(*args, **kwargs)
+
     def order_by(self, *args, **kwargs):
         return self.get_query_set().order_by(*args, **kwargs)
 

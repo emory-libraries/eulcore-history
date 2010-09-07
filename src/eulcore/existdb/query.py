@@ -141,7 +141,7 @@ class QuerySet(object):
         copy._result_cache = {}   
         return copy
 
-    def filter(self, **kwargs):
+    def filter(self, combine='AND', **kwargs):
         """Filter the QuerySet to return a subset of the documents.
 
         Arguments take the form ``lookuptype`` or ``field__lookuptype``,
@@ -173,6 +173,9 @@ class QuerySet(object):
         Any number of these filter arguments may be passed. This method
         returns an updated copy of the QuerySet: It does not modify the
         original.
+
+        :param combine: optional; specify how the filters should be combined.
+            Defaults to ``AND``; also supports ``OR``.
         """
         # possible future lookup types:
         #   gt/gte,lt/lte, endswith, range, date, isnull (?), regex (?)
@@ -202,7 +205,7 @@ class QuerySet(object):
             # highlighting is only an xquery filter when passed as a string
             if lookuptype != 'highlight' or \
                 lookuptype == 'highlight' and not isinstance(value, BooleanType):
-                qscopy.query.add_filter(xpath, lookuptype, value)
+                qscopy.query.add_filter(xpath, lookuptype, value, combine)
 
             # enable highlighting when a full-text query is used
             if lookuptype == 'fulltext_terms':
@@ -222,6 +225,14 @@ class QuerySet(object):
 
         # return copy query string so additional filters can be added or get() called
         return qscopy
+
+    def or_filter(self, **kwargs):
+        """Filter the QuerySet to return a subset of the documents, but combine
+        the filters with OR instead of AND.  Uses the same syntax and allows
+        for the same filters as :meth:`filter` with the exception that currently
+        predefined special fields (see :meth:`only`) are not supported.
+        """
+        return self.filter(combine='OR', **kwargs)
 
     def order_by(self, field):
         """Order results returned according to a specified field.  By default,
@@ -573,6 +584,7 @@ class Xquery(object):
         # remove leading / from collection name (if any)
         self.collection = collection.lstrip('/') if collection is not None else None
         self.filters = []
+        self.or_filters = []
         # info for filters that use special fields & require let/where in xquery
         self.where_filters = []
         self.where_fields = []
@@ -597,6 +609,7 @@ class Xquery(object):
         xq = Xquery(xpath=self.xpath, collection=self.collection)
         xq.filters += self.filters
         xq.where_filters += self.where_filters
+        xq.or_filters += self.or_filters
         xq.where_fields = self.where_fields
         xq.order_by = self.order_by
         xq.order_mode = self.order_mode
@@ -623,6 +636,9 @@ class Xquery(object):
             xpath_parts.append(self.xpath)
             
         xpath_parts += [ '[%s]' % (f,) for f in self.filters ]
+
+        if self.or_filters:
+            xpath_parts.append('[%s]' % (' or '.join(self.or_filters)))
 
         xpath = ''.join(xpath_parts)
         # requires FLOWR instead of just XQuery  (sort, customized return, etc.)
@@ -702,7 +718,7 @@ class Xquery(object):
     def distinct(self):
         self._distinct = True
 
-    def add_filter(self, xpath, type, value):
+    def add_filter(self, xpath, type, value, mode=None):
         """
         Add a filter to the xpath.  Takes xpath, type of filter, and value.
         Filter types currently implemented:
@@ -713,6 +729,8 @@ class Xquery(object):
          * highlight - run a full-text query, but return even if no matches
          * in - value is present in a list
 
+        By default, all filters are ANDed together.  Specifying a ``mode`` of **OR**
+        will OR together all filters added with a mode of OR.
         """
         # possibilities to be added:
         #   gt/gte,lt/lte, endswith, range, date, isnull (?), regex (?)
@@ -748,6 +766,8 @@ class Xquery(object):
             # filters on pre-defined fields must occur in 'where' section, after
             # relevant xquery variable has been defined
             self.where_filters.append(filter)
+        elif mode == 'OR':
+            self.or_filters.append(filter)
         else:
             self.filters.append(filter)
 

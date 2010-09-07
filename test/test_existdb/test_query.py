@@ -195,6 +195,14 @@ class ExistQueryTest(unittest.TestCase):
             "should get 2 matches for filter on document name in list (got %s)" % fqs.count())
         self.assertEqual('f1.xml', fqs[0].document_name)
 
+    def test_or_filter(self):
+        fqs = self.qs.or_filter(id='abc', name='four').only('id')
+        self.assertEqual(2, fqs.count(),
+            "should get 2 matches for OR filter on id='abc' or name='four' (got %s)" % fqs.count())
+        ids = [obj.id for obj in fqs.all()]
+        self.assert_('abc' in ids, 'id "abc" in list of ids when OR filter includes id="abc"')
+        self.assert_('def' in ids, 'id "def" in list of ids when OR filter includes name="four')
+
     def test_get(self):
         result  = self.qs.get(contains="two")
         self.assert_(isinstance(result, QueryTestModel), "get() with contains returns single result")
@@ -507,6 +515,12 @@ class XqueryTest(unittest.TestCase):
         self.assert_('let $document_name' in xq.getQuery())
         self.assert_('where contains(("a.xml","b.xml"), $document_name)' in xq.getQuery())
 
+    def test_or_filters(self):
+        xq = Xquery(xpath='/el')
+        xq.add_filter('.', 'contains', 'dog', mode='OR')
+        xq.add_filter('.', 'startswith', 'S', mode='OR')
+        self.assertEquals('/el[contains(., "dog") or starts-with(., "S")]', xq.getQuery())
+   
     def test_return_only(self):
         xq = Xquery(xpath='/el')
         xq.xq_var = '$n'
