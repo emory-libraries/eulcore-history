@@ -1,0 +1,13 @@
+{% extends "genlib_templates/site_base.xhtml" %}
+
+{% block style %}
+    {{ block.super }}
+    {% comment %}This applies the blue/gray emory theme patch to the site.{% endcomment %}
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/bluegray_standard.css" />
+{% endblock %}
+
+{% block scripts %}{% endblock %}
+
+{% block headerblocks %}{% endblock %}
+
+{% block share-bar %}{% endblock %}
