@@ -1,3 +1,5 @@
+Overview
+========
 This directory contains seperate themes for use in various django sites.
 
 The current practice of setting up theme directories is as follows
@@ -9,3 +11,6 @@ The current practice of setting up theme directories is as follows
 Right now the best method we can come up with is to include each of the
 *_templates and *_media directories in your django templates and media
 directories as SVN externals.
+
+For specific implementations see the README files included in the theme
+directories.
