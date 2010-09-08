@@ -1,3 +1,5 @@
+Overview
+========
 This is an adaptation of the woodrufflibrary theme provided by SharpDot for use
 in our Drupal Sites.
 
@@ -7,11 +9,26 @@ better or more consistant way of doing it from the original template if possible
 keeping in mind extensability.
 
 Setup
-1. Use themes/genlib/genlib_templates as an external in your templates directory.
-2. Use themes/genlib/genlib_media as an external in your media directory.
-3. Setup a local base template in your template directory and extend
-   themes/genlib/genlib_templates/site_base.xhtml in that file and override
-   or extend blocks as needed.  See 
-   themes/genlib/genlib_templates/example_local_sitebase.xhtml as an example.
-4. Place eulcore.django.util in your installed apps so the custom template
-   tags work.
+------
+* Use themes/genlib/genlib_templates as an external in your templates directory.
+* Use themes/genlib/genlib_media as an external in your media directory.
+* Setup a local base template in your template directory and extend
+  themes/genlib/genlib_templates/site_base.xhtml in that file and override
+  or extend blocks as needed.  See 
+  themes/genlib/genlib_templates/example_local_sitebase.xhtml as an example.
+* Place eulcore.django.util in your installed apps so the custom template
+  tags work.
+
+Two Theme Options
+-----------------
+There are two general options currently for themes.  The default is the Emory
+blue and gold with social media tags.  Alternatively there is also a blue and
+gray subtheme that is an override of the blue and gold theme.
+
+**Blue and Gold Theme**
+To use this just extend the genlib/site_base.xhtml in your main theme template
+and follow the normal directions.
+
+**Blue and Gray Theme**
+To use this just extend the genlib/bluegray_site_base.xhtml in your main
+template and follow the normal directions.
