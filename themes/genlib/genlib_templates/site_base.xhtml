@@ -60,46 +60,67 @@ See the individual blocks for overriding and structure.
     <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/tabbedpanels.css" />
   {% endblock %}
 
+
 {% block scripts %}
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.1/jquery.min.js"></script>
-    <script type="text/javascript" src="{{ MEDIA_URL }}/genlib_media/js/plugins/jquery.scrollTo.js"></script>
-    <script type="text/javascript">
-    $(document).ready(function() {	
-        // The following code is for jquery tabbed panels in the header.
-        // Taken from http://www.queness.com/post/274/jquery-sliding-tab-menu-for-sidebar-tutorial
+    {% block searchbox_scripts %}
+        <script type="text/javascript" src="{{ MEDIA_URL }}/genlib_media/js/plugins/jquery.scrollTo.js"></script>
+        <script type="text/javascript">
+        $(document).ready(function() {
+            // The following code is for jquery tabbed panels in the header.
+            // Taken from http://www.queness.com/post/274/jquery-sliding-tab-menu-for-sidebar-tutorial
 
-	//Get the height of the first item
-	$('#mask').css({'height':$('#panel-1').height()});	
-	
-	//Calculate the total width - sum of all sub-panels width
-	//Width is generated according to the width of #mask * total of sub-panels
-	$('#panel').width(parseInt($('#mask').width() * $('#panel div').length));
-	
-	//Set the sub-panel width according to the #mask width (width of #mask and sub-panel must be same)
-	$('#panel div').width($('#mask').width());
-	
-	//Get all the links with rel as panel
-	$('a[rel=panel]').click(function () {
-	
-		//Get the height of the sub-panel
-		var panelheight = $($(this).attr('href')).height();
-		
-		//Set class for the selected item
-		$('a[rel=panel]').removeClass('selected');
-		$(this).addClass('selected');
-		
-		//Resize the height
-		$('#mask').animate({'height':panelheight},{queue:false, duration:500});			
-		
-		//Scroll to the correct panel, the panel id is grabbed from the href attribute of the anchor
-		$('#mask').scrollTo($(this).attr('href'), 800);		
-		
-		//Discard the link default behavior
-		return false;
-	});
-	
-    });
-    </script>
+            //Get the height of the first item
+            $('#mask').css({'height':$('#panel-1').height()});
+
+            //Calculate the total width - sum of all sub-panels width
+            //Width is generated according to the width of #mask * total of sub-panels
+            $('#panel').width(parseInt($('#mask').width() * $('#panel div').length));
+
+            //Set the sub-panel width according to the #mask width (width of #mask and sub-panel must be same)
+            $('#panel div').width($('#mask').width());
+
+            //Get all the links with rel as panel
+            $('a[rel=panel]').click(function () {
+
+                    //Get the height of the sub-panel
+                    var panelheight = $($(this).attr('href')).height();
+
+                    //Set class for the selected item
+                    $('a[rel=panel]').removeClass('selected');
+                    $(this).addClass('selected');
+
+                    //Resize the height
+                    $('#mask').animate({'height':panelheight},{queue:false, duration:500});
+
+                    //Scroll to the correct panel, the panel id is grabbed from the href attribute of the anchor
+                    $('#mask').scrollTo($(this).attr('href'), 800);
+
+                    //Discard the link default behavior
+                    return false;
+            });
+
+        });
+        </script>
+    {% endblock %}
+
+    {% block utilitynav_scripts %}
+        <script type="text/javascript">
+            $(document).ready(function () {   
+                $('#utilityNav li.topLevel').hover(
+                    function () {  
+                        //show its submenu  
+                        $('div.flyOut', this).slideDown(100);
+                    },   
+                    function () {  
+                        //hide its submenu  
+                        $('div.flyOut', this).slideUp(100);
+                    }  
+                );  
+            });
+        </script>
+    {% endblock %}
+
 {% endblock %}
 </head>
 
@@ -146,7 +167,12 @@ See the individual blocks for overriding and structure.
 
                 <div id="header-blocks">
                     {% block headerblocks %}
-                        {% include "genlib_templates/snippets/header-blocks.xhtml" %}
+                        {% block utilitynav %}
+                            {% include "genlib_templates/snippets/utilitynav.xhtml" %}
+                        {% endblock %}
+                        {% block searchbox %}
+                            {% include "genlib_templates/snippets/header-blocks.xhtml" %}
+                        {% endblock %}
                     {% endblock %}
                 </div>
                 
