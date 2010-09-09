@@ -62,8 +62,15 @@ class Manager(object):
         accessible from an :class:`~eulcore.django.existdb.models.XmlModel`.
         """
 
+        if hasattr(settings, 'EXISTDB_FULLTEXT_OPTIONS'):
+            fulltext_opts = settings.EXISTDB_FULLTEXT_OPTIONS
+        else:
+            fulltext_opts = {}
+
+
         return QuerySet(model=self.model, xpath=self.xpath, using=ExistDB(),
-                        collection=settings.EXISTDB_ROOT_COLLECTION)
+                        collection=settings.EXISTDB_ROOT_COLLECTION,
+                        fulltext_options=fulltext_opts)
 
     #######################
     # PROXIES TO QUERYSET #

@@ -32,6 +32,7 @@ stand-in replacement in any context that expects one.
 
 from types import BooleanType
 from lxml import etree
+from lxml.builder import ElementMaker
 
 from eulcore.xmlmap import load_xmlobject_from_string
 from eulcore.xmlmap.fields import IntegerField, StringField, DateField, NodeField, NodeListField
@@ -70,12 +71,17 @@ class QuerySet(object):
     :param xquery: Override the entire :class:`Xquery` object used for
                    internal query serialization. Most code will leave this
                    unset, which uses a default :class:`Xquery`.
+    :param fulltext_options: optional dictionary of fulltext options to be used
+                    as settings for any full-text queries.  See
+                    http://demo.exist-db.org/lucene.xml#N1047C for available options.
+                    Requires a version of eXist that supports this feature.
 
     .. _XPath: http://www.w3.org/TR/xpath/
 
     """
     
-    def __init__(self, model=None, xpath=None, using=None, collection=None, xquery=None):
+    def __init__(self, model=None, xpath=None, using=None, collection=None,
+                xquery=None, fulltext_options={}):
         self.model = model     
         self._db = using
 
@@ -84,7 +90,8 @@ class QuerySet(object):
         if xquery:
             self.query = xquery
         else:
-            self.query = Xquery(xpath=xpath, collection=collection)
+            self.query = Xquery(xpath=xpath, collection=collection,
+                                fulltext_options=fulltext_options)
 
         self._result_id = None
         self.partial_fields = {}
@@ -566,18 +573,27 @@ def _quote_as_string_literal(s):
 
 class Xquery(object):
     """
-    xpath/xquery object
+    Xpath/Xquery object.
+
+    Init parameters:
+    :param xpath: base xpath to use when building the query, optional
+    :param collection: optional collection; if specified, query will be limited
+        to the collection using eXist-db query syntax ``collection('/db/foo')//node``.
+    :param fulltext_options: optional dictionary of fulltext options that should
+        be used for any full-text queries.  See http://demo.exist-db.org/lucene.xml#N1047C
+        for available options.
     """
 
     xpath = '/node()'       # default generic xpath
     xq_var = '$n'           # xquery variable to use when constructing flowr query
+    ft_option_xqvar = '$ft_options'  # xquery variable for fulltext options, if needed
     available_filters = ['contains', 'startswith', 'exact', 'fulltext_terms',
         'highlight', 'in']
     special_fields =  ['fulltext_score', 'last_modified', 'hash',
         'document_name', 'collection_name', 'match_count']
 
     
-    def __init__(self, xpath=None, collection=None):
+    def __init__(self, xpath=None, collection=None, fulltext_options={}):
         if xpath is not None:
             self.xpath = xpath
 
@@ -601,7 +617,10 @@ class Xquery(object):
         # return field / xpath details for constructed xquery return
         self.return_xpaths = []
         self._return_field_count = 1
-
+        # optional configuration for fulltext queries
+        self.fulltext_options = fulltext_options
+        self.ft_query = False   # flag for if the current xquery includes a fulltext query
+        
     def __str__(self):
         return self.getQuery()
 
@@ -619,6 +638,8 @@ class Xquery(object):
         xq.additional_return_fields = self.additional_return_fields.copy()
         xq.return_xpaths = self.return_xpaths
         xq._return_field_count = self._return_field_count
+        xq.fulltext_options = self.fulltext_options.copy()
+        xq.ft_query = self.ft_query
         return xq
 
     def getQuery(self):
@@ -643,7 +664,19 @@ class Xquery(object):
         xpath = ''.join(xpath_parts)
         # requires FLOWR instead of just XQuery  (sort, customized return, etc.)
         if self.order_by or self.return_fields or self.additional_return_fields \
-            or self.where_filters:
+            or self.where_filters or (self.ft_query and self.fulltext_options):
+
+            # some let statements must come at the beginning of a FLOWR query
+            if self.ft_query and self.fulltext_options:
+                # construct xml option configuration for fulltext query
+                E = ElementMaker()
+                opts = E('options')
+                for field, value in self.fulltext_options.iteritems():
+                    opts.append(E(field, value))
+                flowr_pre = 'let %s := %s' % (self.ft_option_xqvar, etree.tostring(opts))
+            else:
+                flowr_pre = ''
+
             # NOTE: using constructed xpath, with collection filter (if collection specified)
             flowr_for = 'for %s in %s' % (self.xq_var, xpath)
 
@@ -688,7 +721,7 @@ class Xquery(object):
             else:
                 flowr_order = ''
             flowr_return = self._constructReturn()
-            query = '\n'.join([flowr_for, flowr_let, flowr_where, flowr_order, flowr_return])
+            query = '\n'.join([flowr_pre, flowr_for, flowr_let, flowr_where, flowr_order, flowr_return])
         else:
             # if FLOWR is not required, just use plain xpath
             query = xpath
@@ -747,6 +780,12 @@ class Xquery(object):
             self.where_fields.append(xpath)
             # - adjust filter xpath to use $, to reference xq variable for special field
             _xpath = '$%s' % xpath
+
+        # if there are fulltext options specified, the method is called differently
+        if self.fulltext_options:
+            ft_query_template = 'ft:query(%%s, %%s, %s)' % self.ft_option_xqvar
+        else:
+            ft_query_template = 'ft:query(%s, %s)'
         
         if type == 'contains':
             filter = 'contains(%s, %s)' % (_xpath, _quote_as_string_literal(value))
@@ -755,9 +794,11 @@ class Xquery(object):
         if type == 'exact':
             filter = '%s = %s' % (_xpath, _quote_as_string_literal(value))
         if type == 'fulltext_terms':
-            filter = 'ft:query(%s, %s)' % (_xpath, _quote_as_string_literal(value))
+            filter = ft_query_template % (_xpath, _quote_as_string_literal(value))            
+            self.ft_query = True
         if type == 'highlight':
-            filter = 'ft:query(%s, %s) or 1' % (_xpath, _quote_as_string_literal(value))
+            filter = ft_query_template % (_xpath, _quote_as_string_literal(value)) + ' or 1'
+            self.ft_query = True
         if type == 'in':
             filter = 'contains((%s), %s)' % (','.join(_quote_as_string_literal(v)
                                                     for v in value),
