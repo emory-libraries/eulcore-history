@@ -920,7 +920,6 @@ class Xquery(object):
                     'op': parsed_xpath.op,
                     'left': self.prep_xpath(parsed_xpath.left, parsed=True, context=context),
                     'right': self.prep_xpath(parsed_xpath.right, parsed=True, context=context),
-                    'var': self.xq_var
                     }
             # xquery context variable has been added to individual portions and
             # should not be added again
@@ -938,6 +937,15 @@ class Xquery(object):
                 if isinstance(arg, ast.AbbreviatedStep) or isinstance(arg, ast.Step):
                     # prep_xpath returns string, but function arg needs to be parsed
                     parsed_xpath.args[i] = parse(self.prep_xpath(arg, parsed=True))
+
+                # xpath like .//name needs to be made relative to xquery variable
+                elif isinstance(arg, ast.BinaryExpression) and arg.op == '//':
+                    xpath_str = '%(left)s%(op)s%(right)s' % {
+                    'op': arg.op,
+                    'left': self.prep_xpath(arg.left, parsed=True, context=context),
+                    'right': serialize(arg.right)
+                    }
+                    parsed_xpath.args[i] = parse(xpath_str)
         else:
             # for a relative path, we need $n/(xpath)
             context_path = "%s/" % context

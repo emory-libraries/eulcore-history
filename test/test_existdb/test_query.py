@@ -646,6 +646,10 @@ class XqueryTest(unittest.TestCase):
         self.assertEqual('<field>{$n/name|$n/title|$n/@year}</field>',
                 xq.prep_xpath('/name|/title|@year', return_field=True))
 
+        # .//node inside a function call
+        self.assertEqual('<field>{normalize-space($n/.//name)}</field>',
+                xq.prep_xpath('normalize-space($n/.//name)', return_field=True))
+
 
 
 if __name__ == '__main__':
