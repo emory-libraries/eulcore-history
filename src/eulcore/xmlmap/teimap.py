@@ -18,6 +18,7 @@ from eulcore import xmlmap
 
 # TODO: generic/base tei xml object with common attributes?
 
+
 TEI_NAMESPACE = 'http://www.tei-c.org/ns/1.0'
 
 class _TeiBase(xmlmap.XmlObject):
@@ -28,6 +29,29 @@ class _TeiBase(xmlmap.XmlObject):
         'tei' : ROOT_NS,
     }
 
+
+class TeiLine(_TeiBase):
+    rend        = xmlmap.StringField("@rend")
+
+    """set up indents for lines with @rend=indent or @rend=indent plus some number"""
+    def indent(self):
+        #if self.rend == "indent":
+        #    indentval = True
+        if self.rend.startswith("indent"):
+            indentation = self.rend[len("indent"):]
+            if indentation:
+                return int(indentation)
+            else:
+                return 0
+
+
+class TeiLineGroup(_TeiBase):
+    head        = xmlmap.StringField('tei:head')
+    linegroup   = xmlmap.NodeListField('tei:lg', 'self')
+    line        = xmlmap.NodeListField('tei:l', TeiLine)
+
+
+
 class TeiDiv(_TeiBase):
     id       = xmlmap.StringField('@xml:id')
     type     = xmlmap.StringField('@type')
@@ -37,7 +61,10 @@ class TeiDiv(_TeiBase):
     # reference to top-level elements, e.g. for retrieving a single div
     doctitle = xmlmap.StringField('ancestor::tei:TEI/tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:title')
     doc_id   = xmlmap.StringField('ancestor::tei:TEI/@xml:id')
+    head     = xmlmap.StringField('tei:head')
+    linegroup = xmlmap.NodeListField('tei:lg', TeiLineGroup)
     div      = xmlmap.NodeListField('tei:div', 'self')
+
 
 class TeiSection(_TeiBase):
     # top-level sections -- front/body/back
