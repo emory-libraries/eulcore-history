@@ -30,20 +30,24 @@ class _TeiBase(xmlmap.XmlObject):
     }
 
 
+
 class TeiLine(_TeiBase):
     rend        = xmlmap.StringField("@rend")
 
     """set up indents for lines with @rend=indent or @rend=indent plus some number"""
     def indent(self):
-        #if self.rend == "indent":
-        #    indentval = True
         if self.rend.startswith("indent"):
             indentation = self.rend[len("indent"):]
             if indentation:
                 return int(indentation)
             else:
                 return 0
+            
+class TeiQuote(_TeiBase):
+    line    = xmlmap.NodeListField('tei:l', TeiLine)
 
+class TeiEpigraph(_TeiBase):
+    quote = xmlmap.NodeListField('tei:q'|'tei:quote', TeiQuote)
 
 class TeiLineGroup(_TeiBase):
     head        = xmlmap.StringField('tei:head')
@@ -64,7 +68,7 @@ class TeiDiv(_TeiBase):
     head     = xmlmap.StringField('tei:head')
     linegroup = xmlmap.NodeListField('tei:lg', TeiLineGroup)
     div      = xmlmap.NodeListField('tei:div', 'self')
-
+    byline   = xmlmap.StringField('tei:byline')
 
 class TeiSection(_TeiBase):
     # top-level sections -- front/body/back
