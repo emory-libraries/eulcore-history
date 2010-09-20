@@ -29,3 +29,10 @@ to specify your configuration file::
 
 This will allow you to use the existdb_index management command to manage your
 index configuration file in eXist.
+
+If you wish to specify options for fulltext queries, you can set a dictionary
+of options like this::
+
+    EXISTDB_FULLTEXT_OPTIONS = {'default-operator': 'and'}
+
+Full-text query options are only available in very recent versions of eXist.

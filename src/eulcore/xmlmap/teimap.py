@@ -47,7 +47,7 @@ class TeiQuote(_TeiBase):
     line    = xmlmap.NodeListField('tei:l', TeiLine)
 
 class TeiEpigraph(_TeiBase):
-    quote = xmlmap.NodeListField('tei:q'|'tei:quote', TeiQuote)
+    quote = xmlmap.NodeListField('tei:q|tei:quote', TeiQuote)
 
 class TeiLineGroup(_TeiBase):
     head        = xmlmap.StringField('tei:head')

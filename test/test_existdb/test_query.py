@@ -188,17 +188,25 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual(NUM_FIXTURES, self.qs.count(), "main queryset remains unchanged by filter")
 
         # filtering on a special field - should still be able to return/access it via only
-        fqs = self.qs.filter(document_name__in=['f1.xml','f2.xml']).only('id', 'document_name')
-        fqs.order_by('document_name')
+        fqs = self.qs.filter(document_name__in=['f1.xml','f2.xml']).only('id',
+            'document_name').order_by('document_name')
         self.assertEqual(2, fqs.count(),
             "should get 2 matches for filter on document name in list (got %s)" % fqs.count())
         self.assertEqual('f1.xml', fqs[0].document_name)
 
-        fqs = self.qs.filter(document_name__in=['f1.xml','f2.xml']).also('id', 'document_name')
-        fqs.order_by('document_name')
+        fqs = self.qs.filter(document_name__in=['f1.xml','f2.xml']).also('id',
+            'document_name').order_by('document_name')
         self.assertEqual(2, fqs.count(),
             "should get 2 matches for filter on document name in list (got %s)" % fqs.count())
         self.assertEqual('f1.xml', fqs[0].document_name)
+
+    def test_or_filter(self):
+        fqs = self.qs.or_filter(id='abc', name='four').only('id')
+        self.assertEqual(2, fqs.count(),
+            "should get 2 matches for OR filter on id='abc' or name='four' (got %s)" % fqs.count())
+        ids = [obj.id for obj in fqs.all()]
+        self.assert_('abc' in ids, 'id "abc" in list of ids when OR filter includes id="abc"')
+        self.assert_('def' in ids, 'id "def" in list of ids when OR filter includes name="four')
 
     def test_get(self):
         result  = self.qs.get(contains="two")
@@ -405,6 +413,18 @@ class ExistQueryTest__FullText(unittest.TestCase):
         self.assertEqual(1, fqs.count(),
                          "should get 1 match for fulltext_terms search on = 'only two' (got %s)" % fqs.count())
 
+    def test_filter_fulltext_options(self):
+        qs = QuerySet(using=self.db, xpath='/root',
+                    collection=COLLECTION, model=QueryTestModel,
+                    fulltext_options={'default-operator': 'and'})
+        # search for terms present in fixtures - but not both present in one doc
+        fqs = qs.filter(description__fulltext_terms='only third')
+        # for now, just confirm that the option is passed through to query
+        self.assert_('<default-operator>and</default-operator>' in fqs.query.getQuery())
+        # TODO: test this properly!
+        # query options not supported in current version of eXist
+        # self.assertEqual(0, fqs.count())
+
     def test_order_by__fulltext_score(self):
         fqs = self.qs.filter(description__fulltext_terms='one').order_by('-fulltext_score')
         self.assertEqual('one', fqs[0].name)    # one appears 3 times, should be first
@@ -495,6 +515,13 @@ class XqueryTest(unittest.TestCase):
         xq.add_filter('.', 'fulltext_terms', 'dog')
         self.assertEquals('/el[ft:query(., "dog")]', xq.getQuery())
 
+    def test_fulltext_options(self):
+        # pass in options for a full-text query
+        xq = Xquery(xpath='/el', fulltext_options={'default-operator': 'and'})
+        xq.add_filter('.', 'fulltext_terms', 'dog')
+        self.assert_('<default-operator>and</default-operator>' in xq.getQuery())
+        self.assert_('/el[ft:query(., "dog", $ft_options)]', xq.getQuery())
+
     def test_filters_highlight(self):
         xq = Xquery(xpath='/el')
         xq.add_filter('.', 'highlight', 'dog star')
@@ -516,6 +543,12 @@ class XqueryTest(unittest.TestCase):
         self.assert_('let $document_name' in xq.getQuery())
         self.assert_('where contains(("a.xml","b.xml"), $document_name)' in xq.getQuery())
 
+    def test_or_filters(self):
+        xq = Xquery(xpath='/el')
+        xq.add_filter('.', 'contains', 'dog', mode='OR')
+        xq.add_filter('.', 'startswith', 'S', mode='OR')
+        self.assertEquals('/el[contains(., "dog") or starts-with(., "S")]', xq.getQuery())
+   
     def test_return_only(self):
         xq = Xquery(xpath='/el')
         xq.xq_var = '$n'
@@ -568,7 +601,7 @@ class XqueryTest(unittest.TestCase):
         self.assertEqual('subsequence(/el, 1, 4)', xq.getQuery())
         # subsequence with FLWR query
         xq.return_only({'name':'name'})
-        self.assert_('subsequence(for $n in' in xq.getQuery())
+        self.assert_('subsequence(\nfor $n in' in xq.getQuery())
         
         # additive limits
         xq = Xquery(xpath='/el')
@@ -621,6 +654,10 @@ class XqueryTest(unittest.TestCase):
         # multiple ORs
         self.assertEqual('<field>{$n/name|$n/title|$n/@year}</field>',
                          xq.prep_xpath('/name|/title|@year', return_field=True))
+
+        # .//node inside a function call
+        self.assertEqual('<field>{normalize-space($n/.//name)}</field>',
+                xq.prep_xpath('normalize-space($n/.//name)', return_field=True))
 
     def test_namespaces(self):
         xq = Xquery(xpath='/foo:el', namespaces={'foo': 'urn:foo#'})

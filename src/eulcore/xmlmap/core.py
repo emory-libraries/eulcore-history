@@ -15,10 +15,13 @@
 #   limitations under the License.
 
 import cStringIO
+import logging
 from lxml import etree
 from lxml.builder import ElementMaker
 
 from eulcore.xmlmap.fields import Field, NodeList
+
+logger = logging.getLogger(__name__)
 
 __all__ = [ 'XmlObject', 'parseUri', 'parseString', 'loadSchema',
     'load_xmlobject_from_string', 'load_xmlobject_from_file' ]
@@ -129,7 +132,6 @@ class XmlObjectType(type):
 
         return new_class
 
-
 class XmlObject(object):
 
     """
@@ -234,21 +236,29 @@ class XmlObject(object):
         return root
         
 
-    def xslTransform(self, filename=None, xsl=None, params={}):
+    def xsl_transform(self, filename=None, xsl=None, return_type=None, **params):
         """Run an xslt transform on the contents of the XmlObject.
 
         XSLT can be passed as filename or string. If a params dictionary is
         specified, its items will be passed as parameters to the XSL
         transformation.
 
+        :param filename: xslt filename (optional, one of file and xsl is required)
+        :param xsl: xslt as string (optional)
+        :param return_type: type of object to return; optional, defaults to
+            :class:`XmlObject`
+        :returns: an instance of :class:`XmlObject` or the return_type specified
         """
         if filename is not None:
             xslt_doc = etree.parse(filename)
         if xsl is not None:
             xslt_doc = etree.fromstring(xsl)
-        transform = etree.XSLT(xslt_doc)
-        # FIXME: this returns an etree; should it convert to string first?
-        return transform(self.node)
+        transform = etree.XSLT(xslt_doc, **params)
+        # NOTE: converting _XSLTResultTree to XmlObject because of a bug in its unicode method
+        # - to output xml result, use serialize instead of unicode
+        if return_type is None:
+            return_type = XmlObject
+        return return_type(transform(self.node))
 
     def __unicode__(self):
         if isinstance(self.node, basestring):

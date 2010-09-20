@@ -31,22 +31,30 @@ class TestXsl(unittest.TestCase):
         </xsl:template>
 
     </xsl:stylesheet>'''
+
+    INVALID_XSL = '''
+    <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+        <xsl:template match="/">
+            <none>
+            <xsl:value-of select="$foo"/>
+            </none>
+        </xsl:template>
+    </xsl:stylesheet>
+    '''
     
     def setUp(self):
         # parseString wants a url. let's give it a proper one.
         url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'FIXTURE_TEXT')
         self.fixture = xmlmap.parseString(self.FIXTURE_TEXT, url)
 
-    def test_xslTransform(self):
+    def test_xsl_transform(self):
         class TestObject(xmlmap.XmlObject):
             bar_baz = xmlmap.StringField('bar[1]/baz')
             nobar_baz = xmlmap.StringField('baz[1]')
 
         # xsl in string
-        #obj = TestObject(self.fixture.documentElement)
         obj = TestObject(self.fixture)
-        result = obj.xslTransform(xsl=self.FIXTURE_XSL)
-        newobj = xmlmap.load_xmlobject_from_string(str(result), TestObject)
+        newobj = obj.xsl_transform(xsl=self.FIXTURE_XSL, return_type=TestObject)
         self.assertEqual('42', newobj.nobar_baz)
         self.assertEqual(None, newobj.bar_baz)
 
@@ -55,15 +63,12 @@ class TestXsl(unittest.TestCase):
         self.FILE.write(self.FIXTURE_XSL)
         self.FILE.flush()
 
-        #obj = TestObject(self.fixture.documentElement)
         obj = TestObject(self.fixture)
-        result = obj.xslTransform(filename=self.FILE.name)
-        newobj = xmlmap.load_xmlobject_from_string(str(result), TestObject)
+        newobj = obj.xsl_transform(filename=self.FILE.name, return_type=TestObject)
         self.assertEqual('42', newobj.nobar_baz)
         self.assertEqual(None, newobj.bar_baz)
 
         self.FILE.close()
-
         # not yet tested: xsl with parameters
 
 

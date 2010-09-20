@@ -32,6 +32,7 @@ stand-in replacement in any context that expects one.
 
 from types import BooleanType
 from lxml import etree
+from lxml.builder import ElementMaker
 
 from eulcore.xmlmap import load_xmlobject_from_string
 from eulcore.xmlmap.fields import IntegerField, StringField, DateField, NodeField, NodeListField
@@ -70,12 +71,17 @@ class QuerySet(object):
     :param xquery: Override the entire :class:`Xquery` object used for
                    internal query serialization. Most code will leave this
                    unset, which uses a default :class:`Xquery`.
+    :param fulltext_options: optional dictionary of fulltext options to be used
+                    as settings for any full-text queries.  See
+                    http://demo.exist-db.org/lucene.xml#N1047C for available options.
+                    Requires a version of eXist that supports this feature.
 
     .. _XPath: http://www.w3.org/TR/xpath/
 
     """
     
-    def __init__(self, model=None, xpath=None, using=None, collection=None, xquery=None):
+    def __init__(self, model=None, xpath=None, using=None, collection=None,
+                xquery=None, fulltext_options={}):
         self.model = model     
         self._db = using
 
@@ -84,7 +90,8 @@ class QuerySet(object):
         if xquery:
             self.query = xquery
         else:
-            xq_opts = {'xpath': xpath, 'collection': collection}
+            xq_opts = {'xpath': xpath, 'collection': collection,
+                       'fulltext_options': fulltext_options}
             if model and hasattr(model, 'ROOT_NAMESPACES'):
                 xq_opts['namespaces'] = model.ROOT_NAMESPACES
             self.query = Xquery(**xq_opts)
@@ -144,7 +151,7 @@ class QuerySet(object):
         copy._result_cache = {}   
         return copy
 
-    def filter(self, **kwargs):
+    def filter(self, combine='AND', **kwargs):
         """Filter the QuerySet to return a subset of the documents.
 
         Arguments take the form ``lookuptype`` or ``field__lookuptype``,
@@ -176,6 +183,9 @@ class QuerySet(object):
         Any number of these filter arguments may be passed. This method
         returns an updated copy of the QuerySet: It does not modify the
         original.
+
+        :param combine: optional; specify how the filters should be combined.
+            Defaults to ``AND``; also supports ``OR``.
         """
         # possible future lookup types:
         #   gt/gte,lt/lte, endswith, range, date, isnull (?), regex (?)
@@ -205,7 +215,7 @@ class QuerySet(object):
             # highlighting is only an xquery filter when passed as a string
             if lookuptype != 'highlight' or \
                 lookuptype == 'highlight' and not isinstance(value, BooleanType):
-                qscopy.query.add_filter(xpath, lookuptype, value)
+                qscopy.query.add_filter(xpath, lookuptype, value, combine)
 
             # enable highlighting when a full-text query is used
             if lookuptype == 'fulltext_terms':
@@ -225,6 +235,14 @@ class QuerySet(object):
 
         # return copy query string so additional filters can be added or get() called
         return qscopy
+
+    def or_filter(self, **kwargs):
+        """Filter the QuerySet to return a subset of the documents, but combine
+        the filters with OR instead of AND.  Uses the same syntax and allows
+        for the same filters as :meth:`filter` with the exception that currently
+        predefined special fields (see :meth:`only`) are not supported.
+        """
+        return self.filter(combine='OR', **kwargs)
 
     def order_by(self, field):
         """Order results returned according to a specified field.  By default,
@@ -558,18 +576,28 @@ def _quote_as_string_literal(s):
 
 class Xquery(object):
     """
-    xpath/xquery object
+    Xpath/Xquery object.
+
+    Init parameters:
+    :param xpath: base xpath to use when building the query, optional
+    :param collection: optional collection; if specified, query will be limited
+        to the collection using eXist-db query syntax ``collection('/db/foo')//node``.
+    :param fulltext_options: optional dictionary of fulltext options that should
+        be used for any full-text queries.  See http://demo.exist-db.org/lucene.xml#N1047C
+        for available options.
     """
 
     xpath = '/node()'       # default generic xpath
     xq_var = '$n'           # xquery variable to use when constructing flowr query
+    ft_option_xqvar = '$ft_options'  # xquery variable for fulltext options, if needed
     available_filters = ['contains', 'startswith', 'exact', 'fulltext_terms',
         'highlight', 'in']
     special_fields =  ['fulltext_score', 'last_modified', 'hash',
         'document_name', 'collection_name', 'match_count']
 
     
-    def __init__(self, xpath=None, collection=None, namespaces=None):
+    def __init__(self, xpath=None, collection=None, namespaces=None,
+                 fulltext_options={}):
         if xpath is not None:
             self.xpath = xpath
 
@@ -577,6 +605,7 @@ class Xquery(object):
         self.collection = collection.lstrip('/') if collection is not None else None
         self.namespaces = namespaces
         self.filters = []
+        self.or_filters = []
         # info for filters that use special fields & require let/where in xquery
         self.where_filters = []
         self.where_fields = []
@@ -593,7 +622,10 @@ class Xquery(object):
         # return field / xpath details for constructed xquery return
         self.return_xpaths = []
         self._return_field_count = 1
-
+        # optional configuration for fulltext queries
+        self.fulltext_options = fulltext_options
+        self.ft_query = False   # flag for if the current xquery includes a fulltext query
+        
     def __str__(self):
         return self.getQuery()
 
@@ -601,6 +633,7 @@ class Xquery(object):
         xq = Xquery(xpath=self.xpath, collection=self.collection, namespaces=self.namespaces)
         xq.filters += self.filters
         xq.where_filters += self.where_filters
+        xq.or_filters += self.or_filters
         xq.where_fields = self.where_fields
         xq.order_by = self.order_by
         xq.order_mode = self.order_mode
@@ -610,6 +643,8 @@ class Xquery(object):
         xq.additional_return_fields = self.additional_return_fields.copy()
         xq.return_xpaths = self.return_xpaths
         xq._return_field_count = self._return_field_count
+        xq.fulltext_options = self.fulltext_options.copy()
+        xq.ft_query = self.ft_query
         return xq
 
     def getQuery(self):
@@ -633,10 +668,25 @@ class Xquery(object):
             
         xpath_parts += [ '[%s]' % (f,) for f in self.filters ]
 
+        if self.or_filters:
+            xpath_parts.append('[%s]' % (' or '.join(self.or_filters)))
+
         xpath = ''.join(xpath_parts)
         # requires FLOWR instead of just XQuery  (sort, customized return, etc.)
         if self.order_by or self.return_fields or self.additional_return_fields \
-            or self.where_filters:
+            or self.where_filters or (self.ft_query and self.fulltext_options):
+
+            # some let statements must come at the beginning of a FLOWR query
+            if self.ft_query and self.fulltext_options:
+                # construct xml option configuration for fulltext query
+                E = ElementMaker()
+                opts = E('options')
+                for field, value in self.fulltext_options.iteritems():
+                    opts.append(E(field, value))
+                flowr_pre = 'let %s := %s' % (self.ft_option_xqvar, etree.tostring(opts))
+            else:
+                flowr_pre = ''
+
             # NOTE: using constructed xpath, with collection filter (if collection specified)
             flowr_for = 'for %s in %s' % (self.xq_var, xpath)
 
@@ -681,7 +731,7 @@ class Xquery(object):
             else:
                 flowr_order = ''
             flowr_return = self._constructReturn()
-            query = '\n'.join([flowr_for, flowr_let, flowr_where, flowr_order, flowr_return])
+            query = '\n'.join([flowr_pre, flowr_for, flowr_let, flowr_where, flowr_order, flowr_return])
         else:
             # if FLOWR is not required, just use plain xpath
             query = xpath
@@ -713,7 +763,7 @@ class Xquery(object):
     def distinct(self):
         self._distinct = True
 
-    def add_filter(self, xpath, type, value):
+    def add_filter(self, xpath, type, value, mode=None):
         """
         Add a filter to the xpath.  Takes xpath, type of filter, and value.
         Filter types currently implemented:
@@ -724,6 +774,8 @@ class Xquery(object):
          * highlight - run a full-text query, but return even if no matches
          * in - value is present in a list
 
+        By default, all filters are ANDed together.  Specifying a ``mode`` of **OR**
+        will OR together all filters added with a mode of OR.
         """
         # possibilities to be added:
         #   gt/gte,lt/lte, endswith, range, date, isnull (?), regex (?)
@@ -740,6 +792,12 @@ class Xquery(object):
             self.where_fields.append(xpath)
             # - adjust filter xpath to use $, to reference xq variable for special field
             _xpath = '$%s' % xpath
+
+        # if there are fulltext options specified, the method is called differently
+        if self.fulltext_options:
+            ft_query_template = 'ft:query(%%s, %%s, %s)' % self.ft_option_xqvar
+        else:
+            ft_query_template = 'ft:query(%s, %s)'
         
         if type == 'contains':
             filter = 'contains(%s, %s)' % (_xpath, _quote_as_string_literal(value))
@@ -748,9 +806,11 @@ class Xquery(object):
         if type == 'exact':
             filter = '%s = %s' % (_xpath, _quote_as_string_literal(value))
         if type == 'fulltext_terms':
-            filter = 'ft:query(%s, %s)' % (_xpath, _quote_as_string_literal(value))
+            filter = ft_query_template % (_xpath, _quote_as_string_literal(value))            
+            self.ft_query = True
         if type == 'highlight':
-            filter = 'ft:query(%s, %s) or 1' % (_xpath, _quote_as_string_literal(value))
+            filter = ft_query_template % (_xpath, _quote_as_string_literal(value)) + ' or 1'
+            self.ft_query = True
         if type == 'in':
             filter = 'contains((%s), %s)' % (','.join(_quote_as_string_literal(v)
                                                     for v in value),
@@ -759,6 +819,8 @@ class Xquery(object):
             # filters on pre-defined fields must occur in 'where' section, after
             # relevant xquery variable has been defined
             self.where_filters.append(filter)
+        elif mode == 'OR':
+            self.or_filters.append(filter)
         else:
             self.filters.append(filter)
 
@@ -870,7 +932,6 @@ class Xquery(object):
                     'op': parsed_xpath.op,
                     'left': self.prep_xpath(parsed_xpath.left, parsed=True, context=context),
                     'right': self.prep_xpath(parsed_xpath.right, parsed=True, context=context),
-                    'var': self.xq_var
                     }
             # xquery context variable has been added to individual portions and
             # should not be added again
@@ -888,6 +949,15 @@ class Xquery(object):
                 if isinstance(arg, ast.AbbreviatedStep) or isinstance(arg, ast.Step):
                     # prep_xpath returns string, but function arg needs to be parsed
                     parsed_xpath.args[i] = parse(self.prep_xpath(arg, parsed=True))
+
+                # xpath like .//name needs to be made relative to xquery variable
+                elif isinstance(arg, ast.BinaryExpression) and arg.op == '//':
+                    xpath_str = '%(left)s%(op)s%(right)s' % {
+                    'op': arg.op,
+                    'left': self.prep_xpath(arg.left, parsed=True, context=context),
+                    'right': serialize(arg.right)
+                    }
+                    parsed_xpath.args[i] = parse(xpath_str)
         else:
             # for a relative path, we need $n/(xpath)
             context_path = "%s/" % context
