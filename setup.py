@@ -23,11 +23,19 @@ packages = []
 for path, dirs, files in os.walk(srcdir):
     if path.startswith(srcdir): # it does
         path = path[len(srcdir):]
-    for i, dir in enumerate(dirs):
-        if dir.startswith('.'):
-            continue
+    if '.svn' in dirs:
+        dirs.remove('.svn')
     if '__init__.py' in files:
         packages.append(path.replace(os.path.sep, '.'))
+
+themedir = 'themes' + os.path.sep
+data_files = []
+for path, dirs, files in os.walk(themedir):
+    if '.svn' in dirs:
+        dirs.remove('.svn')
+    if files:
+        targetfiles = [os.path.join(path, f) for f in files]
+        data_files.append((path, targetfiles))
 
 setup(
     name='eulcore',
@@ -36,5 +44,8 @@ setup(
     author_email='libsysdev-l@listserv.cc.emory.edu',
     packages=packages,
     package_dir={'': 'src'},
-    package_data={'eulcore.django.existdb': ['exist_fixtures/*']},
+    package_data={
+        'eulcore.django.existdb': ['exist_fixtures/*'],
+        },
+    data_files=data_files,
 )
