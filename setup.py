@@ -20,14 +20,14 @@ def fullsplit(path):
 
 srcdir = 'src' + os.path.sep
 packages = []
-for path, dirs, files in os.walk(srcdir + 'eulcore'):
+for path, dirs, files in os.walk(srcdir):
+    if path.startswith(srcdir): # it does
+        path = path[len(srcdir):]
     for i, dir in enumerate(dirs):
         if dir.startswith('.'):
-            del dirs[i]
-        if '__init__.py' in files:
-            if path.startswith(srcdir): # it does
-                packagedir = path[len(srcdir):]
-            packages.append(packagedir.replace(os.path.sep, '.'))
+            continue
+    if '__init__.py' in files:
+        packages.append(path.replace(os.path.sep, '.'))
 
 setup(
     name='eulcore',
