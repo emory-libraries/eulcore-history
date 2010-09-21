@@ -90,8 +90,11 @@ class QuerySet(object):
         if xquery:
             self.query = xquery
         else:
-            self.query = Xquery(xpath=xpath, collection=collection,
-                                fulltext_options=fulltext_options)
+            xq_opts = {'xpath': xpath, 'collection': collection,
+                       'fulltext_options': fulltext_options}
+            if model and hasattr(model, 'ROOT_NAMESPACES'):
+                xq_opts['namespaces'] = model.ROOT_NAMESPACES
+            self.query = Xquery(**xq_opts)
 
         self._result_id = None
         self.partial_fields = {}
@@ -593,12 +596,14 @@ class Xquery(object):
         'document_name', 'collection_name', 'match_count']
 
     
-    def __init__(self, xpath=None, collection=None, fulltext_options={}):
+    def __init__(self, xpath=None, collection=None, namespaces=None,
+                 fulltext_options={}):
         if xpath is not None:
             self.xpath = xpath
 
         # remove leading / from collection name (if any)
         self.collection = collection.lstrip('/') if collection is not None else None
+        self.namespaces = namespaces
         self.filters = []
         self.or_filters = []
         # info for filters that use special fields & require let/where in xquery
@@ -625,7 +630,7 @@ class Xquery(object):
         return self.getQuery()
 
     def getCopy(self):
-        xq = Xquery(xpath=self.xpath, collection=self.collection)
+        xq = Xquery(xpath=self.xpath, collection=self.collection, namespaces=self.namespaces)
         xq.filters += self.filters
         xq.where_filters += self.where_filters
         xq.or_filters += self.or_filters
@@ -647,6 +652,11 @@ class Xquery(object):
         Generate and return xquery based on configured filters, sorting, return fields.
         Returns xpath or FLOWR XQuery if required based on sorting and return
         """
+        declarations = None
+        if self.namespaces:
+            declarations = '\n'.join('''declare namespace %s='%s';''' % (prefix, urn)
+                                for prefix,urn in self.namespaces.iteritems() )
+
         xpath_parts = []
         if self.collection is not None:
             # if a collection is specified, add it it to the top-level query xpath
@@ -728,6 +738,8 @@ class Xquery(object):
 
         if self._distinct:
             query = "distinct-values(%s)" % (query,)
+        if declarations:
+            query = '\n'.join([declarations, query])
 
         # if either start or end is specified, only retrieve the specified set of results
         # limits need to be done after any sorting or filtering, so subsequencing entire query

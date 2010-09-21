@@ -4,7 +4,7 @@ import unittest
 from os import path
 
 from eulcore.xmlmap import load_xmlobject_from_file, NodeListField
-from eulcore.xmlmap.teimap import Tei, TeiSection, TeiDiv, TeiFigure, TeiInterpGroup, TeiInterp
+from eulcore.xmlmap.teimap import Tei, TeiSection, TeiDiv, TeiFigure, TeiInterpGroup, TeiInterp, TeiLineGroup, TeiLine
 from testcore import main
 
 class ExtendedTei(Tei):
@@ -65,6 +65,15 @@ class TestTei(unittest.TestCase):
         self.assertEqual("im-ph", self.tei.interpGroup[0].interp[0].id)
         self.assertEqual("photo", self.tei.interpGroup[0].interp[0].value)
         self.assertEqual("mil-na", self.tei.interpGroup[2].interp[1].id)
+
+
+    def testTeiLineGroup(self):
+        poem = self.tei.body.div[0].div[2] #using clarke008
+        self.assert_(isinstance(poem.linegroup[0], TeiLineGroup))
+        self.assert_(isinstance(poem.linegroup[0].line[0], TeiLine))
+        self.assertEqual(4, poem.linegroup[1].line[3].indent())
+        self.assertEqual(0, poem.linegroup[0].line[2].indent())
+       # print poem.linegroup[0].line[2].indent()
         
         
 if __name__ == '__main__':
