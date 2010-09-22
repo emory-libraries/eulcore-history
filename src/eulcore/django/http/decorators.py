@@ -17,6 +17,9 @@
 from functools import wraps
 import mimeparse
 
+from django.http import HttpResponse
+from django.utils.cache import patch_vary_headers
+
 def content_negotiation(formats, default_type='text/html'):
     """
     Provides basic content negotiation and returns a view method based on the
@@ -36,6 +39,9 @@ def content_negotiation(formats, default_type='text/html'):
 
     The above example would return the rdf_view on a request type of
     ``application/rdf+xml`` and the normal view for anything else.
+
+    Any :class:`django.http.HttpResponse` returned by the view method chosen
+    by content negotiation will have a 'Vary: Accept' HTTP header added.
 
     **NOTE:** Some web browsers do content negotiation poorly, requesting
     ``application/xml`` when what they really want is ``application/xhtml+xml`` or
@@ -75,7 +81,14 @@ def content_negotiation(formats, default_type='text/html'):
             # Return the view matching content type or the original view
             # if no match.
             if not content_type or content_type not in formats:
-                return view_method(request, *args, **kwargs)
-            return formats[content_type](request, *args, **kwargs)
+                response = view_method(request, *args, **kwargs)
+            else:
+                response = formats[content_type](request, *args, **kwargs)
+
+            # set a Vary header to indicate content may vary based on Accept header            
+            if isinstance(response, HttpResponse):    # views should return HttpResponse objects, but check to be sure
+                # note: using the same utility method used by django's vary_on_headers decorator
+                patch_vary_headers(response, ['Accept'])
+            return response
         return _wrapped
     return _decorator

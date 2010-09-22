@@ -21,13 +21,13 @@ from eulcore.django.http import content_negotiation
 
 def html_view(request):
     "a simple view for testing content negotiation"
-    return "HTML"
+    return HttpResponse("HTML")
 
 def xml_view(request):
-    return "XML"
+    return HttpResponse("XML")
 
 def json_view(request):
-    return "JSON"
+    return HttpResponse("JSON")
 
 class ContentNegotiationTest(TestCase):
     # known browser accept headers - taken from https://developer.mozilla.org/en/Content_negotiation
@@ -46,45 +46,47 @@ class ContentNegotiationTest(TestCase):
     def test_default(self):
         # no accept header specified - should use default view
         response = self.negotiated_view(self.request)
-        self.assertEqual("HTML", response)
+        self.assertEqual("HTML", response.content)
+        self.assertEqual('Accept', response['vary'],
+            "response should have a 'Vary: Accept' header")
 
     def test_custom_default(self):
         # no accept header, should return user specified default view.
         decorator = content_negotiation({'application/xml': xml_view, 'text/html': html_view}, default_type="application/json")
         negotiated_view = decorator(json_view)
         response = negotiated_view(self.request)
-        self.assertEqual("JSON", response)
+        self.assertEqual("JSON", response.content)
 
     def test_html(self):
         self.request.META['HTTP_ACCEPT'] = 'text/html, application/xhtml+xml'
         response = self.negotiated_view(self.request)
-        self.assertEqual("HTML", response)
+        self.assertEqual("HTML", response.content)
 
     def test_xml(self):
         self.request.META['HTTP_ACCEPT'] = 'application/xml'
         response = self.negotiated_view(self.request)
-        self.assertEqual("XML", response)
+        self.assertEqual("XML", response.content)
 
     def test_browsers(self):
         # some browsers request things oddly so they might not get what they actually want
         # confirm that these known browsers get the default text/html content instead of application/xml
         self.request.META['HTTP_ACCEPT'] = self.FIREFOX
         response = self.negotiated_view(self.request)
-        self.assertEqual("HTML", response,
+        self.assertEqual("HTML", response.content,
             "got HTML content with Firefox Accept header")
 
         self.request.META['HTTP_ACCEPT'] = self.CHROME
         response = self.negotiated_view(self.request)
-        self.assertEqual("HTML", response,
+        self.assertEqual("HTML", response.content,
             "got HTML content with Chrome/Safari Accept header")
 
         self.request.META['HTTP_ACCEPT'] = self.IE8
         response = self.negotiated_view(self.request)
-        self.assertEqual("HTML", response,
+        self.assertEqual("HTML", response.content,
             "got HTML content with IE8 Accept header")
 
     def test_function_wrapping(self):
-        # make sure we play nice for document
+        # make sure we play nice for documentation
         self.assertEqual(self.negotiated_view.__doc__, html_view.__doc__,
             "decorated method docstring matches original method docstring")
         self.assertEqual(self.negotiated_view.__name__, html_view.__name__,
