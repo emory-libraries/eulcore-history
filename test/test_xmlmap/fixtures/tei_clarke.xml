@@ -181,13 +181,13 @@ They ratify also the spirit of those poems in the present volume which seek to i
 
 <pb n="1"/>
 <div xml:id="clarke005" type="Chapter" n="America">
-<head rend="center">AMERICA</head>
+<head rend="center">America</head>
 
 <pb n="2"/>
 <pb n="3"/>
 <div xml:id="clarke006" type="poem" n="The Choice"><docAuthor n="Kipling, Rudyard">Rudyard Kipling</docAuthor>
 
-<head rend="center">THE CHOICE</head>
+<head rend="center">The Choice</head>
 
 <lg type="stanza">
 <head rend="center"><hi rend="smallcap">The American </hi><hi rend="smallcap">Spirit speaks</hi>:</head>
@@ -232,7 +232,7 @@ They ratify also the spirit of those poems in the present volume which seek to i
 <pb n="4"/>
 <div xml:id="clarke007" type="poem" n="Liberty Enlightening the World">
 <docAuthor n="Van Dyke, Henry">Henry van Dyke</docAuthor>
-<head rend="center">"LIBERTY ENLIGHTENING THE WORLD"</head>
+<head rend="center">"Liberty Enlightening the World"</head>
 
 <lg type="stanza">
 <l n="1"><hi rend="smallcap">Thou</hi> warden of the western gate, above Manhattan Bay,</l>
@@ -272,7 +272,7 @@ They ratify also the spirit of those poems in the present volume which seek to i
 
 
 <div xml:id="clarke008" type="poem" n="To the United States of America"><docAuthor n="Bridges, Robert">Robert Bridges</docAuthor>
-<head rend="center">TO THE UNITED STATES OF AMERICA</head>
+<head rend="center">To the United States of America</head>
 
 <lg type="stanza">
 <l n="1"><hi rend="smallcap">Brothers</hi> in blood! They who this wrong began</l>
@@ -298,8 +298,8 @@ They ratify also the spirit of those poems in the present volume which seek to i
 
 <pb n="6"/>
 <div xml:id="clarke009" type="poem" n="Abraham Lincoln Walks at Midnight"><docAuthor n="Lindsay, Vachel">Vachel Lindsay</docAuthor>
-<head rend="center"> ABRAHAM LINCOLN WALKS AT MIDNIGHT </head>
-<head rend="center">(<hi rend="smallcap">IN SPRINGFIELD, ILLINOIS</hi>)</head>
+<head rend="center"> Abraham Lincoln Walks at Midnight </head>
+<head rend="center">(<hi rend="smallcap">in Springfield, Illinois</hi>)</head>
 
 <lg type="stanza">
 <l n="1"><hi rend="smallcap">It</hi> is portentous, and a thing of state</l>
@@ -354,9 +354,10 @@ They ratify also the spirit of those poems in the present volume which seek to i
 
 
 <!-- postcard figures for testing -->
-<figure entity="chateau_thierry2" ana="nat-fr mil-f con-r im-ph t-wwi">
+<figure ana="nat-fr mil-f con-r im-ph t-wwi">
 <head>Chateau-Thierry</head>
 <figDesc>This postcard is a black and white photo of ruined houses and ruins in the street. Five soldiers are walking through the ruins. Text at bottom center: "Chateau-Thierry -- Barricade et Ruines rue Carnot". Text at bottom right: "'La Pensee'". On reverse: blank.</figDesc>
+<graphic url="chateau_thierry2"/>
 </figure>
 
 <figure entity="fighting_fifth" ana="nat-brit mil-a mil-f im-ph t-wwi"><head>The "Fighting
