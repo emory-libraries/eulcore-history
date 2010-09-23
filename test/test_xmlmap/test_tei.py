@@ -4,7 +4,7 @@ import unittest
 from os import path
 
 from eulcore.xmlmap import load_xmlobject_from_file, NodeListField
-from eulcore.xmlmap.teimap import Tei, TeiSection, TeiDiv, TeiFigure, TeiInterpGroup, TeiInterp, TeiLineGroup, TeiLine
+from eulcore.xmlmap.teimap import Tei, TeiSection, TeiDiv, TeiFigure, TeiInterpGroup, TeiInterp, TeiLineGroup, TeiLine, TeiEpigraph, TeiQuote
 from testcore import main
 
 class ExtendedTei(Tei):
@@ -74,7 +74,15 @@ class TestTei(unittest.TestCase):
         self.assertEqual(4, poem.linegroup[1].line[3].indent())
         self.assertEqual(0, poem.linegroup[0].line[2].indent())
        # print poem.linegroup[0].line[2].indent()
+
         
+    def testTeiEpigraph(self):
+        epigraph = self.tei.front.div[1].epigraph[0] #using clarke002
+        self.assertEqual("epigraph", self.tei.front.div[1].type)
+        self.assert_(isinstance(epigraph, TeiEpigraph))
+        self.assert_(isinstance(epigraph.quote[0], TeiQuote))
+        self.assert_(isinstance(epigraph.quote[0].line[0], TeiLine))
+
         
 if __name__ == '__main__':
     main()
