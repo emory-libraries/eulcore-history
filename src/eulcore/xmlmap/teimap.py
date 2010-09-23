@@ -55,7 +55,7 @@ class TeiDiv(_TeiBase):
     id       = xmlmap.StringField('@xml:id')
     type     = xmlmap.StringField('@type')
     author   = xmlmap.StringField('tei:docAuthor')
-    title    = xmlmap.StringField('@n')  # is this mapping relevant/valid/useful?
+    title    = xmlmap.StringListField('tei:head')  # is this mapping relevant/valid/useful?
     text     = xmlmap.StringField('.')   # short-hand mapping for full text of a div (e.g., for short divs)
     # reference to top-level elements, e.g. for retrieving a single div
     doctitle = xmlmap.StringField('ancestor::tei:TEI/tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:title')
@@ -64,23 +64,25 @@ class TeiDiv(_TeiBase):
     linegroup = xmlmap.NodeListField('tei:lg', TeiLineGroup)
     div      = xmlmap.NodeListField('tei:div', 'self')
     byline   = xmlmap.StringField('tei:byline')
-
+    epigraph = xmlmap.NodeListField('tei:epigraph', TeiEpigraph)
+    
 class TeiSection(_TeiBase):
     # top-level sections -- front/body/back
     div = xmlmap.NodeListField('tei:div', TeiDiv)
 
 # note: not currently mapped to any of the existing tei objects...  where to add?
 class TeiFigure(_TeiBase):
-    entity      = xmlmap.StringField("@entity")
+    #entity      = xmlmap.StringField("@entity") #not used in P5
     # TODO: ana should be a more generic attribute, common to many elements...
     ana         = xmlmap.StringField("@ana")    # FIXME: how to split on spaces? should be a list...
     head        = xmlmap.StringField("tei:head")
     description = xmlmap.StringField("tei:figDesc")
+    entity      = xmlmap.StringField("tei:graphic/@url") #graphic replaces entity in p5. 
 
 # currently not mapped... should it be mapped by default? at what level?
 class TeiInterp(_TeiBase):
     id          = xmlmap.StringField("@xml:id")
-    value       = xmlmap.StringField("@value")
+    value       = xmlmap.StringField("tei:interp")
 
 class TeiInterpGroup(_TeiBase):
     type        = xmlmap.StringField("@type")
