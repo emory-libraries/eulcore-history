@@ -37,7 +37,7 @@ class TestTei(unittest.TestCase):
         div = self.tei.body.div[0]
         self.assertEqual('clarke005', div.id)
         self.assertEqual('Chapter', div.type)
-        self.assertEqual('America', div.title)
+        self.assertEqual('America', div.title[0])
         # reference to document-level info
         self.assertEqual('A Treasury of War Poetry: Electronic Edition', div.doctitle)
         self.assertEqual('clarke', div.doc_id)
@@ -45,7 +45,7 @@ class TestTei(unittest.TestCase):
         # subdiv (recursive mapping)
         self.assert_(isinstance(div.div[0], TeiDiv))
         self.assertEqual('clarke006', div.div[0].id)
-        self.assertEqual('The Choice', div.div[0].title)
+        self.assertEqual('The Choice', div.div[0].title[0])
         self.assertEqual('Rudyard Kipling', div.div[0].author)
 
         self.assert_("THE RIVERSIDE PRESS LIMITED, EDINBURGH" in self.tei.back.div[1].text)

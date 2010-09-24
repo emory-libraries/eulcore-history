@@ -82,7 +82,7 @@ class TeiFigure(_TeiBase):
 # currently not mapped... should it be mapped by default? at what level?
 class TeiInterp(_TeiBase):
     id          = xmlmap.StringField("@xml:id")
-    value       = xmlmap.StringField("tei:interp")
+    value       = xmlmap.StringField("@value")
 
 class TeiInterpGroup(_TeiBase):
     type        = xmlmap.StringField("@type")
