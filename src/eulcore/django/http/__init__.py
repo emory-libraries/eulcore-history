@@ -15,3 +15,4 @@
 #   limitations under the License.
 
 from eulcore.django.http.decorators import content_negotiation
+from eulcore.django.http.responses import HttpResponseSeeOtherRedirect
