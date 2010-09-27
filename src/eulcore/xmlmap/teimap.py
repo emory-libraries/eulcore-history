@@ -55,12 +55,12 @@ class TeiDiv(_TeiBase):
     id       = xmlmap.StringField('@xml:id')
     type     = xmlmap.StringField('@type')
     author   = xmlmap.StringField('tei:docAuthor')
-    title    = xmlmap.StringListField('tei:head')  # is this mapping relevant/valid/useful?
+    title     = xmlmap.StringField('tei:head') # easy access to FIRST head
+    title_list    = xmlmap.StringListField('tei:head')   # access to all heads when there are multiple
     text     = xmlmap.StringField('.')   # short-hand mapping for full text of a div (e.g., for short divs)
     # reference to top-level elements, e.g. for retrieving a single div
     doctitle = xmlmap.StringField('ancestor::tei:TEI/tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:title')
     doc_id   = xmlmap.StringField('ancestor::tei:TEI/@xml:id')
-    head     = xmlmap.StringField('tei:head')
     linegroup = xmlmap.NodeListField('tei:lg', TeiLineGroup)
     div      = xmlmap.NodeListField('tei:div', 'self')
     byline   = xmlmap.StringField('tei:byline')
