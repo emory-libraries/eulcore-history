@@ -37,7 +37,7 @@ class TestTei(unittest.TestCase):
         div = self.tei.body.div[0]
         self.assertEqual('clarke005', div.id)
         self.assertEqual('Chapter', div.type)
-        self.assertEqual('America', div.title[0])
+        self.assertEqual('America', div.title)
         # reference to document-level info
         self.assertEqual('A Treasury of War Poetry: Electronic Edition', div.doctitle)
         self.assertEqual('clarke', div.doc_id)
