@@ -45,7 +45,7 @@ class TestTei(unittest.TestCase):
         # subdiv (recursive mapping)
         self.assert_(isinstance(div.div[0], TeiDiv))
         self.assertEqual('clarke006', div.div[0].id)
-        self.assertEqual('The Choice', div.div[0].title[0])
+        self.assertEqual('The Choice', div.div[0].title)
         self.assertEqual('Rudyard Kipling', div.div[0].author)
 
         self.assert_("THE RIVERSIDE PRESS LIMITED, EDINBURGH" in self.tei.back.div[1].text)
