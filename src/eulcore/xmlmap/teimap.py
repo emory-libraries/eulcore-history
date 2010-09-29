@@ -72,7 +72,7 @@ class TeiDiv(_TeiBase):
     p        = xmlmap.StringListField('tei:p')
     q        = xmlmap.StringListField('tei:q')
     quote    = xmlmap.StringListField('tei:quote')
-    floatingText = xmlmap.NodeListField('tei:floatingText')
+    floatingText = xmlmap.NodeListField('tei:floatingText/tei:body/tei:div', 'self')
 
 
 class TeiSection(_TeiBase):
