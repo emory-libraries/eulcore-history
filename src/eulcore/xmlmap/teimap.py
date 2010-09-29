@@ -69,6 +69,8 @@ class TeiDiv(_TeiBase):
     byline   = xmlmap.StringField('tei:byline')
     epigraph = xmlmap.NodeListField('tei:epigraph', TeiEpigraph)
     p        = xmlmap.StringListField('tei:p')
+    q        = xml.map.StringListField('tei:q')
+    quote    = xml.map.StringListField('tei:quote')
 
 class TeiSection(_TeiBase):
     # top-level sections -- front/body/back
