@@ -54,6 +54,10 @@ class TeiEpigraph(_TeiBase):
     quote = xmlmap.NodeListField('tei:q|tei:quote|tei:cit/tei:q|tei:cit/tei:quote', TeiQuote)
     bibl  = xmlmap.StringField('tei:bibl')
 
+class TeiFloatingtext(_TeiBase):
+    div       = xmlmap.NodeField('tei:body/tei:div', TeiDiv)
+
+
 class TeiDiv(_TeiBase):
     id       = xmlmap.StringField('@xml:id')
     type     = xmlmap.StringField('@type')
@@ -71,7 +75,8 @@ class TeiDiv(_TeiBase):
     p        = xmlmap.StringListField('tei:p')
     q        = xmlmap.StringListField('tei:q')
     quote    = xmlmap.StringListField('tei:quote')
-    floatingText = xmlmap.NodeField('tei:floatingText')
+    floatingText = xmlmap.NodeField('tei:floatingText', TeiFloatingtext)
+
 
 class TeiSection(_TeiBase):
     # top-level sections -- front/body/back
