@@ -1,0 +1,18 @@
+Change & Version Information
+============================
+
+The following is a summary of changes and improvements to python-eulcore.
+New features in each version should be listed, with any necessary information
+about installation or upgrade notes.
+
+Release 0.7.0
+-------------
+ * :mod:`eulcore.fedora` is compatible with **Fedora 3.3** APIs
+ * :mod:`eulcore.xmlmap.eadmap` updated from DTD-based EAD to schema-based
+ * :mod:`eulcore.existdb.query` supports namespaces in XQueries
+
+Release 0.6.0
+-------------
+First tagged release of python-eulcore.
+ * :mod:`eulcore.fedora` is compatible with **Fedora 3.3** APIs
+ * :mod:`eulcore.existdb` is intended for use with eXist-db 1.4 or greater
