@@ -14,7 +14,8 @@ Contents
 
 .. toctree::
    :maxdepth: 3
-
+   
+   changelog
    xmlmap
    xpath
    existdb
