@@ -158,18 +158,24 @@ class Repository(object):
     def find_objects(self, terms=None, type=None, chunksize=None, **kwargs):
         """
         Find objects in Fedora.  Find query should be generated via keyword args,
-        based on the fields in Fedora documentation.  Find query currently uses
+        based on the fields in Fedora documentation.  By default, the query uses
         a contains (~) search for all search terms.  Calls :meth:`ApiFacade.findObjects`.
 
-        Example usage - search for all objects where the owner is 'jdoe'::
+        Example usage - search for all objects where the owner contains 'jdoe'::
         
             repository.find_objects(ownerId='jdoe')
+
+        Supports all search operators provided by Fedora findObjects query (exact,
+        gt, gte, lt, lte, and contains).  To specify the type of query for
+        a particular search term, call find_objects like this::
+
+            repository.find_objects(ownerId__exact='lskywalker')
+            repository.find_objects(date__gt='20010302')
 
         :param type: type of objects to return; defaults to :class:`DigitalObject`
         :param chunksize: number of objects to return at a time
         :rtype: generator for list of objects
         """
-        # TODO: document django-style field filters
         type = type or self.default_object_type
 
         find_opts = {'chunksize' : chunksize}
