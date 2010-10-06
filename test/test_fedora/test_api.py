@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
-from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL, REPO_USER, REPO_PASS, TEST_PIDSPACE
+from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL,\
+                REPO_USER, REPO_PASS, TEST_PIDSPACE
 from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE, API_M
 from eulcore.fedora.server import URI_HAS_MODEL
-from eulcore.fedora.util import RelativeOpener, fedoratime_to_datetime
+from eulcore.fedora.util import RelativeOpener, fedoratime_to_datetime, datetime_to_fedoratime
+from eulcore.fedora.xml import FEDORA_MANAGE_NS, FEDORA_ACCESS_NS
 from testcore import main
 
 from datetime import date, datetime, timedelta
@@ -33,7 +35,7 @@ Hey, nonny-nonny."""
         FILE.flush()
 
         # info for calling addDatastream, and return
-        ds = {  'id' : 'TEXT', 'label' : 'text datastream', 'mimeType' : 'text/plain',
+        ds = {'id' : 'TEXT', 'label' : 'text datastream', 'mimeType' : 'text/plain',
             'controlGroup' : 'M', 'logMessage' : "creating new datastream",
             'checksumType' : 'MD5'}
 
@@ -85,7 +87,7 @@ Hey, nonny-nonny."""
         # get server datetime param (the hard way) for testing
         dsprofile_data, url = self.rest_api.getDatastream(self.pid, "DC")
         dsprofile_node = etree.fromstring(dsprofile_data, base_url=url)
-        created_s = dsprofile_node.xpath('string(dsCreateDate)')
+        created_s = dsprofile_node.xpath('string(m:dsCreateDate)', namespaces={'m': FEDORA_MANAGE_NS})
         created = fedoratime_to_datetime(created_s)
 
         # with date-time param
@@ -102,10 +104,11 @@ Hey, nonny-nonny."""
             "bogus:pid", "BOGUS")
 
     # NOTE: getDissemination not available in REST API until Fedora 3.3
-    #def test_getDissemination(self):
+    def test_getDissemination(self):
         # testing with built-in fedora dissemination
-        # getting 404
-    #    profile = self.rest_api.getDissemination(self.pid, "fedora-system:3", "viewObjectProfile")
+        profile, uri = self.rest_api.getDissemination(self.pid, "fedora-system:3", "viewItemIndex")
+        self.assert_('<title>Object Items HTML Presentation</title>' in profile)
+        self.assert_(self.pid in profile)
 
     def test_getObjectHistory(self):
         history, url = self.rest_api.getObjectHistory(self.pid)
@@ -129,7 +132,7 @@ Hey, nonny-nonny."""
 
         # get server datetime param (the hard way) for testing
         profile_node = etree.fromstring(profile, base_url=url)
-        created_s = profile_node.xpath('string(objCreateDate)')
+        created_s = profile_node.xpath('string(a:objCreateDate)', namespaces={'a': FEDORA_ACCESS_NS})
         created = fedoratime_to_datetime(created_s)
 
         # with time
@@ -235,7 +238,7 @@ Hey, nonny-nonny."""
         self.assertRaises(Exception, self.rest_api.export, "bogus:pid")
 
     def test_getDatastream(self):
-        ds_profile, url = self.rest_api.getDatastream(self.pid, "DC")        
+        ds_profile, url = self.rest_api.getDatastream(self.pid, "DC")
         self.assert_('<datastreamProfile' in ds_profile)
         self.assert_('pid="%s"' % self.pid in ds_profile)
         self.assert_('dsID="DC" ' in ds_profile)
@@ -249,7 +252,7 @@ Hey, nonny-nonny."""
 
         # get server datetime param (the hard way) for testing
         dsprofile_node = etree.fromstring(ds_profile, base_url=url)
-        created_s = dsprofile_node.xpath('string(dsCreateDate)')
+        created_s = dsprofile_node.xpath('string(m:dsCreateDate)', namespaces={'m': FEDORA_MANAGE_NS})
         created = fedoratime_to_datetime(created_s)
 
         # with date param
@@ -376,10 +379,16 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
 
     def test_purgeDatastream(self):
         # add a datastream that can be purged
-        added, ds = self._add_text_datastream()          
+        (added, dsprofile), ds = self._add_text_datastream()
+        # grab datastream creation date from addDatastream result to test purge result
+        dsprofile_node = etree.fromstring(dsprofile)
+        created = dsprofile_node.xpath('string(m:dsCreateDate)', namespaces={'m': FEDORA_MANAGE_NS})
 
-        purged = self.rest_api.purgeDatastream(self.pid, ds['id'], logMessage="purging text datastream")
+        purged, times = self.rest_api.purgeDatastream(self.pid, ds['id'],
+                                            logMessage="purging text datastream")
         self.assertTrue(purged)
+        self.assert_(created in times,
+            'datastream creation date returned in list of purged datastreams')
         # log message in audit trail
         xml, url = self.rest_api.getObjectXML(self.pid)
         self.assert_('purging text datastream' in xml)
@@ -392,16 +401,27 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         #    logMessage="test purging non-existent datastream")
         #self.assertFalse(purged)
 
-        purged = self.rest_api.purgeDatastream("bogus:pid", "BOGUS",
+        purged, message = self.rest_api.purgeDatastream("bogus:pid", "BOGUS",
             logMessage="test purging non-existent datastream from non-existent object")
-        self.assertFalse(purged)   
+        self.assertFalse(purged)
+        self.assert_('no path in db' in message)
         
-        # also test purging specific versions of a datastream ? 
+        # also test purging specific versions of a datastream ?
+
+        # attempt to purge a version that doesn't exist
+        (added, dsprofile), ds = self._add_text_datastream()
+        tomorrow = datetime.now(tzutc()) + timedelta(1)
+        success, times = self.rest_api.purgeDatastream(self.pid, ds['id'],
+                                        startDT=datetime_to_fedoratime(tomorrow),
+                                        logMessage="purging text datastream")
+        # no errors, no versions purged
+        self.assertTrue(success)
+        self.assertEqual('[]', times)
 
     def test_purgeObject(self):
         object = load_fixture_data('basic-object.foxml')
         pid = self.rest_api.ingest(object)        
-        purged = self.rest_api.purgeObject(pid)
+        purged, message = self.rest_api.purgeObject(pid)
         self.assertTrue(purged)
 
         # NOTE: fedora doesn't notice the object has been purged right away
@@ -409,8 +429,9 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         self.assertRaises(Exception, self.rest_api.getObjectProfile, pid)
 
         # bad pid
-        purged = self.rest_api.purgeObject("bogus:pid")
+        purged, message = self.rest_api.purgeObject("bogus:pid")
         self.assertFalse(purged)
+        self.assert_('no path in db' in message)
 
     def test_setDatastreamState(self):
         set_state = self.rest_api.setDatastreamState(self.pid, "DC", "I")
@@ -470,9 +491,11 @@ class TestAPI_A_LITE(FedoraTestCase):
 
     def testGetDissemination(self):
         # testing with built-in fedora dissemination
-        content, url = self.api_a.getDissemination(self.pid, "fedora-system:3", "viewObjectProfile")
-        self.assert_('<h3>Object Profile View</h3>' in content)
-        self.assert_('A partially-prepared test object</td>' in content)
+        content, url = self.api_a.getDissemination(self.pid, "fedora-system:3", "viewItemIndex")
+        # NOTE: viewObjectProfile dissemination no longer returning expected content
+        self.assert_('<title>Object Items HTML Presentation</title>' in content)
+        self.assert_(self.pid in content)
+
 
 class TestAPI_M_LITE(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']

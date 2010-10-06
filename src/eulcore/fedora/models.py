@@ -273,8 +273,9 @@ class DatastreamObject(object):
             # and purge the most recent version 
             history = self.obj.api.getDatastreamHistory(self.obj.pid, self.id)
             last_save = history.datastreams[0].createDate   # fedora returns with most recent first
-            return self.obj.api.purgeDatastream(self.obj.pid, self.id, datetime_to_fedoratime(last_save),
+            success, timestamps = self.obj.api.purgeDatastream(self.obj.pid, self.id, datetime_to_fedoratime(last_save),
                                                 logMessage=logMessage)
+            return success
         else:
             # for an unversioned datastream, update with any content and info
             # backups that were pulled from Fedora before any modifications were made

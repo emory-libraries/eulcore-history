@@ -115,7 +115,8 @@ class Repository(object):
         kwargs = { 'pid': pid }
         if log_message:
             kwargs['logMessage'] = log_message
-        return self.api.purgeObject(**kwargs)
+        success, timestamp = self.api.purgeObject(**kwargs)
+        return success
 
     def get_objects_with_cmodel(self, cmodel_uri, type=None):
         """

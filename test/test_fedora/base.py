@@ -7,8 +7,11 @@ from eulcore.fedora.server import Repository
 #REPO_ROOT = 'https://dev11.library.emory.edu:8643/fedora/'
 #REPO_ROOT_NONSSL = 'http://dev11.library.emory.edu:8280/fedora/'
 # fedora3.3
-REPO_ROOT = 'https://dev11.library.emory.edu:8843/fedora/'
-REPO_ROOT_NONSSL = 'http://dev11.library.emory.edu:8480/fedora/'
+#REPO_ROOT = 'https://dev11.library.emory.edu:8843/fedora/'
+#REPO_ROOT_NONSSL = 'http://dev11.library.emory.edu:8480/fedora/'
+# fedora3.4
+REPO_ROOT = 'https://dev11.library.emory.edu:8943/fedora/'
+REPO_ROOT_NONSSL = 'http://dev11.library.emory.edu:8580/fedora/'
 REPO_USER = 'fedoraAdmin'
 REPO_PASS = 'fedoraAdmin'
 TEST_PIDSPACE = 'eulcoretest'

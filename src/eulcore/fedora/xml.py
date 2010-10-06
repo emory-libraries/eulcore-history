@@ -54,9 +54,25 @@ class FedoraDateListField(xmlmap.fields.Field):
 
 # xml objects to wrap around xml returns from fedora
 
-class ObjectDatastream(xmlmap.XmlObject):
+FEDORA_MANAGE_NS = 'http://www.fedora.info/definitions/1/0/management/'
+FEDORA_ACCESS_NS = 'http://www.fedora.info/definitions/1/0/access/'
+FEDORA_DATASTREAM_NS = 'info:fedora/fedora-system:def/dsCompositeModel#'
+FEDORA_TYPES_NS = 'http://www.fedora.info/definitions/1/0/types/'
+
+
+class _FedoraBase(xmlmap.XmlObject):
+    '''Common Fedora REST API namespace declarations.'''
+    ROOT_NAMESPACES = {
+        'm' : FEDORA_MANAGE_NS,
+        'a' : FEDORA_ACCESS_NS,
+        'ds': FEDORA_DATASTREAM_NS,
+        't': FEDORA_TYPES_NS,
+    }
+
+class ObjectDatastream(_FedoraBase):
     """:class:`~eulcore.xmlmap.XmlObject` for a single datastream as returned
         by :meth:`REST_API.listDatastreams` """
+    ROOT_NAME = 'datastream'
     dsid = xmlmap.StringField('@dsid')
     "datastream id - `@dsid`"
     label = xmlmap.StringField('@label')
@@ -64,158 +80,164 @@ class ObjectDatastream(xmlmap.XmlObject):
     mimeType = xmlmap.StringField('@mimeType')
     "datastream mime type - `@mimeType`"
 
-class ObjectDatastreams(xmlmap.XmlObject):
+class ObjectDatastreams(_FedoraBase):
     """:class:`~eulcore.xmlmap.XmlObject` for the list of a single object's
         datastreams, as returned by  :meth:`REST_API.listDatastreams`"""
+    # listDatastreams result default namespace is fedora access
+    ROOT_NAME = 'objectDatastreams'
     pid = xmlmap.StringField('@pid')
     "object pid - `@pid`"
-    datastreams = xmlmap.NodeListField('datastream', ObjectDatastream)
+    datastreams = xmlmap.NodeListField('a:datastream', ObjectDatastream)
     "list of :class:`ObjectDatastream`"
 
-class ObjectProfile(xmlmap.XmlObject):
+class ObjectProfile(_FedoraBase):
     """:class:`~eulcore.xmlmap.XmlObject` for object profile information
         returned by :meth:`REST_API.getObjectProfile`."""
-
+    # objectProfile result default namespace is fedora access
     ROOT_NAME = 'objectProfile'
-
-    label = xmlmap.StringField('objLabel')
+    label = xmlmap.StringField('a:objLabel')
     "object label"
-    owner = xmlmap.StringField('objOwnerId')
+    owner = xmlmap.StringField('a:objOwnerId')
     "object owner"
-    created = FedoraDateField('objCreateDate')    
+    created = FedoraDateField('a:objCreateDate')
     "date the object was created"
-    modified = FedoraDateField('objLastModDate')   
+    modified = FedoraDateField('a:objLastModDate')
     "date the object was last modified"
     # do we care about these? probably not useful in this context...
     # - disseminator index view url
     # - object item index view url
-    state = xmlmap.StringField('objState')
+    state = xmlmap.StringField('a:objState')
     "object state (A/I/D - Active, Inactive, Deleted)"
 
-class ObjectHistory(xmlmap.XmlObject):
+class ObjectHistory(_FedoraBase):
+    """:class:`~eulcore.xmlmap.XmlObject` for object history information
+        returned by :meth:`REST_API.getObjectHistory`."""
+    # objectHistory result default namespace is fedora access
     ROOT_NAME = 'fedoraObjectHistory'
     pid = xmlmap.StringField('@pid')
-    changed = FedoraDateListField('objectChangeDate')
+    changed = FedoraDateListField('a:objectChangeDate')
 
-class ObjectMethodService(xmlmap.XmlObject):
+class ObjectMethodService(_FedoraBase):
+    """:class:`~eulcore.xmlmap.XmlObject` for object method services; included
+    in :class:`ObjectMethods` for data returned by  :meth:`REST_API.listMethods`."""
+    # default namespace is fedora access
     ROOT_NAME = 'sDef'
     pid = xmlmap.StringField('@pid')
-    methods = xmlmap.StringListField('method/@name')
+    methods = xmlmap.StringListField('a:method/@name')
 
-class ObjectMethods(xmlmap.XmlObject):
+class ObjectMethods(_FedoraBase):
+    """:class:`~eulcore.xmlmap.XmlObject` for object method information
+    returned by  :meth:`REST_API.listMethods`."""
+    # default namespace is fedora access
     ROOT_NAME = 'objectMethods'
-    service_definitions = xmlmap.NodeListField('sDef', ObjectMethodService)
+    service_definitions = xmlmap.NodeListField('a:sDef', ObjectMethodService)
 
-class DatastreamProfile(xmlmap.XmlObject):
+class DatastreamProfile(_FedoraBase):
     """:class:`~eulcore.xmlmap.XmlObject` for datastream profile information
     returned by  :meth:`REST_API.getDatastream`."""
-
-    ROOT_NAME = 'datastreamProfile'
-
-    label = xmlmap.StringField('dsLabel')
+    # default namespace is fedora manage
+    ROOT_NAME = 'datastreamProfile'    
+    label = xmlmap.StringField('m:dsLabel')
     "datastream label"
-    version_id = xmlmap.StringField('dsVersionID')
+    version_id = xmlmap.StringField('m:dsVersionID')
     "current datastream version id"
-    created = FedoraDateField('dsCreateDate') 
+    created = FedoraDateField('m:dsCreateDate')
     "date the datastream was created"
-    state = xmlmap.StringField('dsState')
+    state = xmlmap.StringField('m:dsState')
     "datastream state (A/I/D - Active, Inactive, Deleted)"
-    mimetype = xmlmap.StringField('dsMIME')
+    mimetype = xmlmap.StringField('m:dsMIME')
     "datastream mimetype"
-    format = xmlmap.StringField('dsFormatURI')
+    format = xmlmap.StringField('m:dsFormatURI')
     "format URI for the datastream, if any"
-    control_group = xmlmap.StringField('dsControlGroup')
+    control_group = xmlmap.StringField('m:dsControlGroup')
     "datastream control group (inline XML, Managed, etc)"
-    size = xmlmap.IntegerField('dsSize')    # not reliable for managed datastreams as of Fedora 3.3
+    size = xmlmap.IntegerField('m:dsSize')    # not reliable for managed datastreams as of Fedora 3.3
     "integer; size of the datastream content"
-    versionable = xmlmap.SimpleBooleanField('dsVersionable', 'true', 'false')
+    versionable = xmlmap.SimpleBooleanField('m:dsVersionable', 'true', 'false')
     "boolean; indicates whether or not the datastream is currently being versioned"
     # infoType ?
     # location ?
-    checksum = xmlmap.StringField('dsChecksum')
+    checksum = xmlmap.StringField('m:dsChecksum')
     "checksum for current datastream contents"
-    checksum_type = xmlmap.StringField('dsChecksumType')
+    checksum_type = xmlmap.StringField('m:dsChecksumType')
     "type of checksum"
 
-class NewPids(xmlmap.XmlObject):
+class NewPids(_FedoraBase):
     """:class:`~eulcore.xmlmap.XmlObject` for a list of pids as returned by
     :meth:`REST_API.getNextPID`."""
-
+     # NOTE: default namespace as of 3.4 *should* be fedora manage, but does not appear to be
     pids = xmlmap.StringListField('pid')
 
 
-class RepositoryDescriptionPid(xmlmap.XmlObject):
+class RepositoryDescriptionPid(_FedoraBase):
     """:class:`~eulcore.xmlmap.XmlObject` for PID section of :class:`RepositoryDescription`"""
-    namespace = xmlmap.StringField('PID-namespaceIdentifier')
+    # default namespace is fedora access
+    namespace = xmlmap.StringField('a:PID-namespaceIdentifier')
     "PID namespace"
-    delimiter = xmlmap.StringField('PID-delimiter')
+    delimiter = xmlmap.StringField('a:PID-delimiter')
     "PID delimiter"
-    sample = xmlmap.StringField('PID-sample')
+    sample = xmlmap.StringField('a:PID-sample')
     "sample PID"
-    retain_pids = xmlmap.StringField('retainPID')
+    retain_pids = xmlmap.StringField('a:retainPID')
     "list of pid namespaces configured to be retained"
 
-class RepositoryDescriptionOAI(xmlmap.XmlObject):
+class RepositoryDescriptionOAI(_FedoraBase):
     """:class:`~eulcore.xmlmap.XmlObject` for OAI section of :class:`RepositoryDescription`"""
-    namespace = xmlmap.StringField('OAI-namespaceIdentifier')
+    # default namespace is fedora access
+    namespace = xmlmap.StringField('a:OAI-namespaceIdentifier')
     "OAI namespace"
-    delimiter = xmlmap.StringField('OAI-delimiter')
+    delimiter = xmlmap.StringField('a:OAI-delimiter')
     "OAI delimiter"
-    sample = xmlmap.StringField('OAI-sample')
+    sample = xmlmap.StringField('a:OAI-sample')
     "sample OAI id"
 
-class RepositoryDescription(xmlmap.XmlObject):
+class RepositoryDescription(_FedoraBase):
     """:class:`~eulcore.xmlmap.XmlObject` for a repository description as returned
         by :meth:`API_A_LITE.describeRepository` """
-    name = xmlmap.StringField('repositoryName')
+    # default namespace is fedora access
+    name = xmlmap.StringField('a:repositoryName')
     "repository name"
-    base_url = xmlmap.StringField('repositoryBaseURL')
+    base_url = xmlmap.StringField('a:repositoryBaseURL')
     "base url"
-    version = xmlmap.StringField('repositoryVersion')
+    version = xmlmap.StringField('a:repositoryVersion')
     "version of Fedora being run"
-    pid_info = xmlmap.NodeField('repositoryPID', RepositoryDescriptionPid)
+    pid_info = xmlmap.NodeField('a:repositoryPID', RepositoryDescriptionPid)
     ":class:`RepositoryDescriptionPid` - configuration info for pids"
-    oai_info = xmlmap.NodeField('repositoryPID', RepositoryDescriptionOAI)
+    oai_info = xmlmap.NodeField('a:repositoryPID', RepositoryDescriptionOAI)
     ":class:`RepositoryDescriptionOAI` - configuration info for OAI"
-    search_url = xmlmap.StringField('sampleSearch-URL')
+    search_url = xmlmap.StringField('a:sampleSearch-URL')
     "sample search url"
-    access_url = xmlmap.StringField('sampleAccess-URL')
+    access_url = xmlmap.StringField('a:sampleAccess-URL')
     "sample access url"
-    oai_url = xmlmap.StringField('sampleOAI-URL')
+    oai_url = xmlmap.StringField('a:sampleOAI-URL')
     "sample OAI url"
-    admin_email = xmlmap.StringListField("adminEmail")
+    admin_email = xmlmap.StringListField("a:adminEmail")
     "administrator emails"
 
-class SearchResult(xmlmap.XmlObject):
+class SearchResult(_FedoraBase):
     """:class:`~eulcore.xmlmap.XmlObject` for a single entry in the results
         returned by :meth:`REST_API.findObjects`"""
-    def __init__(self, node, context=None):
-        if context is None:
-            context = {'namespaces' : {'res': 'http://www.fedora.info/definitions/1/0/types/'}}
-        xmlmap.XmlObject.__init__(self, node, context)
-
-    pid = xmlmap.StringField('res:pid')
+    # default namespace is fedora types
+    ROOT_NAME = 'objectFields'
+    pid = xmlmap.StringField('t:pid')
     "pid"
 
-class SearchResults(xmlmap.XmlObject):
+class SearchResults(_FedoraBase):
     """:class:`~eulcore.xmlmap.XmlObject` for the results returned by
         :meth:`REST_API.findObjects`"""
-    def __init__(self, node, context=None):
-        if context is None:
-            context = {'namespaces' : {'res': 'http://www.fedora.info/definitions/1/0/types/'}}
-        xmlmap.XmlObject.__init__(self, node, context)
-
-    session_token = xmlmap.StringField('res:listSession/res:token')
+    # default namespace is fedora types
+    ROOT_NAME = 'result'
+    session_token = xmlmap.StringField('t:listSession/t:token')
     "session token"
-    cursor = xmlmap.IntegerField('res:listSession/res:cursor')
+    cursor = xmlmap.IntegerField('t:listSession/t:cursor')
     "session cursor"
-    expiration_date = DateField('res:listSession/res:expirationDate')
+    expiration_date = DateField('t:listSession/t:expirationDate')
     "session experation date"
-    results = xmlmap.NodeListField('res:resultList/res:objectFields', SearchResult)
+    results = xmlmap.NodeListField('t:resultList/t:objectFields', SearchResult)
     "search results - list of :class:`SearchResult`"
 
-DS_NAMESPACE = 'info:fedora/fedora-system:def/dsCompositeModel#'
-DS_NAMESPACES = { 'ds': DS_NAMESPACE }
+
+DS_NAMESPACES = {'ds': FEDORA_DATASTREAM_NS }
 
 class DsTypeModel(xmlmap.XmlObject):
     ROOT_NAMESPACES = DS_NAMESPACES
@@ -231,7 +253,7 @@ class DsCompositeModel(xmlmap.XmlObject):
     datastream"""
 
     ROOT_NAME = 'dsCompositeModel'
-    ROOT_NS = 'info:fedora/fedora-system:def/dsCompositeModel#'
+    ROOT_NS = FEDORA_DATASTREAM_NS
     ROOT_NAMESPACES = DS_NAMESPACES
 
     # TODO: this feels like it could be generalized into a dict-like field

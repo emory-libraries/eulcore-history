@@ -95,15 +95,13 @@ class REST_API(HTTP_API_Base):
         url = 'objects/%s/datastreams/%s/content?%s' % (pid, dsID, urlencode(http_args))
         return self.read(url)
 
-    # NOTE: getDissemination not available in REST API until Fedora 3.3
-    # - use the API-A Lite version until we no longer support Fedora 3.2
-    #def getDissemination(self, pid, sdefPid, method, method_params={}):
-        # - use API-A Lite version until then
+    # NOTE: getDissemination was not available in REST API until Fedora 3.3
+    def getDissemination(self, pid, sdefPid, method, method_params={}):        
         # /objects/{pid}/methods/{sdefPid}/{method} ? [method parameters]        
-        #uri = 'objects/%s/methods/%s/%s' % (pid, sdefPid, method)
-        #if method_params:
-        #    uri += '?' + urlencode(method_params)
-        #return self.read(uri)
+        uri = 'objects/%s/methods/%s/%s' % (pid, sdefPid, method)
+        if method_params:
+            uri += '?' + urlencode(method_params)
+        return self.read(uri)
 
     def getObjectHistory(self, pid):
         # /objects/{pid}/versions ? [format]
@@ -366,6 +364,18 @@ class REST_API(HTTP_API_Base):
 
     def purgeDatastream(self, pid, dsID, startDT=None, endDT=None, logMessage=None,
             force=False):
+        """
+        Purge a datastream, or versions of a dastream, from a Fedora object.
+
+        :param pid: object pid
+        :param dsID: datastream ID
+        :param startDT: optional start datetime (when purging certain versions)
+        :param endDT: optional end datetime (when purging certain versions)
+        :param logMessage: optional log message
+        :returns: tuple of success/failure and response content; on success,
+            response content is a list of timestamps for the datastream purged;
+            on failure, response content may contain an error message
+        """
         # /objects/{pid}/datastreams/{dsID} ? [startDT] [endDT] [logMessage] [force]
         http_args = {}
         if logMessage:
@@ -379,13 +389,16 @@ class REST_API(HTTP_API_Base):
 
         url = 'objects/%s/datastreams/%s' % (pid, dsID) + '?' + urlencode(http_args)
         with self.open('DELETE', url, '', {}, throw_errors=False) as response:
-            # returns 204 on success (204 No Content)
+            # as of Fedora 3.4, returns 200 on success with a list of the
+            # timestamps for the versions deleted as response content
             # NOTE: response content may be useful on error, e.g.
             #       no path in db registry for [bogus:pid]
             # is there any useful way to pass this info back?
             # *NOTE*: bug when purging non-existent datastream on a valid pid
             # - reported here: http://www.fedora-commons.org/jira/browse/FCREPO-690
-            return response.status == 204
+            # - as a possible work-around, could return false when status = 200
+            #   but response body is an empty list (i.e., no datastreams/versions purged)
+            return response.status == 200, response.read()
 
     def purgeObject(self, pid, logMessage=None):
         """
@@ -403,8 +416,8 @@ class REST_API(HTTP_API_Base):
 
         url = 'objects/' + pid  + '?' + urlencode(http_args)
         with self.open('DELETE', url, '', {}, throw_errors=False) as response:
-            # returns 204 on success (204 No Content)
-            return response.status == 204
+            # as of Fedora 3.4, returns 200 on success; response content is timestamp
+            return response.status == 200, response.read()
 
     # purgeRelationship not implemented in REST API
 
