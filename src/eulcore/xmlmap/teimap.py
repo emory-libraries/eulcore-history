@@ -58,7 +58,7 @@ class TeiEpigraph(_TeiBase):
 class TeiDiv(_TeiBase):
     id       = xmlmap.StringField('@xml:id')
     type     = xmlmap.StringField('@type')
-    author   = xmlmap.StringField('tei:docAuthor')
+    author   = xmlmap.StringField('tei:docAuthor/tei:name/tei:choice/tei:sic')
     title     = xmlmap.StringField('tei:head') # easy access to FIRST head
     title_list    = xmlmap.StringListField('tei:head')   # access to all heads when there are multiple
     text     = xmlmap.StringField('.')   # short-hand mapping for full text of a div (e.g., for short divs)
