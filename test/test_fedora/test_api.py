@@ -482,20 +482,6 @@ class TestAPI_A_LITE(FedoraTestCase):
         self.assert_('<repositoryVersion>' in desc)
         self.assert_('<adminEmail>' in desc)
 
-    def testGetDatastreamDissemination(self):
-        dc, url = self.api_a.getDatastreamDissemination(self.pid, "DC")
-        self.assert_('<oai_dc:dc' in dc)
-        self.assert_('<dc:title>A partially-prepared test object</dc:title>' in dc)
-        self.assert_('<dc:description>' in dc)
-        self.assert_('<dc:identifier>%s</dc:identifier>' % self.pid in dc)
-
-    def testGetDissemination(self):
-        # testing with built-in fedora dissemination
-        content, url = self.api_a.getDissemination(self.pid, "fedora-system:3", "viewItemIndex")
-        # NOTE: viewObjectProfile dissemination no longer returning expected content
-        self.assert_('<title>Object Items HTML Presentation</title>' in content)
-        self.assert_(self.pid in content)
-
 
 class TestAPI_M_LITE(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']

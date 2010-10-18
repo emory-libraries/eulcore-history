@@ -454,26 +454,6 @@ class API_A_LITE(HTTP_API_Base):
         http_args = { 'xml': 'true' }
         return self.read('describe?' + urlencode(http_args))
 
-    # NOTE: REST API version of getDatastreamDissemination should be preferred
-    def getDatastreamDissemination(self, pid, ds_name):
-        """
-        Retrieve the contents of a single datastream from a fedora object.
-
-        :param pid: object pid
-        :param ds_name: datastream id
-        :param parse: optional data parser function; defaults to returning
-                      raw string data
-        :rtype: string
-        """
-        return self.read('get/%s/%s' % (pid, ds_name))
-
-    def getDissemination(self, pid, sdefPid, method, method_params={}):
-        # /get/PID/sDefPID/methodName*[/dateTime][?parmArray]*
-        uri = 'get/%s/%s/%s' % (pid, sdefPid, method)
-        if method_params:
-            uri += '?' + urlencode(method_params)
-        return self.read(uri)
-
 
 class API_M_LITE(HTTP_API_Base):
     def upload(self, data):
