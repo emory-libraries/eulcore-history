@@ -81,9 +81,15 @@ class LDAPBackend(object):
     :class:`django.contrib.auth.models.User`. The backend finds or creates
     one of these for each user it sees."""
 
-    def __init__(self):
-        self.server = self.get_server(getattr(settings, 'AUTH_LDAP_BASE_USER', None),
+    _server = None
+
+    @property
+    def server(self):
+        'Initialize LDAPServer instance only when actually needed, then cache it.'
+        if self._server is None:
+            self._server = self.get_server(getattr(settings, 'AUTH_LDAP_BASE_USER', None),
                                       getattr(settings, 'AUTH_LDAP_BASE_PASS', None))
+        return self._server
 
     def get_server(self, user_dn, password):
         return LDAPServer(user_dn, password)
