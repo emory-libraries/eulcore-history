@@ -14,6 +14,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import re
 import unittest
 
 from django import forms
@@ -23,6 +24,7 @@ from eulcore import xmlmap
 from eulcore.xmlmap.fields import DateField     # not yet supported - testing for errors
 from eulcore.django.forms import XmlObjectForm, xmlobjectform_factory, SubformField
 from eulcore.django.forms.xmlobject import XmlObjectFormType
+from eulcore.django.forms.fields import W3CDateWidget
 
 
 # test xmlobject and xml content to generate test form
@@ -521,3 +523,52 @@ class XmlObjectFormTest(unittest.TestCase):
         form = MyForm()
         subformset = form.subforms['child'].formsets['parts'].forms[0]
         self.assert_(isinstance(subformset, MySubFormset))
+
+
+class W3CDateWidgetTest(unittest.TestCase):
+
+    def setUp(self):
+        self.widget = W3CDateWidget()
+
+    def test_value_from_datadict(self):
+        name = 'date'
+        data = {'date_year': '1999',
+            'date_month': '01',
+            'date_day': '31'
+        }
+        self.assertEqual('1999-01-31', self.widget.value_from_datadict(data, [], name))
+        data['date_day'] = ''
+        self.assertEqual('1999-01', self.widget.value_from_datadict(data, [], name))
+        data['date_month'] = ''
+        self.assertEqual('1999', self.widget.value_from_datadict(data, [], name))
+
+        # if day is specified but no month,  day will be ignored
+        data['date_day'] = '15'
+        self.assertEqual('1999', self.widget.value_from_datadict(data, [], name))
+
+    def test_create_textinput(self):
+        input = self.widget.create_textinput('date', '%s_month', '22', title='foo')
+        self.assert_(input.startswith('<input'))
+        self.assert_('type="text"' in input)
+        self.assert_('name="date_month"' in input)
+        self.assert_('id="id_date_month"' in input)
+        self.assert_('value="22"' in input)
+        self.assert_('title="foo"' in input)
+
+    def test_render(self):
+        inputs = self.widget.render('date', '1999-12-31')
+        re_flags = re.MULTILINE | re.DOTALL
+        self.assert_(re.match(r'<input.*>.*\/.*<input.*>.*\/.*<input.*>', inputs,
+            re_flags), 'render output has 3 inputs separated by /')
+
+        self.assert_(re.match(r'<input.*name="date_year".*maxlength="4"', inputs, re_flags),
+            'year input is in rendered widget output with max length of 4')
+        self.assert_(re.match(r'<input.*name="date_month".*maxlength="2"', inputs, re_flags),
+            'month input is in rendered widget output with max length of 2')
+        self.assert_(re.match(r'<input.*name="date_day".*maxlength="2"', inputs, re_flags),
+            'day input is in rendered widget output with max length of 2')
+
+        # invalid initial value results in empty inputs
+        inputs = self.widget.render('date', 'foo-bar-baz')
+        self.assert_('value="' not in inputs,
+            'invalid intial value results in no pre-set value on any of the date inputs')
