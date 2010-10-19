@@ -546,6 +546,9 @@ class W3CDateWidgetTest(unittest.TestCase):
         data['date_day'] = '15'
         self.assertEqual('1999', self.widget.value_from_datadict(data, [], name))
 
+        self.assertEqual(None, self.widget.value_from_datadict({}, [], name),
+            'value_from_datadict returns None when expected inputs are not present')
+
     def test_create_textinput(self):
         input = self.widget.create_textinput('date', '%s_month', '22', title='foo')
         self.assert_(input.startswith('<input'))

@@ -24,7 +24,7 @@ from django.utils.safestring import mark_safe
 # regular expression to validate and parse W3C dates
 W3C_DATE_RE = re.compile(r'^(?P<year>\d{4})(?:-(?P<month>[0-1]\d)(?:-(?P<day>[0-3]\d))?)?$')
 validate_w3c_date = RegexValidator(W3C_DATE_RE,
-    u'Enter a valid W3CDFT date in one of these formats: YYYY, YYYY-MM, or YYYY-MM-DD',
+    u'Enter a valid W3C date in one of these formats: YYYY, YYYY-MM, or YYYY-MM-DD',
     'invalid')
 
 class W3CDateWidget(Widget):
