@@ -387,8 +387,13 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         purged, times = self.rest_api.purgeDatastream(self.pid, ds['id'],
                                             logMessage="purging text datastream")
         self.assertTrue(purged)
+        # FIXME: if the creation time is 000ms the time strings don't match up properly
+        # e.g., createDate of 2010-10-08T13:48:41.500Z purge result of ["2010-10-08T13:48:41.5Z"]
+        create_date = fedoratime_to_datetime(created)
+        # TODO: revise this test so it doesn't depend on that
         self.assert_(created in times,
-            'datastream creation date returned in list of purged datastreams')
+            'datastream creation date should be returned in list of purged datastreams - expected %s, got %s' % \
+            (created, times))
         # log message in audit trail
         xml, url = self.rest_api.getObjectXML(self.pid)
         self.assert_('purging text datastream' in xml)
