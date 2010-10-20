@@ -58,7 +58,7 @@ FIXTURE_THREE = '''
 FIXTURE_FOUR = '''
     <root id="def">
         <name>four</name>
-        <description>this one contains "quote" and &amp;!</description>
+        <description>This one contains "quote" and &amp;!</description>
     </root>
 '''
 NUM_FIXTURES = 4
@@ -258,6 +258,15 @@ class ExistQueryTest(unittest.TestCase):
         fqs = self.qs.order_by('-id')
         self.assertEqual('abc', fqs[3].id)
         self.assertEqual('xyz', fqs[0].id)
+        # case-insensitive sorting - upper-case description should not sort first
+        fqs = self.qs.order_by('~description')
+        self.assert_(fqs[0].description.startswith('third'))
+        self.assert_(fqs[1].description.startswith('This one contains'))
+        # reverse case-insensitive sorting - flags in either order
+        fqs = self.qs.order_by('~-description')
+        self.assert_(fqs[3].description.startswith('third'))
+        fqs = self.qs.order_by('-~description')
+        self.assert_(fqs[3].description.startswith('third'))
 
     def test_only(self):        
         self.qs.only('name')
@@ -502,6 +511,14 @@ class XqueryTest(unittest.TestCase):
         xq.sort('@id', ascending=False)
         self.assert_('order by $n/@id descending' in xq.getQuery())
 
+        # sort case-insensitive
+        xq.sort('@id', case_insensitive=True)
+        self.assert_('order by fn:lower-case($n/@id) ascending' in xq.getQuery())
+
+        # case-insensitive and descending
+        xq.sort('@id', case_insensitive=True, ascending=False)
+        self.assert_('order by fn:lower-case($n/@id) descending' in xq.getQuery())
+
     def test_filters(self):
         xq = Xquery(xpath='/el')
         xq.add_filter('.', 'contains', 'dog')
@@ -658,6 +675,10 @@ class XqueryTest(unittest.TestCase):
         # .//node inside a function call
         self.assertEqual('<field>{normalize-space($n/.//name)}</field>',
                 xq.prep_xpath('normalize-space($n/.//name)', return_field=True))
+
+        # node|node inside a function call
+        self.assertEqual('fn:lower-case($n/name|$n/title)',
+                xq.prep_xpath('fn:lower-case(name|title)'))
 
     def test_namespaces(self):
         xq = Xquery(xpath='/foo:el', namespaces={'foo': 'urn:foo#'})

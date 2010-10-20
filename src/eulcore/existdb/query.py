@@ -30,9 +30,10 @@ stand-in replacement in any context that expects one.
 
 """
 
-from types import BooleanType
 from lxml import etree
 from lxml.builder import ElementMaker
+import re
+from types import BooleanType
 
 from eulcore.xmlmap import load_xmlobject_from_string
 from eulcore.xmlmap.fields import IntegerField, StringField, DateField, NodeField, NodeListField
@@ -79,6 +80,9 @@ class QuerySet(object):
     .. _XPath: http://www.w3.org/TR/xpath/
 
     """
+
+    # pre-compile regular expression for pulling sort flags off beginning of sort field
+    _sort_field_re = re.compile(r'^(?P<flags>[~-]*)(?P<field>.*)$')
     
     def __init__(self, model=None, xpath=None, using=None, collection=None,
                 xquery=None, fulltext_options={}):
@@ -246,23 +250,36 @@ class QuerySet(object):
 
     def order_by(self, field):
         """Order results returned according to a specified field.  By default,
-        all sorting is in ascending order.
+        all sorting is case-sensitive and in ascending order.
 
         :param field: the name (a string) of a field in the QuerySet's
                       :attr:`model`.  If the field is prefixed with '-', results
-                      will be sorted in descending order.
+                      will be sorted in descending order.  If the field is
+                      prefixed with '~', results will use a case-insensitev
+                      sort.  The flags '-' and '~' may be combined in any order.
 
-        Example usage for descending sort::
+        Example usage::
         
             queryset.filter(fulltext_terms='foo').order_by('-fulltext_score')
+            queryset.order_by('~name')
 
         This method returns an updated copy of the QuerySet. It does not
         modify the original.
         """
         sort_opts = {}
-        if field[0] == '-':
-            sort_opts = {'ascending': False }
-            field = field[1:]
+        # use a regular expression to pull off any sort flags
+        match = self._sort_field_re.match(field)
+        field_parts = match.groupdict()
+        field = field_parts['field']
+        sort_flags = field_parts['flags']
+
+        # convert sort flags into options for xquery sort method
+        sort_opts = {}      
+        if '-' in sort_flags:
+            sort_opts['ascending'] = False
+        if '~' in sort_flags:
+            sort_opts['case_insensitive'] = True
+            
         # TODO: allow multiple fields
         xpath = _simple_fielddef_to_xpath(field, self.model) or field
         qscopy = self._getCopy()
@@ -722,7 +739,7 @@ class Xquery(object):
             flowr_where = '\n'.join(where)
 
             # for now, assume sort relative to root element
-            if self.order_by:                
+            if self.order_by:
                 if self.order_by in self.special_fields:
                     order_field = '$%s' % self.order_by
                 else:
@@ -754,9 +771,21 @@ class Xquery(object):
 
         return query
 
-    def sort(self, field, ascending=True):
-        "Add ordering to xquery; sort field assumed relative to base xpath"
-        # todo: support multiple sort fields
+    def sort(self, field, ascending=True, case_insensitive=False):
+        '''Add ordering to xquery; sort field is assumed relative to base xpath.
+
+        :param field: xpath to sort on OR one of the special pre-defined named fields
+        :param ascending: defaults to True, set to False for reverse sort
+        :param case_insensitive: defaults to False, set to True to get
+            a case-insensitive sort (uses fn:lower-case conversion)
+        '''
+        # TODO: support multiple sort fields
+
+        # any field preparation for use in xpath must be handled when query
+        # is constructed instead of here, so that special fields can be
+        # recognized and defined before use in sorting
+        if case_insensitive:
+            field = 'fn:lower-case(%s)' % field
         self.order_by = field
         self.order_mode = 'ascending' if ascending else 'descending'
 
@@ -955,9 +984,20 @@ class Xquery(object):
                     xpath_str = '%(left)s%(op)s%(right)s' % {
                     'op': arg.op,
                     'left': self.prep_xpath(arg.left, parsed=True, context=context),
+                    # only the first portion needs xquery variable context
                     'right': serialize(arg.right)
                     }
                     parsed_xpath.args[i] = parse(xpath_str)
+
+                # xpath like xpath1|xpath1 needs both parts made relative to xquery variable
+                elif isinstance(arg, ast.BinaryExpression) and arg.op == '|':
+                    xpath_str = '%(left)s%(op)s%(right)s' % {
+                    'op': arg.op,
+                    'left': self.prep_xpath(arg.left, parsed=True, context=context),
+                    'right': self.prep_xpath(arg.right, parsed=True, context=context),
+                    }
+                    parsed_xpath.args[i] = parse(xpath_str)
+
         else:
             # for a relative path, we need $n/(xpath)
             context_path = "%s/" % context
