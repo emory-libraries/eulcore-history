@@ -355,6 +355,56 @@ class QuerySet(object):
         qscopy.query.return_also(field_xpath)
         return qscopy
 
+    def also_raw(self, **fields):
+        '''Return an additional field by raw xpath.  Similar to (and can be
+        combined with) :meth:`also`, but xpath is not pulled from the model.
+        Use this when you want to retrieve a field with a different xpath
+        than the one configured in your model. See :meth:`Xquery.return_only`
+        for details on specifying xpaths in raw mode.
+
+        :param **fields: field name and xpath in keyword-args notation. If
+            **field** is the name of a field on the associated model, the result
+            of the raw xpath should be accessible on the return object as the
+            normal property.
+        :param xpath: xpath for retrieving the specified field
+
+        Can be combined with :meth:`also`.
+
+        Example use::
+            qs.also_raw(field_matches='count(util:expand(%(xq_var)s//field)//exist:match)')
+        '''
+        return self._raw_field(also=True, **fields)
+
+    def only_raw(self, **fields):
+        '''Limit results to include only specified fields, and return the specified
+        field by xpath.  Similar to (and can be combined with) :meth:`only`. See
+        :meth:`Xquery.return_only` for details on specifying xpaths in raw mode.
+
+        See :meth:`also_raw` for more details and usage example.
+        '''
+        return self._raw_field(only=True, **fields)
+
+    def _raw_field(self, only=False, also=False, **fields):
+        'Common functionality for :meth:`also_raw` and :meth:`only_raw`.'
+        field_objs = {}
+        field_xpath = {}
+        for field, xpath in fields.iteritems():
+            field_xpath[field] = xpath
+            fieldlist, rest = _split_fielddef(field, self.model)
+            if fieldlist and not rest:
+                field_objs[field] = fieldlist
+            else:
+                field_objs[field] = field
+
+        qscopy = self._getCopy()
+        if only:
+            qscopy.partial_fields.update(field_objs)
+            qscopy.query.return_only(field_xpath, raw=True)
+        elif also:
+            qscopy.additional_fields.update(field_objs)
+            qscopy.query.return_also(field_xpath, raw=True)
+        return qscopy
+
     def distinct(self):
         """Return distinct results.
         
@@ -612,6 +662,7 @@ class Xquery(object):
     special_fields =  ['fulltext_score', 'last_modified', 'hash',
         'document_name', 'collection_name', 'match_count']
 
+    _raw_prefix = 'r_'  # field-name prefix to distinguish raw field returns
     
     def __init__(self, xpath=None, collection=None, namespaces=None,
                  fulltext_options={}):
@@ -632,6 +683,8 @@ class Xquery(object):
         # also/only fields
         self.return_fields = {}
         self.additional_return_fields = {}
+        # list of field names (in return or additional return) where raw xpath should be used
+        self.raw_fields = []    
         # start/end values for subsequence
         self.start = 0
         self.end = None
@@ -658,6 +711,7 @@ class Xquery(object):
         # return *copies* of dictionaries, not references to the ones in this object!
         xq.return_fields = self.return_fields.copy()
         xq.additional_return_fields = self.additional_return_fields.copy()
+        xq.raw_fields = self.raw_fields
         xq.return_xpaths = self.return_xpaths
         xq._return_field_count = self._return_field_count
         xq.fulltext_options = self.fulltext_options.copy()
@@ -732,7 +786,7 @@ class Xquery(object):
 
                     # define an xquery variable with the same name as the special field
                     let.append('let $%s := %s' % (field, val))
-
+                    
             flowr_let = '\n'.join(let)
 
             where = ['where %s' % filter for filter in self.where_filters]
@@ -854,17 +908,35 @@ class Xquery(object):
             self.filters.append(filter)
 
 
-    def return_only(self, fields):
-        """Only return the specified fields.  Fields should be a dictionary of
-        {'field name' : 'xpath'}."""
-        self.return_fields.update(fields)
+    def return_only(self, fields, raw=False):
+        """Only return the specified fields.
 
-    def return_also(self, fields):
-        """Return additional specified fields.  Fields should be a dictionary of
-        {'field name' : 'xpath'}.
-        
-        Not compatible with :meth:`return_only`."""
+        When specifying xpaths in raw mode, use ``%(xq_var)s`` if some portion
+        of the xpath should be made relative to the main xquery variable.  To
+        include a plain % in a raw xpath, it **must** be escaped as ``%%``.
+
+        Not compatible with :meth:`return_also`.
+
+        :param fields: dictionary of {'field name' : 'xpath'}.
+        :param raw: when True, minimal processing will be done on the xpath.
+
+        """
+        self.return_fields.update(fields)
+        if raw:
+            self.raw_fields.extend(fields.keys())
+
+    def return_also(self, fields, raw=False):
+        """Return additional specified fields.  See :meth:`return_only` for
+        syntax of xpaths in raw mode.
+
+        Not compatible with :meth:`return_only`.
+
+        :param fields: dictionary of {'field name' : 'xpath'}.
+        :param raw: when True, minimal processing will be done on the xpath.
+        """
         self.additional_return_fields.update(fields)
+        if raw:
+            self.raw_fields.extend(fields.keys())
 
     def _constructReturn(self):
         """Construct the return portion of a FLOWR xquery."""
@@ -891,6 +963,10 @@ class Xquery(object):
                 if name in self.special_fields:
                     # reference any special fields requested as xquery variables
                     rblocks.append('<%(name)s>{$%(name)s}</%(name)s>' % {'name': name })
+                elif name in self.raw_fields:
+                    xpath = xpath % {'xq_var': self.xq_var}
+                    rblocks.append('<%(prefix)s%(name)s>{%(xpath)s}</%(prefix)s%(name)s>' % \
+                        {'prefix': self._raw_prefix, 'name': name, 'xpath': xpath })
                 else:
                     rblocks.append(self.prep_xpath(xpath, return_field=True))
             return 'return <%s>\n ' % (return_el)  + '\n '.join(rblocks) + '\n</%s>' % (return_el)
@@ -1056,7 +1132,11 @@ class Xquery(object):
             prefix = '../'
         for name in fields.keys():
             if name in self.special_fields:
+                # for predefined fields, xpath is the name of the field
                 xpaths[name] = prefix + name
+            elif name in self.raw_fields:
+                # for raw fields, xpath is raw prefix + name of the field
+                xpaths[name] = ''.join([prefix,  self._raw_prefix, name])
             else:
                 xpaths[name] = prefix + self.return_xpaths[i]
                 i += 1

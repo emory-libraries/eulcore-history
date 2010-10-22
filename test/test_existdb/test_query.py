@@ -365,6 +365,49 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual('one', name.parent.id)        
         self.assertEqual(42, name.parent.wnn)
 
+    def test_also_raw(self):
+        class SubqueryTestModel(QueryTestModel):
+            myid = xmlmap.StringField('@id')
+
+        qs = QuerySet(using=self.db, collection=COLLECTION, model=SubqueryTestModel, xpath='/root')
+        qs = qs.filter(id='abc').also_raw(myid='string(%(xq_var)s//name/ancestor::root/@id)')
+        self.assertEqual('abc', qs[0].myid)
+        # filtered version of the queryset with raw 
+        obj = qs.filter(name='two').get()
+        self.assertEqual('abc', obj.myid)
+
+        # multiple parameters
+        obj = qs.filter(id='abc').also_raw(id='string(%(xq_var)s/@id)',
+            name='normalize-space(%(xq_var)s//name)').get(id='abc')
+        self.assertEqual('abc', obj.id)
+        self.assertEqual('two', obj.name)
+
+    def test_only_raw(self):
+        qs = self.qs.only_raw(id='xs:string(%(xq_var)s//name/ancestor::root/@id)').filter(name='two')
+        self.assertEqual('abc', qs[0].id)
+        # filtered version
+        obj = qs.get()
+        self.assertEqual('abc', obj.id)
+
+        # when combined with regular only, other fields come back correctly
+        qs = self.qs.only('name', 'description', 'substring')
+        obj = qs.only_raw(id='xs:string(%(xq_var)s//name/ancestor::root/@id)').get(id='abc')
+        self.assertEqual('two', obj.name)
+        self.assertEqual('t', obj.substring)
+        self.assertEqual('this one only has two', obj.description)
+        self.assertEqual('abc', obj.id)
+
+        # subfield
+        obj = qs.only_raw(sub__subname='normalize-space(%(xq_var)s//subname)').get(id='one')
+        self.assertEqual('la', obj.sub.subname)
+
+        # multiple parameters
+        obj = self.qs.filter(id='abc').only_raw(id='string(%(xq_var)s/@id)',
+            name='normalize-space(%(xq_var)s//name)').get(id='abc')
+        self.assertEqual('abc', obj.id)
+        self.assertEqual('two', obj.name)
+
+
     def test_getDocument(self):
         obj = self.qs.getDocument("f1.xml")
         self.assert_(isinstance(obj, QueryTestModel),
@@ -609,6 +652,18 @@ class XqueryTest(unittest.TestCase):
         xq.add_filter('.', 'highlight', 'dog star')
         self.assert_('/el[ft:query(., "dog star") or 1]' in xq.getQuery())
 
+    def test_return_also_raw(self):
+        xq = Xquery(xpath='/el')
+        xq.xq_var = '$n'
+        xq._raw_prefix = 'r_'
+        xq.return_also({'myid':'count(util:expand(%(xq_var)s/@id))'}, raw=True)
+        self.assert_('<r_myid>{count(util:expand($n/@id))}</r_myid>' in xq._constructReturn())
+
+        xq = Xquery(xpath='/el')
+        xq.xq_var = '$n'
+        xq._raw_prefix = 'r_'
+        xq.return_also({'myid':'@id'}, raw=True)
+        self.assert_('<r_myid>{@id}</r_myid>' in xq._constructReturn())
 
     def test_set_limits(self):
         # subsequence with xpath
