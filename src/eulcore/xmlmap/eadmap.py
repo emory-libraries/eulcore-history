@@ -28,8 +28,14 @@ class _EadBase(xmlmap.XmlObject):
     ROOT_NAMESPACES = {
         'e' : ROOT_NS,
         'xlink': 'http://www.w3.org/1999/xlink',
+        'exist': 'http://exist.sourceforge.net/NS/exist'
     }
     # TODO: if there are any universal EAD attributes, they should be added here
+
+    # NOTE: this is not an EAD field, but simplifies using EAD objects with eXist
+    # by making exist match-count totals available at any level
+    match_count = xmlmap.IntegerField("count(.//exist:match)")
+    'Count of exist matches under the current field - for use with EAD and eXist-db'
 
 class Note(_EadBase):
     """EAD note."""
