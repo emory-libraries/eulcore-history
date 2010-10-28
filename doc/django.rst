@@ -189,3 +189,9 @@ Applications that want to use full Emory LDAP support should:
 .. automodule:: eulcore.django.http
 
 .. automethod:: eulcore.django.http.content_negotiation
+
+:mod:`eulcore.django.log` - for use with Django & logging
+---------------------------------------------------------------
+
+.. automodule:: eulcore.django.log
+    :members:

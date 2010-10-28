@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
+import os
+os.environ['DJANGO_SETTINGS_MODULE'] = 'django_tester.settings'
+os.putenv('DJANGO_SETTINGS_MODULE', 'django_tester.settings')
 import unittest
-
 from test_django import run_django_tests
 
 # add any non-django modules to be tested here
@@ -10,6 +12,7 @@ non_django_test_modules = (
     'test_fedora',
     'test_xmlmap', 
     'test_xpath',
+    'test_django_non_apps',
     )
 
 def non_django_tests():
