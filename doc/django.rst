@@ -3,7 +3,61 @@
 
 .. automodule:: eulcore.django
 
-:mod:`eulcore.django.existdb` -- Django tie-ins for :mod:`eulcore.existdb`
+
+:mod:`~eulcore.django.auth` - Customized permission decorators
+-------------------------------------------------------------
+
+.. automodule:: eulcore.django.auth
+
+.. automethod:: eulcore.django.auth.user_passes_test_with_403
+
+.. automethod:: eulcore.django.auth.permission_required_with_403
+
+
+
+:mod:`~eulcore.django.emory_ldap` - Emory-specific LDAP support
+--------------------------------------------------------------
+
+.. module:: eulcore.django.emory_ldap
+
+This module contains LDAP support specific to Emory University. Emory
+developers who want more than the simple LDAP support as described in
+:mod:`eulcore.django.ldap.backends` may want to use the more complete
+support offered by this module in place of that one.
+
+Applications that want to use full Emory LDAP support should:
+
+   * Include :mod:`eulcore.django.emory_ldap` in ``INSTALLED_APPS``. This
+     will create a new user profile model
+     :class:`~eulcore.django.emory_ldap.models.EmoryLDAPUserProfile` and
+     ensure that each new user created also gets one. It also enables the
+     :program:`inituser` command in ``manage.py``.
+   * Set the ``AUTH_PROFILE_MODULE`` setting to
+     ``emory_ldap.EmoryLDAPUserProfile``, which makes the new
+     :class:`EmoryLDAPUserProfile` data available through the user’s
+     `get_profile() <http://docs.djangoproject.com/en/dev/topics/auth/#django.contrib.auth.models.User.get_profile>`_
+     method.
+   * Configure the LDAP authentication system as described for
+     :mod:`eulcore.django.ldap.backends`::
+
+        AUTH_LDAP_SERVER = 'ldaps://ldap.example.com'
+        AUTH_LDAP_BASE_USER = 'cn=example,o=example.com'
+        AUTH_LDAP_BASE_PASS = 's00p3rs33kr!t'
+        AUTH_LDAP_SEARCH_SUFFIX = 'o=emory.edu'
+        AUTH_LDAP_SEARCH_FILTER = '(uid=%s)'
+        AUTH_LDAP_CHECK_SERVER_CERT = True
+        AUTH_LDAP_CA_CERT_PATH = '/path/to/trusted/certs.pem'
+
+   * Include :class:`eulcore.django.emory_ldap.backends.EmoryLDAPBackend` in
+     the ``AUTHENTICATION_BACKENDS`` setting. This backend automatically
+     collects Emory LDAP attributes and includes them in the user’s
+     :class:`~eulcore.django.emory_ldap.models.EmoryLDAPUserProfile`.
+   * Consider using `south <http://south.aeracode.org/>`_ migrations, which
+     are maintained in the distribution of this module, though they are not
+     required.
+
+
+:mod:`~eulcore.django.existdb` -- Django tie-ins for :mod:`eulcore.existdb`
 --------------------------------------------------------------------------
 
 .. include:: ../src/eulcore/django/existdb/README
@@ -61,9 +115,8 @@
          itself, though it does not currently include managers inherited
          from the model's parents.
 
-
-Management commands
-^^^^^^^^^^^^^^^^^^^
+:mod:`~eulcore.django.existdb` Management commands
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following management commands will be available when you include 
 :mod:`eulcore.django.existdb` in your django ``INSTALLED_APPS`` and rely on
@@ -76,7 +129,7 @@ For more details on these commands, use ``manage.py <command> help``
  * **existdb_reindex** - reindex a collection index in exist
 
 
-:mod:`eulcore.django.fedora` -- Django tie-ins for :mod:`eulcore.fedora`
+:mod:`~eulcore.django.fedora` -- Django tie-ins for :mod:`eulcore.fedora`
 --------------------------------------------------------------------------
 
 .. include:: ../src/eulcore/django/fedora/README
@@ -87,8 +140,20 @@ For more details on these commands, use ``manage.py <command> help``
 
    .. autoclass:: Repository
 
+:mod:`~eulcore.django.fedora` Management commands
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:mod:`eulcore.django.forms` - Django Form extensions
+The following management commands will be available when you include
+:mod:`eulcore.django.fedora` in your django ``INSTALLED_APPS`` and rely on
+the existdb settings described above.
+
+For more details on these commands, use ``manage.py <command> help``
+
+ * **syncrepo** - load content models and fixture object to the configured
+   fedora repository
+
+
+:mod:`~eulcore.django.forms` - Django Form extensions
 ----------------------------------------------------
 
 .. automodule:: eulcore.django.forms
@@ -101,7 +166,32 @@ For more details on these commands, use ``manage.py <command> help``
 .. autoclass:: eulcore.django.forms.SubformField
     :members:
 
-:mod:`eulcore.django.test` - Django test extensions
+
+:mod:`~eulcore.django.http` - Content Negotiation for Django views
+-----------------------------------------------------------------
+
+.. automodule:: eulcore.django.http
+
+.. automethod:: eulcore.django.http.content_negotiation
+
+
+:mod:`~eulcore.django.ldap.backends` - Django LDAP authentication
+----------------------------------------------------------------
+
+.. automodule:: eulcore.django.ldap.backends
+
+.. autoclass:: LDAPBackend
+      :members:
+      
+
+:mod:`~eulcore.django.log`
+---------------------------------------------------------------
+
+.. automodule:: eulcore.django.log
+    :members:
+
+
+:mod:`~eulcore.django.test` - Django test extensions
 ---------------------------------------------------
 
 .. automodule:: eulcore.django.test
@@ -123,75 +213,3 @@ For more details on these commands, use ``manage.py <command> help``
         than without, since every time eXist loads new documents (which happens
         every setUp), they must be reindexd.
 
-:mod:`eulcore.django.ldap.backends` - Django LDAP authentication
-----------------------------------------------------------------
-
-.. automodule:: eulcore.django.ldap.backends
-
-.. autoclass:: LDAPBackend
-      :members:
-
-:mod:`eulcore.django.emory_ldap` - Emory-specific LDAP support
---------------------------------------------------------------
-
-.. module:: eulcore.django.emory_ldap
-
-This module contains LDAP support specific to Emory University. Emory
-developers who want more than the simple LDAP support as described in
-:mod:`eulcore.django.ldap.backends` may want to use the more complete
-support offered by this module in place of that one.
-
-Applications that want to use full Emory LDAP support should:
-
-   * Include :mod:`eulcore.django.emory_ldap` in ``INSTALLED_APPS``. This
-     will create a new user profile model
-     :class:`~eulcore.django.emory_ldap.models.EmoryLDAPUserProfile` and
-     ensure that each new user created also gets one. It also enables the
-     :program:`inituser` command in ``manage.py``.
-   * Set the ``AUTH_PROFILE_MODULE`` setting to
-     ``emory_ldap.EmoryLDAPUserProfile``, which makes the new
-     :class:`EmoryLDAPUserProfile` data available through the user’s
-     `get_profile() <http://docs.djangoproject.com/en/dev/topics/auth/#django.contrib.auth.models.User.get_profile>`_
-     method.
-   * Configure the LDAP authentication system as described for
-     :mod:`eulcore.django.ldap.backends`::
-
-        AUTH_LDAP_SERVER = 'ldaps://ldap.example.com'
-        AUTH_LDAP_BASE_USER = 'cn=example,o=example.com'
-        AUTH_LDAP_BASE_PASS = 's00p3rs33kr!t'
-        AUTH_LDAP_SEARCH_SUFFIX = 'o=emory.edu'
-        AUTH_LDAP_SEARCH_FILTER = '(uid=%s)'
-        AUTH_LDAP_CHECK_SERVER_CERT = True
-        AUTH_LDAP_CA_CERT_PATH = '/path/to/trusted/certs.pem'
-
-   * Include :class:`eulcore.django.emory_ldap.backends.EmoryLDAPBackend` in
-     the ``AUTHENTICATION_BACKENDS`` setting. This backend automatically
-     collects Emory LDAP attributes and includes them in the user’s
-     :class:`~eulcore.django.emory_ldap.models.EmoryLDAPUserProfile`.
-   * Consider using `south <http://south.aeracode.org/>`_ migrations, which
-     are maintained in the distribution of this module, though they are not
-     required.
-
-
-:mod:`eulcore.django.auth` - Customized permission decorators
--------------------------------------------------------------
-
-.. automodule:: eulcore.django.auth
-
-.. automethod:: eulcore.django.auth.user_passes_test_with_403
-
-.. automethod:: eulcore.django.auth.permission_required_with_403
-
-
-:mod:`eulcore.django.http` - Content Negotiation for Django views
------------------------------------------------------------------
-
-.. automodule:: eulcore.django.http
-
-.. automethod:: eulcore.django.http.content_negotiation
-
-:mod:`eulcore.django.log` - for use with Django & logging
----------------------------------------------------------------
-
-.. automodule:: eulcore.django.log
-    :members:
