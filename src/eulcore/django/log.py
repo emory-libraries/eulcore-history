@@ -54,7 +54,7 @@ class DjangoMessageHandler(logging.Handler):
 
 
 @contextmanager
-def message_logging(request, loggername=None, level=None):
+def message_logging(request, loggername='', level=None):
     '''Context manager to simplify the logging set-up required to use
     :class:`DjangoMessageHandler` as a log handler.
 
@@ -74,7 +74,7 @@ def message_logging(request, loggername=None, level=None):
     mh = DjangoMessageHandler(request)
     if level is not None:
         mh.setLevel(level)
-    # create formatter and add it to the handler
+    # create a simple formatter and add it to the handler
     formatter = logging.Formatter("%(message)s")
     mh.setFormatter(formatter)
     logger = logging.getLogger(loggername)
@@ -85,4 +85,5 @@ def message_logging(request, loggername=None, level=None):
 
     # remove the custom handler
     logger.removeHandler(mh)
+    mh.close()
 
