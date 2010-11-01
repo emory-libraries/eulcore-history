@@ -62,7 +62,7 @@ def message_logging(request, loggername='', level=None):
         adding messages
     :param loggername: logger name to be passed to :meth:`logger.getLogger`
     :param level: log level for messages to be displayed
-
+    
     Example usage::
 
         def view(request):
@@ -80,10 +80,21 @@ def message_logging(request, loggername='', level=None):
     logger = logging.getLogger(loggername)
     logger.addHandler(mh)
 
+    # if the requested logger is set at a log-level higher than the requested level,
+    # temporarily change it
+    original_log_level = None
+    if level is not None and logger.getEffectiveLevel() > level:
+        original_log_level = logger.getEffectiveLevel()
+        logger.setLevel(level)
+
     # do stuff
     yield
 
     # remove the custom handler
     logger.removeHandler(mh)
     mh.close()
+
+    # restore original log level if it was changed
+    if original_log_level is not None:
+        logger.setLevel(original_log_level)
 

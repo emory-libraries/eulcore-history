@@ -109,9 +109,11 @@ class MessageLoggingTest(TestCase):
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(NullHandler())
         self.request = 'rqst'
+        self._root_log_level = logging.getLogger().getEffectiveLevel()
 
     def tearDown(self):
         clear_mock_messages()
+        logging.getLogger().setLevel(self._root_log_level)
 
     def test_basic_functionality(self):
         with log.message_logging(self.request, __name__, logging.DEBUG):
@@ -151,3 +153,14 @@ class MessageLoggingTest(TestCase):
             'There should be only 1 log messages (filter by log name), got %d' \
             % len(mock_messages))
 
+    def test_override_level(self):
+        self.logger.setLevel(logging.CRITICAL)
+
+        with log.message_logging(self.request, __name__, logging.DEBUG):
+            self.logger.info("here's the scoop")
+
+        self.assertEqual(1, len(mock_messages),
+            'There should be one 1 log message (log level higher than requested message logging), got %d' \
+            % len(mock_messages))            
+        self.assertEqual(logging.CRITICAL, self.logger.getEffectiveLevel(),
+            'log level is set to same level as it was before using context manager')
