@@ -31,7 +31,10 @@ from urllib import unquote_plus
 
 from eulcore import xmlmap
 
-__all__ = ['ExistDB', 'QueryResult', 'ExistDBException']
+__all__ = ['ExistDB', 'QueryResult', 'ExistDBException', 'EXISTDB_NAMESPACE']
+
+
+EXISTDB_NAMESPACE = 'http://exist.sourceforge.net/NS/exist'
 
 def _wrap_xmlrpc_fault(f):
     @wraps(f)

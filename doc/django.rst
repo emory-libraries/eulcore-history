@@ -5,7 +5,7 @@
 
 
 :mod:`~eulcore.django.auth` - Customized permission decorators
--------------------------------------------------------------
+--------------------------------------------------------------
 
 .. automodule:: eulcore.django.auth
 
@@ -16,7 +16,7 @@
 
 
 :mod:`~eulcore.django.emory_ldap` - Emory-specific LDAP support
---------------------------------------------------------------
+---------------------------------------------------------------
 
 .. module:: eulcore.django.emory_ldap
 
@@ -58,7 +58,7 @@ Applications that want to use full Emory LDAP support should:
 
 
 :mod:`~eulcore.django.existdb` -- Django tie-ins for :mod:`eulcore.existdb`
---------------------------------------------------------------------------
+---------------------------------------------------------------------------
 
 .. include:: ../src/eulcore/django/existdb/README
 
@@ -115,6 +115,12 @@ Applications that want to use full Emory LDAP support should:
          itself, though it does not currently include managers inherited
          from the model's parents.
 
+Custom Template Tags
+^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: eulcore.django.existdb.templatetags.existdb
+    :members:
+
 :mod:`~eulcore.django.existdb` Management commands
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -130,7 +136,7 @@ For more details on these commands, use ``manage.py <command> help``
 
 
 :mod:`~eulcore.django.fedora` -- Django tie-ins for :mod:`eulcore.fedora`
---------------------------------------------------------------------------
+-------------------------------------------------------------------------
 
 .. include:: ../src/eulcore/django/fedora/README
 
@@ -141,7 +147,7 @@ For more details on these commands, use ``manage.py <command> help``
    .. autoclass:: Repository
 
 :mod:`~eulcore.django.fedora` Management commands
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following management commands will be available when you include
 :mod:`eulcore.django.fedora` in your django ``INSTALLED_APPS`` and rely on
@@ -154,7 +160,7 @@ For more details on these commands, use ``manage.py <command> help``
 
 
 :mod:`~eulcore.django.forms` - Django Form extensions
-----------------------------------------------------
+-----------------------------------------------------
 
 .. automodule:: eulcore.django.forms
 
@@ -168,7 +174,7 @@ For more details on these commands, use ``manage.py <command> help``
 
 
 :mod:`~eulcore.django.http` - Content Negotiation for Django views
------------------------------------------------------------------
+------------------------------------------------------------------
 
 .. automodule:: eulcore.django.http
 
@@ -176,7 +182,7 @@ For more details on these commands, use ``manage.py <command> help``
 
 
 :mod:`~eulcore.django.ldap.backends` - Django LDAP authentication
-----------------------------------------------------------------
+-----------------------------------------------------------------
 
 .. automodule:: eulcore.django.ldap.backends
 
@@ -185,14 +191,14 @@ For more details on these commands, use ``manage.py <command> help``
       
 
 :mod:`~eulcore.django.log`
----------------------------------------------------------------
+---------------------------
 
 .. automodule:: eulcore.django.log
     :members:
 
 
 :mod:`~eulcore.django.test` - Django test extensions
----------------------------------------------------
+----------------------------------------------------
 
 .. automodule:: eulcore.django.test
 
