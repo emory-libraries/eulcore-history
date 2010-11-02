@@ -6,8 +6,13 @@ filter when you output data, e.g.::
 
     {{ poem.title|exist_matches }}
 
+
 You should add CSS for span.exist-match to style it for search-term highlighting.
 
+The :meth:`exist_matches` template tag expects to be given an instance of an
+:class:`~eulcore.xmlmap.XmlObject`  (either a top-level object or a sub-object
+mapped via :class:`~eulcore.xmlmap.NodeField` or
+:class:`~eulcore.xmlmap.NodeListField`).
 """
 
 from lxml import etree
@@ -30,6 +35,8 @@ def exist_matches(value, autoescape=None):
     recursively processed, escaping text nodes and converting <exist:match> tags
     to <span> tags. Other values are simply converted to unicode and
     escaped.
+
+    :param value: :class:`~eulcore.xmlmap.XmlObject` instance
 
     Currently performs the following conversions:
       * ``<exist:match>`` is converted to ``<span class="exist-match">``
