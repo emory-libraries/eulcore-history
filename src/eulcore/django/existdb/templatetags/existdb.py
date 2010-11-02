@@ -1,7 +1,7 @@
 """
 Custom template filter for converting eXist highlight match tags to HTML.
 
-To use, add ``{% load ead %}`` to your template and then use the exist_matches
+To use, add ``{% load existdb %}`` to your template and then use the exist_matches
 filter when you output data, e.g.::
 
     {{ poem.title|exist_matches }}
