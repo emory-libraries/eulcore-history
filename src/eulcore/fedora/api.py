@@ -156,6 +156,7 @@ class REST_API(HTTP_API_Base):
         # objects/{pid}/datastreams/NEWDS? [opts]
         # content via multipart file in request content, or dsLocation=URI
         # one of dsLocation or filename must be specified
+        
 
         http_args = {'dsLabel': dsLabel, 'mimeType': mimeType}
         if logMessage:
@@ -332,7 +333,7 @@ class REST_API(HTTP_API_Base):
             http_args['checksum'] = checksum
         if force:
             http_args['force'] = force
-
+            
         headers = {}
         body = None
         if content:

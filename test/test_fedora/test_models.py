@@ -160,10 +160,13 @@ class TestDatastreams(FedoraTestCase):
         # add file datastream to test object
         filename = os.path.join(FIXTURE_ROOT, 'test.png')
         defaults = self.obj.image.defaults
-        self.obj.api.addDatastream(self.obj.pid, self.obj.image.id, defaults['label'],
+        return_status = self.obj.api.addDatastream(self.obj.pid, self.obj.image.id, defaults['label'],
             defaults['mimetype'], controlGroup=defaults['control_group'],
-            versionable=defaults['versionable'], filename=filename)
-
+            versionable=defaults['versionable'], filename=filename, checksum='d745e8a99847777dabf0d8c6e11fca84', checksumType='MD5')
+        
+        #Verify the insertion succeeded
+        self.assertEqual(return_status[0], True)
+        
         # access via file datastream descriptor
         self.assert_(isinstance(self.obj.image, FileDatastreamObject))
         self.assertEqual(self.obj.image.content.read(), open(filename).read())
@@ -172,12 +175,28 @@ class TestDatastreams(FedoraTestCase):
         self.assertFalse(self.obj.image.isModified())
         new_file = os.path.join(FIXTURE_ROOT, 'test.jpeg')
         self.obj.image.content = open(new_file)
+        self.obj.image.checksum='aaa'
         self.assertTrue(self.obj.image.isModified())
-        self.obj.save()
+        return_status = False
+        try:
+            return_status = self.obj.save()
+        except DigitalObjectSaveFailure as e:
+            #Error should go here
+            self.assert_(str(e).endswith('successfully backed out '), 'Incorrect checksum should back out successfully.') 
+            
+        #As 'aaa' is not a correct checksum, should fail.
+        self.assertEqual(False, return_status)
+        
+        #Now try with correct checksum
+        self.obj.image.content = open(new_file)
+        self.obj.image.checksum='57d5eb11a19cf6f67ebd9e8673c9812e'
+        return_status = self.obj.save()
+        self.assertEqual(True, return_status)
 
         # grab a new copy from fedora, confirm contents match
         obj = MyDigitalObject(self.api, self.pid)
         self.assertEqual(obj.image.content.read(), open(new_file).read())
+        self.assertEqual(obj.image.checksum, '57d5eb11a19cf6f67ebd9e8673c9812e')
 
     def test_undo_last_save(self):
         # test undoing profile and content changes        
@@ -424,7 +443,30 @@ class TestDigitalObject(FedoraTestCase):
         self.obj.label = "new label"        
         self.obj.dc.content.title = "new dublin core title"
         self.obj.text.label = "text content"
-        self.obj.save()
+        self.obj.text.checksum_type = "MD5"
+        self.obj.text.checksum = "avcd"
+        
+        return_status = False
+        try:
+            return_status = self.obj.save()
+        except DigitalObjectSaveFailure as e:
+            #Error should go here
+            self.assert_(str(e).endswith('successfully backed out '), 'Incorrect checksum should back out successfully.') 
+            
+        #As 'aaa' is not a correct checksum, should fail.
+        self.assertEqual(False, return_status)
+        
+        
+        # modify object profile, datastream content, datastream info
+        self.obj.label = "new label"        
+        self.obj.dc.content.title = "new dublin core title"
+        self.obj.text.label = "text content"
+        self.obj.text.checksum_type = "MD5"
+        self.obj.text.checksum = "1c83260ff729265470c0d349e939c755"
+        return_status = self.obj.save()
+        
+        #Correct checksum should modify correctly.
+        self.assertEqual(True, return_status)
 
         # confirm all changes were saved to fedora
         profile = self.obj.getProfile() 
@@ -433,7 +475,8 @@ class TestDigitalObject(FedoraTestCase):
         self.assert_('<dc:title>new dublin core title</dc:title>' in data)
         text_info = self.obj.getDatastreamProfile(self.obj.text.id)
         self.assertEqual(text_info.label, "text content")
-
+        self.assertEqual(text_info.checksum_type, "MD5")
+        
         # force an error on saving DC to test backing out text datastream
         self.obj.text.content = "some new text"
         self.obj.dc.content = "this is not dublin core!"    # NOTE: setting xml content like this could change...

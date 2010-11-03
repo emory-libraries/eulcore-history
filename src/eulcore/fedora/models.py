@@ -54,7 +54,7 @@ class DatastreamObject(object):
     """
     default_mimetype = "application/octet-stream"
     def __init__(self, obj, id, label, mimetype=None, versionable=False,
-            state='A', format=None, control_group='M'):
+            state='A', format=None, control_group='M', checksum_type="MD5"):
                         
         self.obj = obj
         self.id = id
@@ -69,6 +69,7 @@ class DatastreamObject(object):
             'state' : state,
             'format': format,
             'control_group': control_group,
+            'checksumType': checksum_type,
         }
         self._info = None
         self._content = None
@@ -78,6 +79,7 @@ class DatastreamObject(object):
 
         self.info_modified = False
         self.digest = None
+        self.checksum_modified = False
     
     @property
     def info(self):
@@ -201,8 +203,23 @@ class DatastreamObject(object):
         return self.info.format
     def _set_format(self, val):
         self.info.format = val
-        self.info.modified = True
+        self.info_modified = True
     format = property(_get_format, _set_format, "datastream format URI")
+    
+    def _get_checksum(self):
+        return self.info.checksum
+    def _set_checksum(self, val):
+        self.info.checksum = val
+        self.info_modified = True
+        self.checksum_modified = True
+    checksum = property(_get_checksum, _set_checksum, "datastream checksum")
+    
+    def _get_checksumType(self):
+        return self.info.checksum_type
+    def _set_checksumType(self, val):
+        self.info.checksum_type = val
+        self.info_modified = True
+    checksum_type = property(_get_checksumType, _set_checksumType, "datastream checksumType")
 
     # read-only info properties
 
@@ -225,7 +242,7 @@ class DatastreamObject(object):
         :rtype: boolean for success
         """
         data = self._raw_content()
-        
+
         modify_opts = {}
         if self.info_modified:
             if self.label:
@@ -238,6 +255,11 @@ class DatastreamObject(object):
                 modify_opts['dsState'] = self.state
             if self.format:
                 modify_opts['formatURI'] = self.format
+            if self.checksum:
+                if(self.checksum_modified):
+                    modify_opts['checksum'] = self.checksum
+            if self.checksum_type:
+                modify_opts['checksumType'] = self.checksum_type
             # FIXME: should be able to handle checksums
         # NOTE: as of Fedora 3.2, updating content without specifying mimetype fails (Fedora bug?)
         if 'mimeType' not in modify_opts.keys():
@@ -249,9 +271,11 @@ class DatastreamObject(object):
             
         success, msg = self.obj.api.modifyDatastream(self.obj.pid, self.id, content=data,
                 logMessage=logmessage, **modify_opts) 
+        print msg
         if success:
             # update modification indicators
             self.info_modified = False
+            self.checksum_modified = False
             self.digest = self._content_digest()
             
         return success      # msg ?
@@ -473,6 +497,7 @@ class FileDatastreamObject(DatastreamObject):
     
     def isModified(self):
         return self.info_modified or self._content_modified
+    
 
 class FileDatastream(Datastream):
     """File-based content version of :class:`Datastream`.  Datastreams are
@@ -714,6 +739,9 @@ class DigitalObject(object):
             self._ingest(logMessage)
         else:
             self._save_existing(logMessage)
+        
+        #No errors, then return true
+        return True
 
     def _save_existing(self, logMessage):
         # save an object that has already been ingested into fedora
@@ -741,6 +769,7 @@ class DigitalObject(object):
             if not self._saveProfile(logMessage):
                 cleaned = self._undo_save(saved, "failed to save object profile, rolling back changes")
                 raise DigitalObjectSaveFailure(self.pid, "object profile", to_save, saved, cleaned)
+            
 
     def _undo_save(self, datastreams, logMessage=None):
         """Takes a list of datastreams and a datetime, run undo save on all of them,
