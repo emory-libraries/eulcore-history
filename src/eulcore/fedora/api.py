@@ -157,7 +157,6 @@ class REST_API(HTTP_API_Base):
         # content via multipart file in request content, or dsLocation=URI
         # one of dsLocation or filename must be specified
         
-
         http_args = {'dsLabel': dsLabel, 'mimeType': mimeType}
         if logMessage:
             http_args['logMessage'] = logMessage

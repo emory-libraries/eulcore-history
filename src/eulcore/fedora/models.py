@@ -51,10 +51,12 @@ class DatastreamObject(object):
         :param versionable: default configuration for datastream versioning
         :param state: default configuration for datastream state
         :param format: default configuration for datastream format URI
+        :param checksum: default configuration for datastream checksum
+        :param format: default configuration for datastream checksum type 
     """
     default_mimetype = "application/octet-stream"
     def __init__(self, obj, id, label, mimetype=None, versionable=False,
-            state='A', format=None, control_group='M', checksum_type="MD5"):
+            state='A', format=None, control_group='M', checksum=None, checksum_type="MD5"):
                         
         self.obj = obj
         self.id = id
@@ -69,6 +71,7 @@ class DatastreamObject(object):
             'state' : state,
             'format': format,
             'control_group': control_group,
+            'checksum': checksum,
             'checksumType': checksum_type,
         }
         self._info = None
@@ -271,7 +274,7 @@ class DatastreamObject(object):
             
         success, msg = self.obj.api.modifyDatastream(self.obj.pid, self.id, content=data,
                 logMessage=logmessage, **modify_opts) 
-        print msg
+ 
         if success:
             # update modification indicators
             self.info_modified = False
@@ -735,6 +738,7 @@ class DigitalObject(object):
         declaration, though it too can be overridden prior to the initial
         save.
         """
+        
         if self._create:
             self._ingest(logMessage)
         else:
@@ -871,6 +875,13 @@ class DigitalObject(object):
             ver_xml.set('FORMAT_URI', dsobj.format)
         if dsobj.label:
             ver_xml.set('LABEL', dsobj.label)
+        #Set the checksum, if available.
+        if dsobj.checksum:
+            digest_xml = E('contentDigest')
+            digest_xml.set('TYPE', "MD5")
+            digest_xml.set('DIGEST', dsobj.checksum)
+            ver_xml.append(digest_xml)
+            
         ds_xml.append(ver_xml)
 
         ver_xml.append(content_node)
