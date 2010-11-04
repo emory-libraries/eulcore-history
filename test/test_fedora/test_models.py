@@ -177,15 +177,15 @@ class TestDatastreams(FedoraTestCase):
         self.obj.image.content = open(new_file)
         self.obj.image.checksum='aaa'
         self.assertTrue(self.obj.image.isModified())
-        return_status = False
+        
+        #Saving with incorrect checksum should fail.
+        expected_error = None
         try:
-            return_status = self.obj.save()
+            self.obj.save()
         except DigitalObjectSaveFailure as e:
             #Error should go here
-            self.assert_(str(e).endswith('successfully backed out '), 'Incorrect checksum should back out successfully.') 
-            
-        #As 'aaa' is not a correct checksum, should fail.
-        self.assertEqual(False, return_status)
+            expected_error = e
+        self.assert_(str(expected_error).endswith('successfully backed out '), 'Incorrect checksum should back out successfully.') 
         
         #Now try with correct checksum
         self.obj.image.content = open(new_file)
@@ -446,15 +446,14 @@ class TestDigitalObject(FedoraTestCase):
         self.obj.text.checksum_type = "MD5"
         self.obj.text.checksum = "avcd"
         
-        return_status = False
+        #Saving with incorrect checksum should fail.
+        expected_error = None
         try:
-            return_status = self.obj.save()
+            self.obj.save()
         except DigitalObjectSaveFailure as e:
             #Error should go here
-            self.assert_(str(e).endswith('successfully backed out '), 'Incorrect checksum should back out successfully.') 
-            
-        #As 'aaa' is not a correct checksum, should fail.
-        self.assertEqual(False, return_status)
+            expected_error = e
+        self.assert_(str(expected_error).endswith('successfully backed out '), 'Incorrect checksum should back out successfully.') 
         
         
         # modify object profile, datastream content, datastream info
