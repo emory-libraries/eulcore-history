@@ -655,7 +655,7 @@ class BaseXmlObjectFormSet(BaseFormSet):
 
 
 class SubformField(Field):
-    """This is a seudo-form field: use to override the form class of a subform or
+    """This is a pseudo-form field: use to override the form class of a subform or
     formset that belongs to an :class:`XmlObjectForm`.
 
     Note that if you specify a list of fields, the subform or formset needs to

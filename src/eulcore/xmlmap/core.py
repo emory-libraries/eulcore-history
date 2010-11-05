@@ -38,7 +38,20 @@ def parseString(string, uri=None):
 def loadSchema(uri, base_uri=None):
     """Load an XSD XML document (specified by filename or URL), and return a
     :class:`lxml.etree.XMLSchema`."""
-    return etree.XMLSchema(etree.parse(uri, base_url=base_uri))
+
+    # uri to use for reporting errors - include base uri if any
+    error_uri = uri
+    if base_uri is not None:
+        error_uri += ' (base URI %s)' % base_uri
+        
+    try:
+        return etree.XMLSchema(etree.parse(uri, base_url=base_uri))
+    except IOError as io_err:
+        # add a little more detail to the error message - but should still be an IO error
+        raise IOError('Failed to load schema %s : %s' % (error_uri, io_err))
+    except etree.XMLSchemaParseError as parse_err:
+        # re-raise as a schema parse error, but ensure includes details about schema being loaded
+        raise etree.XMLSchemaParseError('Failed to parse schema %s -- %s' % (error_uri, parse_err))
 
 class _FieldDescriptor(object):
     def __init__(self, field):
