@@ -16,6 +16,8 @@
 
 import cStringIO
 import logging
+import os
+
 from lxml import etree
 from lxml.builder import ElementMaker
 
@@ -43,7 +45,16 @@ def loadSchema(uri, base_uri=None):
     error_uri = uri
     if base_uri is not None:
         error_uri += ' (base URI %s)' % base_uri
-        
+
+    # typical reliable use should include a proxy. warn if they're not using
+    # one.
+    if 'HTTP_PROXY' not in os.environ:
+        message = ('Loading schema %s without a web proxy may introduce ' +
+                   'instability if that server becomes inaccessible. ' + 
+                   'Consider setting the HTTP_PROXY environment variable.') \
+                  % (error_uri,)
+        logger.warning(message)
+
     try:
         return etree.XMLSchema(etree.parse(uri, base_url=base_uri))
     except IOError as io_err:
