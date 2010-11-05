@@ -76,10 +76,6 @@ class TeiDiv(_TeiBase):
     floatingText = xmlmap.NodeListField('tei:floatingText/tei:body/tei:div', 'self')
 
 
-class TeiSection(_TeiBase):
-    # top-level sections -- front/body/back
-    div = xmlmap.NodeListField('tei:div', TeiDiv)
-
 # note: not currently mapped to any of the existing tei objects...  where to add?
 class TeiFigure(_TeiBase):
     #entity      = xmlmap.StringField("@entity") #not used in P5
@@ -93,6 +89,11 @@ class TeiFigure(_TeiBase):
 class TeiInterp(_TeiBase):
     id          = xmlmap.StringField("@xml:id")
     value       = xmlmap.StringField("@value")
+
+class TeiSection(_TeiBase):
+    # top-level sections -- front/body/back
+    div = xmlmap.NodeListField('tei:div', TeiDiv)
+    all_figures = xmlmap.NodeListField('.//tei:figure', TeiFigure)
 
 class TeiInterpGroup(_TeiBase):
     type        = xmlmap.StringField("@type")
