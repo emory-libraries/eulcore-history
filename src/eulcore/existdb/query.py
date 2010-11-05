@@ -638,8 +638,12 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None,
     # create the new class and set it as the return type to be initialized
     return XmlObjectType(classname, (baseclass,), class_fields)
 
+def escape_string(s):
+    'Escape a string as a literal value for use in an Xquery expression.'
+    return s.replace('"', '""').replace('&', '&amp;')
+
 def _quote_as_string_literal(s):
-    return '"' + s.replace('"', '""').replace('&', '&amp;') + '"'
+    return '"' + escape_string(s)  + '"'
 
 class Xquery(object):
     """
