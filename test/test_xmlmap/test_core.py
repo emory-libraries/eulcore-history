@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from lxml import etree
+from os import path
 import unittest
 import tempfile
 
@@ -293,7 +294,57 @@ class TestXmlObject(unittest.TestCase):
         self.assertEqual(init_values['int'], obj.int)
         self.assertEqual(init_values['bool'], obj.bool)
 
+class TestLoadSchema(unittest.TestCase):
+    
+    def test_load_schema(self):
+        schema = xmlmap.loadSchema('http://www.w3.org/2001/xml.xsd')
+        self.assert_(isinstance(schema, etree.XMLSchema),
+            'loadSchema should return an etree.XMLSchema object when successful')
+    
+    def test_ioerror(self):
+        # IO error - file path is wrong/incorrect OR network-based schema unavailable
+        self.assertRaises(IOError, xmlmap.loadSchema, 'bogus.xsd')
+        try:
+            xmlmap.loadSchema('bogus.xsd')
+        except IOError as io_err:
+            self.assert_('Failed to load schema bogus.xsd' in str(io_err),
+                'exception message indicates load error on specific document')
+        self.assertRaises(IOError, xmlmap.loadSchema, 'bogus.xsd', 'file://some/dir')
 
+    def test_parse_error(self):
+        # test document that is loaded but can't be parsed as a schema
+        # valid xml non-schema doc
+        xmldoc = path.join(path.dirname(path.abspath(__file__)), 'fixtures', 'heaney653.xml')
+        # confirm an exception is raised
+        self.assertRaises(etree.XMLSchemaParseError, xmlmap.loadSchema, xmldoc)
+        # inspect the exception for expected detail in error messages
+        try:
+            xmlmap.loadSchema(xmldoc)
+        except etree.XMLSchemaParseError as parse_err:
+            self.assert_('Failed to parse schema %s' % xmldoc in str(parse_err),
+                'schema parse exception includes detail about schema document that failed')
+            self.assert_('not a schema document' in str(parse_err),
+                'schema parse exception includes detail about why parsing failed')
+
+        # schema that attempts to import something inaccessible
+        xsd = '''<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <xsd:import namespace="http://www.w3.org/1999/xlink"
+                schemaLocation="file://cant/catch/me/xlink.xsd"/>
+            <xsd:element name="a" type="xlink:simpleLink"/>
+        </xsd:schema>
+        '''
+        FILE = tempfile.NamedTemporaryFile(mode="w")
+        FILE.write(xsd)
+        FILE.flush()
+        # assert this causes the expected exception
+        self.assertRaises(etree.XMLSchemaParseError, xmlmap.loadSchema,
+                          FILE.name)
+        # use try/except to inspect the error message
+        try:
+            xmlmap.loadSchema(FILE.name)
+        except etree.XMLSchemaParseError as parse_err:
+            self.assert_('failed to load external entity' in str(parse_err),
+                'schema parse exception includes detail about what went wrong')
 
 if __name__ == '__main__':
     main()
