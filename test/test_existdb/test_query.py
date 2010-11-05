@@ -407,6 +407,15 @@ class ExistQueryTest(unittest.TestCase):
         self.assertEqual('abc', obj.id)
         self.assertEqual('two', obj.name)
 
+        # list field - multiple return values
+        class MyQueryTest(QueryTestModel):
+            name = xmlmap.StringListField('name')
+        qs = QuerySet(using=self.db, xpath='/root', collection=COLLECTION, model=MyQueryTest)
+        # return one object but find all the names in the test collection
+        obj = qs.filter(id='abc').only_raw(name='collection("/db%s")//name' % COLLECTION).get(id='abc')
+        # 4 names in test fixtures - should come back as a list of those 4 names
+        self.assertEqual(4, len(obj.name))
+
 
     def test_getDocument(self):
         obj = self.qs.getDocument("f1.xml")

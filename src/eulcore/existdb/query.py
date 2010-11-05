@@ -1136,7 +1136,8 @@ class Xquery(object):
                 xpaths[name] = prefix + name
             elif name in self.raw_fields:
                 # for raw fields, xpath is raw prefix + name of the field
-                xpaths[name] = ''.join([prefix,  self._raw_prefix, name])
+                # match all nodes directly under the raw field wrapper, excluding empty text nodes
+                xpaths[name] = ''.join([prefix,  self._raw_prefix, name]) + '/node()[not(normalize-space(.)="")]'
             else:
                 xpaths[name] = prefix + self.return_xpaths[i]
                 i += 1
