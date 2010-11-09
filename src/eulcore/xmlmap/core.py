@@ -28,15 +28,30 @@ logger = logging.getLogger(__name__)
 __all__ = [ 'XmlObject', 'parseUri', 'parseString', 'loadSchema',
     'load_xmlobject_from_string', 'load_xmlobject_from_file' ]
 
+# NB: When parsing XML in this module, we explicitly create a new parser
+#   each time. Without this, lxml 2.2.7 uses a global default parser. When
+#   parsing strings, lxml appears to set that parser into no-network mode,
+#   causing subsequent network-based parses to fail. Specifically, under
+#   lxml 2.2.7, the second call here fails::
+#
+#   >>> etree.fromstring('<foo/>') # set global parser to no-network
+#   >>> etree.parse('http://www.w3.org/2001/xml.xsd') # fails in no-network mode
+#
+#   If we simply construct a separate parser each time, parses will be
+#   marginally slower, but this lxml bug will not affect us.
+#
+#   This lxml behavior has been logged as a bug:
+#   https://bugs.launchpad.net/lxml/+bug/673205
+
 def parseUri(stream, uri=None):
     """Read an XML document from a URI, and return a :mod:`lxml.etree`
     document."""
-    return etree.parse(stream, base_url=uri)
+    return etree.parse(stream, parser=_get_xmlparser(), base_url=uri)
 def parseString(string, uri=None):
     """Read an XML document provided as a byte string, and return a
     :mod:`lxml.etree` document. String cannot be a Unicode string.
     Base_uri should be provided for the calculation of relative URIs."""
-    return etree.fromstring(string, base_url=uri)
+    return etree.fromstring(string, parser=_get_xmlparser(), base_url=uri)
 def loadSchema(uri, base_uri=None):
     """Load an XSD XML document (specified by filename or URL), and return a
     :class:`lxml.etree.XMLSchema`."""
@@ -56,7 +71,7 @@ def loadSchema(uri, base_uri=None):
         logger.warning(message)
 
     try:
-        return etree.XMLSchema(etree.parse(uri, base_url=base_uri))
+        return etree.XMLSchema(etree.parse(uri, parser=_get_xmlparser(), base_url=base_uri))
     except IOError as io_err:
         # add a little more detail to the error message - but should still be an IO error
         raise IOError('Failed to load schema %s : %s' % (error_uri, io_err))
@@ -273,10 +288,11 @@ class XmlObject(object):
             :class:`XmlObject`
         :returns: an instance of :class:`XmlObject` or the return_type specified
         """
+        parser = _get_xmlparser()
         if filename is not None:
-            xslt_doc = etree.parse(filename)
+            xslt_doc = etree.parse(filename, parser=parser)
         if xsl is not None:
-            xslt_doc = etree.fromstring(xsl)
+            xslt_doc = etree.fromstring(xsl, parser=parser)
         transform = etree.XSLT(xslt_doc, **params)
         # NOTE: converting _XSLTResultTree to XmlObject because of a bug in its unicode method
         # - to output xml result, use serialize instead of unicode

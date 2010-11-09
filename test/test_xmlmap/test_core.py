@@ -300,6 +300,14 @@ class TestLoadSchema(unittest.TestCase):
         schema = xmlmap.loadSchema('http://www.w3.org/2001/xml.xsd')
         self.assert_(isinstance(schema, etree.XMLSchema),
             'loadSchema should return an etree.XMLSchema object when successful')
+
+    def test_load_after_parsestring(self):
+        # lxml 2.2.7 (used internally by xmlmap) has a bug that causes
+        # lxml.etree.parse() to fail after a call to
+        # lxml.etree.fromstring(). this causes the second call below to fail
+        # unless we work around that bug in xmlmap.
+        xmlmap.parseString('<foo/>') # has global side effects in lxml
+        xmlmap.loadSchema('http://www.w3.org/2001/xml.xsd') # fails
     
     def test_ioerror(self):
         # IO error - file path is wrong/incorrect OR network-based schema unavailable
