@@ -18,7 +18,7 @@ import re
 
 from django.core.validators import RegexValidator
 from django.forms import CharField
-from django.forms.widgets import Widget, TextInput
+from django.forms.widgets import Select, TextInput, Widget
 from django.utils.safestring import mark_safe
 
 # regular expression to validate and parse W3C dates
@@ -122,3 +122,22 @@ class W3CDateField(CharField):
         'invalid':  u'Enter a date in one of these formats: YYYY, YYYY-MM, or YYYY-MM-DD',
     }
     default_validators = [validate_w3c_date]
+
+
+class DynamicSelect(Select):
+    '''A :class:`~django.forms.widgets.Select` widget whose choices are not
+    static, but instead generated dynamically when referenced.
+
+    :param choices: callable; this will be called to generate choices each
+                    time they are referenced.
+    '''
+
+    def __init__(self, attrs=None, choices=None):
+        # Skip right over Select and go to its parents. Select just sets
+        # self.choices, which will break since it's a property here.
+        super(Select, self).__init__(attrs)
+        self._get_choices = choices
+
+    @property
+    def choices(self):
+        return self._get_choices()

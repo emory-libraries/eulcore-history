@@ -24,7 +24,7 @@ from eulcore import xmlmap
 from eulcore.xmlmap.fields import DateField     # not yet supported - testing for errors
 from eulcore.django.forms import XmlObjectForm, xmlobjectform_factory, SubformField
 from eulcore.django.forms.xmlobject import XmlObjectFormType
-from eulcore.django.forms.fields import W3CDateWidget
+from eulcore.django.forms.fields import W3CDateWidget, DynamicSelect
 
 
 # test xmlobject and xml content to generate test form
@@ -575,3 +575,29 @@ class W3CDateWidgetTest(unittest.TestCase):
         inputs = self.widget.render('date', 'foo-bar-baz')
         self.assert_('value="' not in inputs,
             'invalid intial value results in no pre-set value on any of the date inputs')
+
+
+class DynamicSelectTest(unittest.TestCase):
+    def setUp(self):
+        self.widget = DynamicSelect(choices=self.get_choices)
+        self.choices = []
+
+    def get_choices(self):
+        return self.choices
+
+    def test_render(self):
+        self.choices = [('1', 'one'),
+                        ('2', 'two'),
+                        ('3', 'three')]
+        html = self.widget.render('values', None)
+        self.assert_('one' in html, 'render includes "one"')
+        self.assert_('two' in html, 'render includes "two"')
+        self.assert_('three' in html, 'render includes "three"')
+
+        self.choices = [('a', 'alpha'),
+                        ('b', 'beta'),
+                        ('c', 'gamma')]
+        html = self.widget.render('values', None)
+        self.assert_('alpha' in html, 'render includes "alpha"')
+        self.assert_('beta' in html, 'render includes "beta"')
+        self.assert_('gamma' in html, 'render includes "gamma"')
