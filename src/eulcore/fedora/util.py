@@ -108,6 +108,9 @@ def auth_headers(username, password):
         return {}
 
 class RequestFailed(IOError):
+    '''An exception representing an arbitrary error while trying to access a
+    Fedora object or datastream.
+    '''
     error_regex = re.compile('<pre>.*\n(.*)\n', re.MULTILINE)
     def __init__(self, response):
         super(RequestFailed, self).__init__('%d %s' % (response.status, response.reason))
@@ -125,6 +128,12 @@ class RequestFailed(IOError):
                 match = self.error_regex.findall(content)
                 if len(match):
                     self.detail = match[0]
+
+
+class PermissionDenied(RequestFailed):
+    '''An exception representing a permission error while trying to access a
+    Fedora object or datastream.
+    '''
 
 # custom exceptions?  fedora errors:
 # fedora.server.errors.ObjectValidityException
@@ -154,7 +163,12 @@ class RequestContextManager(object):
             response = connection.getresponse()
             # FIXME: handle 3xx
             if response.status >= 400 and self.throw_errors:
-                raise RequestFailed(response)
+                # separate out 401 and 403 (permission errors) to enable
+                # special handling in client code.
+                if response.status in (401, 403):
+                    raise PermissionDenied(response)
+                else:
+                    raise RequestFailed(response)
             return response
         except:
             connection.close()
