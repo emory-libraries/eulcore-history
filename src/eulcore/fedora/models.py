@@ -621,6 +621,12 @@ class DigitalObject(object):
         return nextpids.pids[0]
 
     @property
+    def pidspace(self):
+        "Fedora pidspace of this object"
+        ps, pid = self.pid.split(':', 1)
+        return ps
+
+    @property
     def uri(self):
         "Fedora URI for this object (info:fedora/foo:### form of object pid) "
         return 'info:fedora/' + self.pid
