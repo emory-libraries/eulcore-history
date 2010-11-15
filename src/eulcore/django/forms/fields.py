@@ -17,7 +17,7 @@
 import re
 
 from django.core.validators import RegexValidator
-from django.forms import CharField
+from django.forms import CharField, ChoiceField
 from django.forms.widgets import Select, TextInput, Widget
 from django.utils.safestring import mark_safe
 
@@ -136,8 +136,50 @@ class DynamicSelect(Select):
         # Skip right over Select and go to its parents. Select just sets
         # self.choices, which will break since it's a property here.
         super(Select, self).__init__(attrs)
-        self._get_choices = choices
 
-    @property
-    def choices(self):
-        return self._get_choices()
+        if choices is None:
+            choices = lambda: ()
+        self._choices = choices
+
+    def _get_choices(self):
+        return self._choices()
+    choices = property(_get_choices)
+
+
+class DynamicChoiceField(ChoiceField):
+    '''A :class:`django.forms.ChoiceField` whose choices are not static, but
+    instead generated dynamically when referenced.
+
+    :param choices: callable; this will be called to generate choices each
+                    time they are referenced
+    '''
+
+    widget = DynamicSelect
+
+    def __init__(self, choices=None, widget=None, *args, **kwargs):
+        # ChoiceField.__init__ tries to set static choices, which won't
+        # work since our choices are dynamic, so we're going to have to skip
+        # over it.
+
+        # First normalize our choices
+        if choices is None:
+            choices = lambda: ()
+        self._choices = choices
+
+        # Then normalize our widget, constructing it with our choices
+        # function if we need to construct it.
+        if widget is None:
+            widget = self.widget
+        if isinstance(widget, type):
+            widget = widget(choices=choices)
+
+        # Now call call super.__init__(), but bypass ChoiceField.
+        # ChoiceField just sets static choices manually and then calls its
+        # own super. We don't have static choices, so ChoiceField.__init__()
+        # would break if we called it. Skip over ChoiceField and go straight
+        # to *its* super.__init__().
+        super(ChoiceField, self).__init__(widget=widget, *args, **kwargs)
+
+    def _get_choices(self):
+        return self._choices()
+    choices = property(_get_choices)
