@@ -45,10 +45,18 @@ def do_catch_fedora_errors(parser, token):
     blocks['fedora_access'] = parser.parse(END_TAGS)
     token = parser.next_token()
     while token.contents != 'end_fedora_access':
-        current_block = token.contents
+        # need to convert token.contents manually to a str. django gives us
+        # a unicode. we use it below in **blocks, but python 2.6.2 and
+        # earlier can't use **kwargs with unicode keys. (2.6.5 is ok with
+        # it; not sure about intervening versions.) in any case, direct
+        # conversion to string is safe here (i.e., no encoding needed)
+        # because the parser guarantees it's one of our END_TAGS, which are
+        # all ascii.
+        current_block = str(token.contents)
         if current_block in blocks:
             raise template.TemplateSyntaxError(
                 current_block + ' may appear only once in a fedora_access block')
+
         blocks[current_block] = parser.parse(END_TAGS)
         token = parser.next_token()
 
