@@ -4,17 +4,17 @@ from eulcore import xmlmap
 from eulcore.fedora.api import ApiFacade
 from eulcore.fedora.server import Repository
 
-#REPO_ROOT = 'https://dev11.library.emory.edu:8643/fedora/'
-#REPO_ROOT_NONSSL = 'http://dev11.library.emory.edu:8280/fedora/'
+#FEDORA_ROOT = 'https://dev11.library.emory.edu:8643/fedora/'
+#FEDORA_ROOT_NONSSL = 'http://dev11.library.emory.edu:8280/fedora/'
 # fedora3.3
-#REPO_ROOT = 'https://dev11.library.emory.edu:8843/fedora/'
-#REPO_ROOT_NONSSL = 'http://dev11.library.emory.edu:8480/fedora/'
+#FEDORA_ROOT = 'https://dev11.library.emory.edu:8843/fedora/'
+#FEDORA_ROOT_NONSSL = 'http://dev11.library.emory.edu:8480/fedora/'
 # fedora3.4
-REPO_ROOT = 'https://dev11.library.emory.edu:8943/fedora/'
-REPO_ROOT_NONSSL = 'http://dev11.library.emory.edu:8580/fedora/'
-REPO_USER = 'fedoraAdmin'
-REPO_PASS = 'fedoraAdmin'
-TEST_PIDSPACE = 'eulcoretest'
+FEDORA_ROOT = 'https://dev11.library.emory.edu:8943/fedora/'
+FEDORA_ROOT_NONSSL = 'http://dev11.library.emory.edu:8580/fedora/'
+FEDORA_USER = 'fedoraAdmin'
+FEDORA_PASS = 'fedoraAdmin'
+FEDORA_PIDSPACE = 'eulcoretest'
 
 FIXTURE_ROOT = os.path.join(os.path.dirname(__file__), 'fixtures')
 def fixture_path(fname):
@@ -33,7 +33,7 @@ class FedoraTestCase(unittest.TestCase):
         self.fedora_fixtures_ingested = []
 
     def setUp(self):
-        self.repo = Repository(REPO_ROOT, REPO_USER, REPO_PASS)
+        self.repo = Repository(FEDORA_ROOT, FEDORA_USER, FEDORA_PASS)
         # NOTE: queries require RI flush=True or test objects will not show up in RI
         self.repo.risearch.RISEARCH_FLUSH_ON_QUERY = True
         self.opener = self.repo.opener

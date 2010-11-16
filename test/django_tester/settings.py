@@ -6,7 +6,7 @@ from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_ROOT_COLLECTION, EX
 
 # Django settings for eulcore project.
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
+TEMPLATE_DEBUG = False
 
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
@@ -80,6 +80,7 @@ INSTALLED_APPS = (
     'eulcore.django.auth',
     'eulcore.django.emory_ldap',
     'eulcore.django.existdb',
+    'eulcore.django.fedora',
     'eulcore.django.forms',
     'eulcore.django.http',
     'eulcore.django.ldap',
@@ -94,6 +95,8 @@ INSTALLED_APPS = (
 )
 
 AUTH_PROFILE_MODULE = 'emory_ldap.EmoryLDAPUserProfile'
+
+from test_fedora.base import FEDORA_ROOT, FEDORA_USER, FEDORA_PASS, FEDORA_PIDSPACE
 
 try:
     # use xmlrunner if it's installed; default runner otherwise. download

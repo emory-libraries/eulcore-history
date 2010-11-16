@@ -14,7 +14,7 @@ from eulcore.fedora.server import URI_HAS_MODEL
 from eulcore.fedora.xml import ObjectDatastream
 from eulcore.xmlmap.dc import DublinCore
 
-from test_fedora.base import FedoraTestCase, TEST_PIDSPACE, FIXTURE_ROOT
+from test_fedora.base import FedoraTestCase, FEDORA_PIDSPACE, FIXTURE_ROOT
 from testcore import main
 
 class MyDigitalObject(DigitalObject):
@@ -63,7 +63,7 @@ def _add_text_datastream(obj):
 
 class TestDatastreams(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
-    pidspace = TEST_PIDSPACE
+    pidspace = FEDORA_PIDSPACE
 
     # save date-time before fixtures are created in fedora
     now = datetime.now(tzutc())   
@@ -233,7 +233,7 @@ class TestDatastreams(FedoraTestCase):
         self.assertEqual(TEXT_CONTENT, data)     
         
 class TestNewObject(FedoraTestCase):
-    pidspace = TEST_PIDSPACE
+    pidspace = FEDORA_PIDSPACE
 
     def test_basic_ingest(self):
         self.repo.default_pidspace = self.pidspace
@@ -399,7 +399,7 @@ class TestNewObject(FedoraTestCase):
 
 class TestDigitalObject(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
-    pidspace = TEST_PIDSPACE
+    pidspace = FEDORA_PIDSPACE
 
     # save date-time before fixtures are created in fedora
     now = datetime.now(tzutc())   

@@ -2,14 +2,14 @@
 
 from datetime import date
 
-from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL, TEST_PIDSPACE
+from test_fedora.base import FedoraTestCase, load_fixture_data, FEDORA_ROOT_NONSSL, FEDORA_PIDSPACE
 from eulcore.fedora.models import DigitalObject, URI_HAS_MODEL
 from eulcore.fedora.server import Repository, UnrecognizedQueryLanguage
 
 from testcore import main
 
 class TestBasicFedoraFunctionality(FedoraTestCase):
-    pidspace = TEST_PIDSPACE	# will be used for any objects ingested with ingestFixture
+    pidspace = FEDORA_PIDSPACE	# will be used for any objects ingested with ingestFixture
     def test_get_next_pid(self):
         pid = self.repo.get_next_pid()
         self.assertTrue(pid)
@@ -94,7 +94,7 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         for p in (1,2):
             self.ingestFixture("object-with-pid.foxml")
 
-        objects = list(self.repo.find_objects(pid="%s:*" % TEST_PIDSPACE, chunksize=2))
+        objects = list(self.repo.find_objects(pid="%s:*" % FEDORA_PIDSPACE, chunksize=2))
         self.assertEqual(3, len(objects))
         found_pids = [o.pid for o in objects]
         for pid in self.fedora_fixtures_ingested:
@@ -131,7 +131,7 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
     def test_nonssl(self):
         self.ingestFixture('object-with-pid.foxml')
         pid = self.fedora_fixtures_ingested[0]
-        repo = Repository(REPO_ROOT_NONSSL)
+        repo = Repository(FEDORA_ROOT_NONSSL)
         found = list(repo.find_objects(pid=pid))
         self.assertEqual(1, len(found))
 
@@ -148,7 +148,7 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
      
 class TestResourceIndex(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
-    pidspace = TEST_PIDSPACE
+    pidspace = FEDORA_PIDSPACE
     # relationship predicates for testing
     rel_isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
     rel_owner = "info:fedora/fedora-system:def/relations-external#owner"

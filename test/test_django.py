@@ -2,6 +2,15 @@
 
 import sys
 from django.core.management import setup_environ
+from testcore import tests_from_modules
+
+# django test modules that aren't in apps go here
+non_app_test_modules = (
+    'eulcore.django.non_app_tests',
+    'eulcore.django.fedora.tests',
+    )
+def non_app_tests():
+    return tests_from_modules(non_app_test_modules)
 
 def run_django_tests(argv=None, extras=[]):
     # this code inlined (with simplifications) from relevant manage.py code
@@ -17,6 +26,11 @@ def run_django_tests(argv=None, extras=[]):
     if test_apps and test_apps[0] == 'shell':
         _execute_manager(argv)
     else:
+        if test_apps:
+            extras = []
+        else:
+            extras = non_app_tests() + extras
+
         if _execute_tests(test_apps, extras):
             sys.exit(1)
 

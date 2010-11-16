@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from test_fedora.base import FedoraTestCase, load_fixture_data, REPO_ROOT_NONSSL,\
-                REPO_USER, REPO_PASS, TEST_PIDSPACE
+from test_fedora.base import FedoraTestCase, load_fixture_data, FEDORA_ROOT_NONSSL,\
+                FEDORA_USER, FEDORA_PASS, FEDORA_PIDSPACE
 from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE, API_M
 from eulcore.fedora.server import URI_HAS_MODEL
 from eulcore.fedora.util import RelativeOpener, fedoratime_to_datetime, datetime_to_fedoratime
@@ -22,7 +22,7 @@ ONE_SEC = timedelta(seconds=1)
 
 class TestREST_API(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
-    pidspace = TEST_PIDSPACE
+    pidspace = FEDORA_PIDSPACE
     
     TEXT_CONTENT = """This is my text content for a new datastream.
         
@@ -48,7 +48,7 @@ Hey, nonny-nonny."""
     def setUp(self):
         super(TestREST_API, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
-        self.opener = RelativeOpener(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+        self.opener = RelativeOpener(FEDORA_ROOT_NONSSL, FEDORA_USER, FEDORA_PASS)
         self.rest_api = REST_API(self.opener)
         self.today = date.today()
 
@@ -473,12 +473,12 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
 
 class TestAPI_A_LITE(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
-    pidspace = TEST_PIDSPACE
+    pidspace = FEDORA_PIDSPACE
 
     def setUp(self):
         super(TestAPI_A_LITE, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
-        self.opener = RelativeOpener(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+        self.opener = RelativeOpener(FEDORA_ROOT_NONSSL, FEDORA_USER, FEDORA_PASS)
         self.api_a = API_A_LITE(self.opener)
 
     def testDescribeRepository(self):
@@ -490,7 +490,7 @@ class TestAPI_A_LITE(FedoraTestCase):
 
 class TestAPI_M_LITE(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
-    pidspace = TEST_PIDSPACE
+    pidspace = FEDORA_PIDSPACE
 
     def setUp(self):
         super(TestAPI_M_LITE, self).setUp()
@@ -522,7 +522,7 @@ class TestAPI_M_LITE(FedoraTestCase):
 
 class TestAPI_M(FedoraTestCase):
     fixtures = ['object-with-pid.foxml']
-    pidspace = TEST_PIDSPACE
+    pidspace = FEDORA_PIDSPACE
 
     # relationship predicates for testing
     rel_isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
@@ -536,7 +536,7 @@ class TestAPI_M(FedoraTestCase):
         super(TestAPI_M, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
         self.api_m = API_M(self.opener)
-        self.opener = RelativeOpener(REPO_ROOT_NONSSL, REPO_USER, REPO_PASS)
+        self.opener = RelativeOpener(FEDORA_ROOT_NONSSL, FEDORA_USER, FEDORA_PASS)
         self.rest_api = REST_API(self.opener)
         
     def test_addRelationship(self):
