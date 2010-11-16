@@ -14,4 +14,4 @@ from test_django import run_django_tests, non_app_tests
 if __name__ == '__main__':
     # sort of cheating here: run only http tests (because it is short)
     # then use extras to run the tests we actually want here
-    run_django_tests(['http'], extras=non_app_tests())
+    run_django_tests([__file__, 'http'], extras=non_app_tests())

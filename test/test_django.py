@@ -26,9 +26,9 @@ def run_django_tests(argv=None, extras=[]):
     if test_apps and test_apps[0] == 'shell':
         _execute_manager(argv)
     else:
-        if test_apps:
-            extras = []
-        else:
+        # if they didn't specify particular test apps to run, then assume
+        # they want all of them, including the non_app_tests()
+        if not test_apps:
             extras = non_app_tests() + extras
 
         if _execute_tests(test_apps, extras):
