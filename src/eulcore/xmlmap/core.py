@@ -52,9 +52,15 @@ def parseString(string, uri=None):
     :mod:`lxml.etree` document. String cannot be a Unicode string.
     Base_uri should be provided for the calculation of relative URIs."""
     return etree.fromstring(string, parser=_get_xmlparser(), base_url=uri)
-def loadSchema(uri, base_uri=None):
+def loadSchema(uri, base_uri=None, override_proxy_requirement=False):
     """Load an XSD XML document (specified by filename or URL), and return a
-    :class:`lxml.etree.XMLSchema`."""
+    :class:`lxml.etree.XMLSchema`.
+    
+    Note that frequently loading a schema without using a web proxy may
+    introduce significant network resource usage as well as instability if
+    the schema becomes unavailable. Thus this function will fail if the
+    ``HTTP_PROXY`` environment variable is not set.
+    """
 
     # uri to use for reporting errors - include base uri if any
     error_uri = uri
@@ -63,12 +69,19 @@ def loadSchema(uri, base_uri=None):
 
     # typical reliable use should include a proxy. warn if they're not using
     # one.
-    if 'HTTP_PROXY' not in os.environ:
+    if 'HTTP_PROXY' not in os.environ and _http_uri(uri):
         message = ('Loading schema %s without a web proxy may introduce ' +
+                   'significant network resource usage as well as ' +
                    'instability if that server becomes inaccessible. ' + 
-                   'Consider setting the HTTP_PROXY environment variable.') \
+                   'The HTTP_PROXY environment variable is thus required ' +
+                   'for loading schemas.') \
                   % (error_uri,)
-        logger.warning(message)
+        if override_proxy_requirement:
+            message += (' (overridden: Requesting without proxy. Please ' +
+                        'set HTTP_PROXY as soon as possible.)')
+            logger.warning(message)
+        else:
+            raise RuntimeError(message)
 
     try:
         return etree.XMLSchema(etree.parse(uri, parser=_get_xmlparser(), base_url=base_uri))
@@ -78,6 +91,8 @@ def loadSchema(uri, base_uri=None):
     except etree.XMLSchemaParseError as parse_err:
         # re-raise as a schema parse error, but ensure includes details about schema being loaded
         raise etree.XMLSchemaParseError('Failed to parse schema %s -- %s' % (error_uri, parse_err))
+def _http_uri(uri):
+    return uri.startswith('http:') or uri.startswith('https:')
 
 class _FieldDescriptor(object):
     def __init__(self, field):

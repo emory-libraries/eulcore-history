@@ -138,4 +138,4 @@ Other facilities
 
 .. autofunction:: parseUri
 
-.. autofunction:: loadSchema
+.. autofunction:: loadSchema(uri, base_uri=None)
