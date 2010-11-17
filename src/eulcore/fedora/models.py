@@ -632,6 +632,11 @@ class DigitalObject(object):
         return 'info:fedora/' + self.pid
 
     @property
+    def uriref(self):
+        "Fedora URI for this object, as an rdflib URI object"
+        return URIRef(self.uri)
+
+    @property
     def info(self):
         # pull object profile information from Fedora, but only when accessed
         if self._info is None:
