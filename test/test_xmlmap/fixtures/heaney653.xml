@@ -37,7 +37,7 @@
         <persname encodinganalog="100" source="lcnaf">Heaney, Seamus, 1939-</persname>
       </origination>
       <unittitle encodinganalog="245$a">Seamus Heaney collection,<unitdate calendar="gregorian" encodinganalog="245$f" era="ce" normal="1972/2003" type="inclusive">1972-2005</unitdate></unittitle>
-      <unitid countrycode="US" repositorycode="geu-s">Manuscript Collection No.653</unitid>
+      <unitid countrycode="US" repositorycode="geu-s" identifier="653">Manuscript Collection No.653</unitid>
       <physdesc encodinganalog="300"><extent>1 linear ft.</extent><extent>(3 boxes)</extent>, 
 		<extent>12 oversized papers (OP)</extent></physdesc>
       <physloc label="Location">In the Archives.</physloc>

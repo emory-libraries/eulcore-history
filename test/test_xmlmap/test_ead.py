@@ -49,8 +49,12 @@ class TestEad(unittest.TestCase):
         self.assert_(isinstance(self.ead.archdesc, ArchivalDescription))
         ad = self.ead.archdesc
         self.assertEqual("Heaney, Seamus, 1939-", ad.origination) 
-        self.assertEqual("Manuscript Collection No.653", ad.unitid)
-        self.assertEqual("Manuscript Collection No.653", ad.unitid)
+        self.assert_(isinstance(ad.unitid, Unitid))
+        self.assertEqual("Manuscript Collection No.653", ad.unitid.value)
+        self.assertEqual("Manuscript Collection No.653", unicode(ad.unitid))
+        self.assertEqual('US', ad.unitid.country_code)
+        self.assertEqual('geu-s', ad.unitid.repository_code)
+        self.assertEqual(653, ad.unitid.identifier)
         self.assertEqual("1 linear ft.", ad.extent[0])
         self.assertEqual("(3 boxes)", ad.extent[1])
         self.assertEqual("12 oversized papers (OP)", ad.extent[2])
@@ -167,7 +171,7 @@ class TestEad(unittest.TestCase):
         self.assert_(isinstance(dsc.c[0], Component))
         self.assertEqual("series", dsc.c[0].level)
         self.assert_(isinstance(dsc.c[0].did, DescriptiveIdentification))
-        self.assertEqual("Series 1", dsc.c[0].did.unitid)
+        self.assertEqual("Series 1", dsc.c[0].did.unitid.value)
         self.assertEqual("Writings by Seamus Heaney", unicode(dsc.c[0].did.unittitle))
         self.assertEqual("Box 1: folders 1-12", dsc.c[0].did.physdesc)
         # c02 - file

@@ -128,10 +128,21 @@ class DateField(_EadBase):
     def __unicode__(self):
         return self.value
     
+class Unitid(_EadBase):
+    '''Unitid element'''
+    identifier = xmlmap.IntegerField('@identifier')
+    'machine-readable identifier - `@identifier`'
+    country_code = xmlmap.StringField('@countrycode')
+    'country code - `@countrycode`'
+    repository_code = xmlmap.StringField('@repositorycode')
+    'repository code - `@repositorycode`'
+    value = xmlmap.StringField('.')
+    "human-readable unitid - (contents of the element)"
+
 class DescriptiveIdentification(_EadBase):
     """Descriptive Information (`did` element) for materials in a component"""
-    unitid = xmlmap.StringField("e:unitid")
-    "unit id - `unitid`"
+    unitid = xmlmap.NodeField("e:unitid", Unitid)
+    ":class:`Unitid` - `unitid`"
     unittitle = xmlmap.NodeField("e:unittitle", xmlmap.XmlObject)
     "unit title - `unittitle`"
     unitdate = xmlmap.NodeField(".//e:unitdate", DateField)
@@ -287,8 +298,8 @@ class ArchivalDescription(_EadBase):
     'descriptive identification :class:`DescriptiveIdentification` - `did`'
     origination = xmlmap.StringField("e:did/e:origination", normalize=True)
     "origination - `did/origination`"
-    unitid = xmlmap.StringField("e:did/e:unitid")
-    "unit id - `did/untid`"
+    unitid = xmlmap.NodeField("e:did/e:unitid", Unitid)
+    ":class:`Unitid` - `did/unitid`"
     extent = xmlmap.StringListField("e:did/e:physdesc/e:extent")
     "extent from the physical description - `did/physdesc/extent`"
     langmaterial = xmlmap.StringField("e:did/e:langmaterial")
