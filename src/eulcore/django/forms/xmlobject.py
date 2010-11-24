@@ -88,7 +88,10 @@ class SubformAwareModelFormOptions(ModelFormOptions):
 
     def __init__(self, options=None):
         super(SubformAwareModelFormOptions, self).__init__(options)
-
+        
+        #Add maxNum to the available options - 11/24/2010 Steven Anderson.
+        self.maxNum = getattr(options, 'maxNum', None)
+        
         self.parsed_fields = None
         if isinstance(self.fields, ParsedFieldList):
             self.parsed_fields = self.fields
@@ -103,7 +106,7 @@ class SubformAwareModelFormOptions(ModelFormOptions):
 
 
 def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, options=None,
-        declared_subforms=None):
+        declared_subforms=None, maxNum=None):
     """
     Returns three sorted dictionaries (:class:`django.utils.datastructures.SortedDict`).
      * The first is a dictionary of form fields based on the
@@ -132,6 +135,7 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
                 if specified, the specified form class will be used to initialize
                 the corresponding subform (for a :class:`~eulcore.xmlmap.fields.NodeField`)
                 or a formset (for a :class:`~eulcore.xmlmap.fields.NodeListField`)
+    :param maxNum: optional value for the maximum number of times a fieldset should repeat.
     """
 
     # first collect fields and excludes for the form and all subforms. base
@@ -150,6 +154,9 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
 
     if widgets is None and options is not None:
         widgets = options.widgets
+        
+    if maxNum is None and options is not None:
+        maxNum = options.maxNum
 
     # collect the fields (unordered for now) that we're going to be returning
     formfields = {}
@@ -203,10 +210,9 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
              # if a subform class was declared, use that class exactly as is
             if name in declared_subforms:
                 subform = declared_subforms[name]
-
             # otherwise, define a new xmlobject form for the nodefield or
             # nodelistfield class, using any options passed in for fields under this one
-            else:               
+            else:              
                 subform_opts = {
                     'fields': fieldlist.subfields[name] if fieldlist and name in fieldlist.subfields else None,
                     'exclude': excludelist.subfields[name] if excludelist and name in excludelist.subfields else None,
@@ -219,7 +225,9 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
             if isinstance(field, xmlmap.fields.NodeField):
                 subforms[name] = subform
             elif isinstance(field, xmlmap.fields.NodeListField):
-                formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet)
+                #formset_factory is from django core and we link into it here.
+                formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet, max_num=subform._meta.maxNum)
+                #Steven - add here
         else:
             # raise exception for unsupported fields
             # currently doesn't handle list fields
@@ -593,7 +601,7 @@ class XmlObjectForm(BaseForm):
 
 
 def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None,
-                            widgets=None):
+                            widgets=None, maxNum=None):
     """Dynamically generate a new :class:`XmlObjectForm` class using the
     specified :class:`eulcore.xmlmap.XmlObject` class.
     
@@ -607,7 +615,9 @@ def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None,
         attrs['exclude'] = exclude
     if widgets is not None:
         attrs['widgets'] = widgets
-    
+    if maxNum is not None:
+        attrs['maxNum'] = maxNum
+        
     # If parent form class already has an inner Meta, the Meta we're
     # creating needs to inherit from the parent's inner meta.
     parent = (object,)

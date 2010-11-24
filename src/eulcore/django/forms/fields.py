@@ -52,6 +52,16 @@ class W3CDateWidget(Widget):
         y = data.get(self.year_field % name)
         m = data.get(self.month_field % name)
         d = data.get(self.day_field % name)
+        
+        if y == 'YYYY':
+            y = ''
+        
+        if m == 'MM':
+            m = ''
+            
+        if d == 'DD':
+            d = ''
+        
         date = y
         if m:
             date += '-%s' % m
@@ -69,7 +79,7 @@ class W3CDateWidget(Widget):
         '''
 
         # expects a value in format YYYY-MM-DD or YYYY-MM or YYYY (or empty/None)
-        year, month, day = '', '', ''
+        year, month, day = 'YYYY', 'MM', 'DD'
         if value:
             # use the regular expression to pull out year, month, and day values
             # if regular expression does not match, inputs will be empty
@@ -79,11 +89,15 @@ class W3CDateWidget(Widget):
                 year = date_parts['year']
                 month = date_parts['month']
                 day = date_parts['day']
-        year_html = self.create_textinput(name, self.year_field, year, size=4, title='4-digit year')
-        month_html = self.create_textinput(name, self.month_field, month, size=2, title='2-digit month')
-        day_html = self.create_textinput(name, self.day_field, day, size=2, title='2-digit day')
 
-        output = [year_html, month_html, day_html]
+
+        year_html = self.create_textinput(name, self.year_field, year, size=4, title='4-digit year', onClick='javascript:if(this.value == "YYYY") { this.value = "" };')
+        month_html = self.create_textinput(name, self.month_field, month, size=2, title='2-digit month', onClick='javascript:if(this.value == "MM") { this.value = "" };')
+        day_html = self.create_textinput(name, self.day_field, day, size=2, title='2-digit day', onClick='javascript:if(this.value == "DD") { this.value = "" };')
+
+        #output = [year_html, month_html, day_html]
+        output = [month_html, day_html, year_html]
+ 
         return mark_safe(u' / \n'.join(output))
 
     def create_textinput(self, name, field, value, **extra_attrs):
