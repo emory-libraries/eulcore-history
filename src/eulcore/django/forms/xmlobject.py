@@ -89,8 +89,8 @@ class SubformAwareModelFormOptions(ModelFormOptions):
     def __init__(self, options=None):
         super(SubformAwareModelFormOptions, self).__init__(options)
         
-        #Add maxNum to the available options - 11/24/2010 Steven Anderson.
-        self.maxNum = getattr(options, 'maxNum', None)
+        # store maximum number of repeated subforms that should be allowed
+        self.max_num = getattr(options, 'max_num', None)
         
         self.parsed_fields = None
         if isinstance(self.fields, ParsedFieldList):
@@ -106,7 +106,7 @@ class SubformAwareModelFormOptions(ModelFormOptions):
 
 
 def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, options=None,
-        declared_subforms=None, maxNum=None):
+        declared_subforms=None, max_num=None):
     """
     Returns three sorted dictionaries (:class:`django.utils.datastructures.SortedDict`).
      * The first is a dictionary of form fields based on the
@@ -135,7 +135,7 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
                 if specified, the specified form class will be used to initialize
                 the corresponding subform (for a :class:`~eulcore.xmlmap.fields.NodeField`)
                 or a formset (for a :class:`~eulcore.xmlmap.fields.NodeListField`)
-    :param maxNum: optional value for the maximum number of times a fieldset should repeat.
+    :param max_num: optional value for the maximum number of times a fieldset should repeat.
     """
 
     # first collect fields and excludes for the form and all subforms. base
@@ -155,8 +155,8 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
     if widgets is None and options is not None:
         widgets = options.widgets
         
-    if maxNum is None and options is not None:
-        maxNum = options.maxNum
+    if max_num is None and options is not None:
+        max_num = options.max_num
 
     # collect the fields (unordered for now) that we're going to be returning
     formfields = {}
@@ -226,7 +226,7 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
                 subforms[name] = subform
             elif isinstance(field, xmlmap.fields.NodeListField):
                 #formset_factory is from django core and we link into it here.
-                formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet, max_num=subform._meta.maxNum)
+                formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet, max_num=subform._meta.max_num)
                 #Steven - add here
         else:
             # raise exception for unsupported fields
@@ -601,7 +601,7 @@ class XmlObjectForm(BaseForm):
 
 
 def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None,
-                            widgets=None, maxNum=None):
+                            widgets=None, max_num=None):
     """Dynamically generate a new :class:`XmlObjectForm` class using the
     specified :class:`eulcore.xmlmap.XmlObject` class.
     
@@ -615,8 +615,8 @@ def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None,
         attrs['exclude'] = exclude
     if widgets is not None:
         attrs['widgets'] = widgets
-    if maxNum is not None:
-        attrs['maxNum'] = maxNum
+    if max_num is not None:
+        attrs['max_num'] = max_num
         
     # If parent form class already has an inner Meta, the Meta we're
     # creating needs to inherit from the parent's inner meta.
