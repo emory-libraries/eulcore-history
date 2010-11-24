@@ -94,16 +94,15 @@ class StringMapper(Mapper):
             return node
         return self.XPATH(node)
        
-class NumberMapper(Mapper):
+class IntegerMapper(Mapper):
     XPATH = etree.XPath('number()')
     def to_python(self, node):
         if node is None:
             return None
-        #xpath functions such as count
-        #return a float and need to  converted to int
+        # xpath functions such as count return a float and must be converted to int
         if isinstance(node, basestring) or isinstance(node, FloatType):
-            return int(node)     # FIXME: not equivalent to xpath number()...
-        return self.XPATH(node)
+            return int(node)     
+        return int(self.XPATH(node))
 
 class SimpleBooleanMapper(Mapper):
     XPATH = etree.XPath('string()')
@@ -627,7 +626,7 @@ class IntegerField(Field):
     def __init__(self, xpath, *args, **kwargs):
         super(IntegerField, self).__init__(xpath,
                 manager = SingleNodeManager(),
-                mapper = NumberMapper(), *args, **kwargs)
+                mapper = IntegerMapper(), *args, **kwargs)
 
 class IntegerListField(Field):
 
@@ -642,7 +641,7 @@ class IntegerListField(Field):
     def __init__(self, xpath, *args, **kwargs):
         super(IntegerListField, self).__init__(xpath,
                 manager = NodeListManager(),
-                mapper = NumberMapper(), *args, **kwargs)
+                mapper = IntegerMapper(), *args, **kwargs)
 
 class SimpleBooleanField(Field):
 
