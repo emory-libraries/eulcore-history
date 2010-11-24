@@ -210,11 +210,13 @@ class TestFields(unittest.TestCase):
             val = xmlmap.IntegerField('bar[2]/baz', required=True)
             count = xmlmap.IntegerField('count(//bar)')
             missing = xmlmap.IntegerField('missing')
+            nan = xmlmap.IntegerField('@id')
 
         obj = TestObject(self.fixture)
         self.assertEqual(obj.val, 13)
         self.assertEqual(obj.count, 2)
         self.assertEqual(obj.missing, None)
+        self.assertEqual(obj.nan, None)
         # undefined if >1 matched nodes
 
         # set an integer value

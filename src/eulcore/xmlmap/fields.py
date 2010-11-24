@@ -99,10 +99,15 @@ class IntegerMapper(Mapper):
     def to_python(self, node):
         if node is None:
             return None
-        # xpath functions such as count return a float and must be converted to int
-        if isinstance(node, basestring) or isinstance(node, FloatType):
-            return int(node)     
-        return int(self.XPATH(node))
+        try:
+            # xpath functions such as count return a float and must be converted to int
+            if isinstance(node, basestring) or isinstance(node, FloatType):
+                return int(node)
+
+            return int(self.XPATH(node))
+        except ValueError:
+            # anything that can't be converted to an Integer
+            return None
 
 class SimpleBooleanMapper(Mapper):
     XPATH = etree.XPath('string()')
