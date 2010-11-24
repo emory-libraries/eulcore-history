@@ -559,7 +559,7 @@ class W3CDateWidgetTest(unittest.TestCase):
         self.assert_('title="foo"' in input)
 
     def test_render(self):
-        inputs = self.widget.render('date', '1999-12-31')
+        inputs = self.widget.render('date', '12-31-1999')
         re_flags = re.MULTILINE | re.DOTALL
         self.assert_(re.match(r'<input.*>.*\/.*<input.*>.*\/.*<input.*>', inputs,
             re_flags), 'render output has 3 inputs separated by /')
