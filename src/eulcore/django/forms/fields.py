@@ -95,8 +95,9 @@ class W3CDateWidget(Widget):
         month_html = self.create_textinput(name, self.month_field, month, size=2, title='2-digit month', onClick='javascript:if(this.value == "MM") { this.value = "" };')
         day_html = self.create_textinput(name, self.day_field, day, size=2, title='2-digit day', onClick='javascript:if(this.value == "DD") { this.value = "" };')
 
+        # display widget fields in YYYY-MM-DD order to match W3C date format,
+        # and putting required field(s) on the left
         output = [year_html, month_html, day_html]
-        #output = [month_html, day_html, year_html]
  
         return mark_safe(u' / \n'.join(output))
 
