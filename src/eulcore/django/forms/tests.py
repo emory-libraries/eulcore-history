@@ -573,11 +573,11 @@ class W3CDateWidgetTest(unittest.TestCase):
 
         # invalid initial value results in empty inputs
         inputs = self.widget.render('date', 'foo-bar-baz')
-        self.assert_('value="MM"' not in inputs,
+        self.assert_('value="MM"' in inputs,
             'invalid intial value results in no pre-set value on the month input')
-        self.assert_('value="DD"' not in inputs,
+        self.assert_('value="DD"' in inputs,
             'invalid intial value results in no pre-set value on the day input')
-        self.assert_('value="YYYY"' not in inputs,
+        self.assert_('value="YYYY"' in inputs,
             'invalid intial value results in no pre-set value on the year input')
 
 
