@@ -559,7 +559,7 @@ class W3CDateWidgetTest(unittest.TestCase):
         self.assert_('title="foo"' in input)
 
     def test_render(self):
-        inputs = self.widget.render('date', '12-31-1999')
+        inputs = self.widget.render('date', '1999-12-31')
         re_flags = re.MULTILINE | re.DOTALL
         self.assert_(re.match(r'<input.*>.*\/.*<input.*>.*\/.*<input.*>', inputs,
             re_flags), 'render output has 3 inputs separated by /')
@@ -571,14 +571,14 @@ class W3CDateWidgetTest(unittest.TestCase):
         self.assert_(re.match(r'<input.*name="date_day".*maxlength="2"', inputs, re_flags),
             'day input is in rendered widget output with max length of 2')
 
-        # invalid initial value results in empty inputs
+        # invalid initial value results in default MM DD YYYY placeholder values.
         inputs = self.widget.render('date', 'foo-bar-baz')
         self.assert_('value="MM"' in inputs,
-            'invalid intial value results in no pre-set value on the month input')
+            'Invalid intial value should result in a default MM in the month input')
         self.assert_('value="DD"' in inputs,
-            'invalid intial value results in no pre-set value on the day input')
+            'Invalid intial value should result in a default DD in the day input')
         self.assert_('value="YYYY"' in inputs,
-            'invalid intial value results in no pre-set value on the year input')
+            'Invalid intial value should result in a default YYYY in the year input')
 
 
 class DynamicSelectTest(unittest.TestCase):
