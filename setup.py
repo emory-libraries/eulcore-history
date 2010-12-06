@@ -1,12 +1,11 @@
-from setuptools import setup
+from distutils.command.build_py import build_py
 import os
 import sys
 
+from setuptools import setup
+
 sys.path.append('src')
 from eulcore import __version__
-
-# importing this forces ply to generate parsetab/lextab
-import eulcore.xpath.core
 
 # fullsplit and packages calculation inspired by django setup.py
 
@@ -37,7 +36,15 @@ for path, dirs, files in os.walk(themedir):
         targetfiles = [os.path.join(path, f) for f in files]
         data_files.append((path, targetfiles))
 
+class build_py_with_ply(build_py):
+    def run(self, *args, **kwargs):
+        # importing this forces ply to generate parsetab/lextab
+        import eulcore.xpath.core
+        build_py.run(self, *args, **kwargs)
+
 setup(
+    cmdclass={'build_py': build_py_with_ply},
+
     name='eulcore',
     version=__version__,
     author='Emory University Libraries',
@@ -48,4 +55,16 @@ setup(
         'eulcore.django.existdb': ['exist_fixtures/*'],
         },
     data_files=data_files,
+    install_requires=[
+        'ply',
+        'lxml',
+        'django',
+        'mimeparse',
+        'rdflib>=3.0',
+        'python-dateutil',
+        'soaplib==0.8.1',
+        # pypi soaplib links are dead as of 20101201. use direct link for
+        # now: https://github.com/downloads/arskom/rpclib/soaplib-0.8.1.tar
+        'python-ldap',
+    ],
 )
