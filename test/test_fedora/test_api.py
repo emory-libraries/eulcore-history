@@ -384,16 +384,20 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         dsprofile_node = etree.fromstring(dsprofile)
         created = dsprofile_node.xpath('string(m:dsCreateDate)', namespaces={'m': FEDORA_MANAGE_NS})
 
+        # purgeDatastream gives us back the time in a different format:
+        expect_created = created
+        if expect_created.endswith('Z'): # it does
+            # strip of the Z and any final zeros
+            expect_created = expect_created.rstrip('Z0')
+            # and put back the Z
+            expect_created += 'Z'
+
         purged, times = self.rest_api.purgeDatastream(self.pid, ds['id'],
                                             logMessage="purging text datastream")
         self.assertTrue(purged)
-        # FIXME: if the creation time is 000ms the time strings don't match up properly
-        # e.g., createDate of 2010-10-08T13:48:41.500Z purge result of ["2010-10-08T13:48:41.5Z"]
-        create_date = fedoratime_to_datetime(created)
-        # TODO: revise this test so it doesn't depend on that
-        self.assert_(created in times,
+        self.assert_(expect_created in times,
             'datastream creation date should be returned in list of purged datastreams - expected %s, got %s' % \
-            (created, times))
+            (expect_created, times))
         # log message in audit trail
         xml, url = self.rest_api.getObjectXML(self.pid)
         self.assert_('purging text datastream' in xml)
