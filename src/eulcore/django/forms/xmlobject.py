@@ -182,6 +182,10 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
         # if the xmlmap field knows whether or not it is required, use for form
         if field.required is not None:
             kwargs['required'] = field.required
+        if field.verbose_name is not None:
+            kwargs['label'] = field.verbose_name
+        if field.help_text is not None:
+            kwargs['help_text'] = field.help_text
             
         if hasattr(field, 'choices') and field.choices:
             # if a field has choices defined, use a choice field (no matter what base type)
@@ -237,7 +241,9 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
         # TODO: list variants (currently not settable in xmlobject)... use formsets ?
 
         if field_type is not None:
-            formfields[name] = field_type(label=fieldname_to_label(name), **kwargs)
+            if 'label' not in kwargs:
+                kwargs['label'] = fieldname_to_label(name)
+            formfields[name] = field_type(**kwargs)
             
         # create a dictionary indexed by field creation order, for default field ordering
         field_order[field.creation_counter] = name

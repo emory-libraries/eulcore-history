@@ -36,7 +36,7 @@ class TestSubobject(xmlmap.XmlObject):
 
 class TestObject(xmlmap.XmlObject):
     ROOT_NAME = 'foo'
-    id = xmlmap.StringField('@id')
+    id = xmlmap.StringField('@id', verbose_name='My Id', help_text='enter an id')
     int = xmlmap.IntegerField('bar[2]/baz')
     bool = xmlmap.SimpleBooleanField('boolean', 'yes', 'no')
     longtext = xmlmap.StringField('longtext', normalize=True, required=False)
@@ -112,9 +112,12 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_('id' in formfields, 'id field is present in form fields')
         self.assert_(isinstance(formfields['id'], forms.CharField),
             "xmlmap.StringField 'id' field initialized as CharField")
-        expected, got = 'Id', formfields['id'].label
+        expected, got = 'My Id', formfields['id'].label
         self.assertEqual(expected, got, "form field label should be set to " + \
-            "xmlmap field name; expected %s, got %s" % (expected, got))
+            "from xmlmap field verbose name; expected %s, got %s" % (expected, got))
+        expected, got = 'enter an id', formfields['id'].help_text
+        self.assertEqual(expected, got, "form field help text should be set to " + \
+            "from xmlmap field help text; expected %s, got %s" % (expected, got))
 
         self.assert_('bool' in formfields, 'bool field is present in form fields')
         self.assert_(isinstance(formfields['bool'], forms.BooleanField),

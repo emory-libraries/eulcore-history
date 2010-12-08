@@ -45,7 +45,8 @@ class Field(object):
     # track each time a Field instance is created, to retain order
     creation_counter = 0
 
-    def __init__(self, xpath, manager, mapper, required=None):
+    def __init__(self, xpath, manager, mapper, required=None, verbose_name=None,
+                    help_text=None):
         # compile xpath in order to catch an invalid xpath at load time
         etree.XPath(xpath)
         # NOTE: not saving compiled xpath because namespaces must be
@@ -54,6 +55,8 @@ class Field(object):
         self.manager = manager
         self.mapper = mapper
         self.required = required
+        self.verbose_name = verbose_name
+        self.help_text = help_text
 
         # pre-parse the xpath for setters, etc
         self.parsed_xpath = parse(xpath)
