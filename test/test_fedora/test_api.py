@@ -389,6 +389,8 @@ So be you blythe and bonny, singing hey-nonny-nonny."""
         if expect_created.endswith('Z'): # it does
             # strip of the Z and any final zeros
             expect_created = expect_created.rstrip('Z0')
+            # strip the decimal if it got that far
+            expect_created = expect_created.rstrip('.')
             # and put back the Z
             expect_created += 'Z'
 
