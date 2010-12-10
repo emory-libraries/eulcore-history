@@ -24,15 +24,13 @@ from lxml import etree
 from lxml.builder import ElementMaker
 
 from eulcore import xmlmap
+from eulcore.fedora.rdfns import model as modelns
 from eulcore.fedora.util import parse_xml_object, parse_rdf, RequestFailed, datetime_to_fedoratime
 from eulcore.fedora.xml import ObjectDatastreams, ObjectProfile, DatastreamProfile, \
     NewPids, ObjectHistory, ObjectMethods, DsCompositeModel
 from eulcore.xmlmap.dc import DublinCore
 
 logger = logging.getLogger(__name__)
-
-# FIXME: needed by both server and models, where to put?
-URI_HAS_MODEL = 'info:fedora/fedora-system:def/model#hasModel'
 
 class DatastreamObject(object):
     """Object to ease accessing and updating a datastream belonging to a Fedora
@@ -445,6 +443,25 @@ class RdfDatastreamObject(DatastreamObject):
         obj = xmlmap.load_xmlobject_from_string(data)
         return obj.node
 
+    def replace_uri(self, src, dest):
+        subject_triples = list(self.content.triples((src, None, None)))
+        for s, p, o in subject_triples:
+            self.content.remove((src, p, o))
+            self.content.add((dest, p, o))
+
+        predicate_triples = list(self.content.triples((None, src, None)))
+        for s, p, o in predicate_triples:
+            self.content.remove((s, src, o))
+            self.content.add((s, dest, o))
+
+        object_triples = list(self.content.triples((None, None, src)))
+        for s, p, o in object_triples:
+            self.content.remove((s, p, src))
+            self.content.add((s, p, dest))
+
+    def _prepare_ingest(self):
+        self.replace_uri(self.obj.DUMMY_URIREF, self.obj.uriref)
+
 
 class RdfDatastream(Datastream):
     """RDF-specific version of :class:`Datastream`.  Datastreams are initialized
@@ -573,7 +590,6 @@ class DigitalObject(object):
 
     def __init__(self, api, pid=None, create=False):
         self.api = api
-        self.pid = pid
         self.dscache = {}       # accessed by DatastreamDescriptor to store and cache datastreams
 
         # cache object profile, track if it is modified and needs to be saved
@@ -590,8 +606,14 @@ class DigitalObject(object):
         # pid = None signals to create a new object, using a default pid
         # generation function.
         if pid is None:
-            self.pid = self._getDefaultPid()
+            pid = self._getDefaultPid
+
+        # callable(pid) signals a function to call to obtain a pid if and
+        # when one is needed
+        if callable(pid):
             create = True
+
+        self.pid = pid
 
         self._create = bool(create)
 
@@ -600,11 +622,13 @@ class DigitalObject(object):
 
     def _init_as_new_object(self):
         for cmodel in getattr(self, 'CONTENT_MODELS', ()):
-            self.rels_ext.content.add((URIRef(self.uri), URIRef(URI_HAS_MODEL),
+            self.rels_ext.content.add((self.uriref, modelns.hasModel,
                                        URIRef(cmodel)))
 
     def __str__(self):
-        if self._create:
+        if callable(self.pid):
+            return '(generated pid)'
+        elif self._create:
             return self.pid + ' (uningested)'
         else:
             return self.pid
@@ -623,13 +647,21 @@ class DigitalObject(object):
     @property
     def pidspace(self):
         "Fedora pidspace of this object"
+        if callable(self.pid):
+            return None
         ps, pid = self.pid.split(':', 1)
         return ps
+
+    DUMMY_PID = 'TEMP:DUMMY_PID'
+    DUMMY_URIREF = URIRef('info:fedora/' + DUMMY_PID)
 
     @property
     def uri(self):
         "Fedora URI for this object (info:fedora/foo:### form of object pid) "
-        return 'info:fedora/' + self.pid
+        use_pid = self.pid
+        if callable(use_pid):
+            use_pid = self.DUMMY_PID
+        return 'info:fedora/' + use_pid
 
     @property
     def uriref(self):
@@ -677,6 +709,9 @@ class DigitalObject(object):
 
     @property
     def exists(self):
+        if callable(self.pid):
+            return False
+
         # If we can get the object profile, this object exists. If not, then
         # it doesn't. We could conceivably use self.info or
         # self.getProfile() for this, but it seems to make more sense for
@@ -696,6 +731,9 @@ class DigitalObject(object):
         :rtype: :class:`DatastreamProfile`
         """
         # NOTE: used by DatastreamObject
+        if callable(self.pid):
+            return None
+
         data, url = self.api.getDatastream(self.pid, dsid)
         return parse_xml_object(DatastreamProfile, data, url)
 
@@ -706,8 +744,11 @@ class DigitalObject(object):
         return self._history
 
     def getHistory(self):
-        data, url = self.api.getObjectHistory(self.pid)
-        history = parse_xml_object(ObjectHistory, data, url)
+        if self._create:
+            history = ObjectHistory()
+        else:
+            data, url = self.api.getObjectHistory(self.pid)
+            history = parse_xml_object(ObjectHistory, data, url)
         self._history = [c for c in history.changed]
         return history
 
@@ -751,6 +792,7 @@ class DigitalObject(object):
         """
         
         if self._create:
+            self._prepare_ingest()
             self._ingest(logMessage)
         else:
             self._save_existing(logMessage)
@@ -794,6 +836,16 @@ class DigitalObject(object):
         :param logMessage: optional log message
         """
         return [ds for ds in datastreams if self.dscache[ds].undo_last_save(logMessage)]
+
+    def _prepare_ingest(self):
+        if callable(self.pid):
+            self.pid = self.pid()
+
+        for dsname, ds in self._defined_datastreams.items():
+            dsobj = getattr(self, dsname)
+            if hasattr(dsobj, '_prepare_ingest'):
+                dsobj._prepare_ingest()
+
 
     def _ingest(self, logMessage):
         foxml = self._build_foxml_for_ingest()
@@ -958,11 +1010,13 @@ class DigitalObject(object):
         return self._methods
 
     def get_methods(self):
+        if self._create:
+            return {}
+
         data, url = self.api.listMethods(self.pid)
         methods = parse_xml_object(ObjectMethods, data, url)
-        self._methods = {}
-        for sdef in methods.service_definitions:
-            self._methods[sdef.pid] = sdef.methods
+        self._methods = dict((sdef.pid, sdef.methods)
+                             for sdef in methods.service_definitions)
         return self._methods
 
     def getDissemination(self, service_pid, method, params={}):
@@ -993,7 +1047,9 @@ class DigitalObject(object):
                         a resource, otherwise it will be treated as a literal
         :rtype: boolean
         """  
-        # FIXME: make this work for new objects
+        if isinstance(rel_uri, URIRef):
+            rel_uri = unicode(rel_uri)
+
         obj_is_literal = True
         if isinstance(object, DigitalObject):
             object = object.uri
@@ -1024,7 +1080,7 @@ class DigitalObject(object):
             else:
                 raise Exception(e)            
             
-        st = (URIRef(self.uri), URIRef(URI_HAS_MODEL), URIRef(model))
+        st = (self.uriref, modelns.hasModel, URIRef(model))
         return st in rels
 
 

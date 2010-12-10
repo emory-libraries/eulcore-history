@@ -3,7 +3,7 @@
 from test_fedora.base import FedoraTestCase, load_fixture_data, FEDORA_ROOT_NONSSL,\
                 FEDORA_USER, FEDORA_PASS, FEDORA_PIDSPACE
 from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE, API_M
-from eulcore.fedora.server import URI_HAS_MODEL
+from eulcore.fedora.rdfns import model as modelns
 from eulcore.fedora.util import RelativeOpener, fedoratime_to_datetime, datetime_to_fedoratime
 from eulcore.fedora.xml import FEDORA_MANAGE_NS, FEDORA_ACCESS_NS
 from testcore import main
@@ -547,7 +547,7 @@ class TestAPI_M(FedoraTestCase):
         
     def test_addRelationship(self):
         # rel to resource
-        added = self.api_m.addRelationship(self.pid, URI_HAS_MODEL, "info:fedora/pid:123", False)
+        added = self.api_m.addRelationship(self.pid, unicode(modelns.hasModel), "info:fedora/pid:123", False)
         self.assertTrue(added)
         rels, url = self.rest_api.getDatastreamDissemination(self.pid, "RELS-EXT")
         self.assert_('<hasModel' in rels)
@@ -566,15 +566,15 @@ class TestAPI_M(FedoraTestCase):
 
     def test_getRelationships(self):
         # add relations
-        self.api_m.addRelationship(self.pid, URI_HAS_MODEL, "info:fedora/pid:123", False)
+        self.api_m.addRelationship(self.pid, unicode(modelns.hasModel), "info:fedora/pid:123", False)
         self.api_m.addRelationship(self.pid, self.rel_owner, "johndoe", True)
 
-        response = self.api_m.getRelationships(self.pid, URI_HAS_MODEL)
+        response = self.api_m.getRelationships(self.pid, unicode(modelns.hasModel))
         rels = response.relationships
 
         self.assertEqual(2, len(rels))  # includes fedora-system cmodel
         self.assertEqual(rels[0].subject, 'info:fedora/' + self.pid)
-        self.assertEqual(rels[0].predicate, URI_HAS_MODEL)
+        self.assertEqual(rels[0].predicate, unicode(modelns.hasModel))
         cmodels = [rels[0].object, rels[1].object]
         self.assert_('info:fedora/fedora-system:FedoraObject-3.0' in cmodels)
         self.assert_('info:fedora/pid:123' in cmodels)
@@ -588,9 +588,9 @@ class TestAPI_M(FedoraTestCase):
 
     def test_purgeRelationship(self):
         # add relation to purge
-        self.api_m.addRelationship(self.pid, URI_HAS_MODEL, "info:fedora/pid:123", False)
+        self.api_m.addRelationship(self.pid, unicode(modelns.hasModel), "info:fedora/pid:123", False)
         
-        purged = self.api_m.purgeRelationship(self.pid, URI_HAS_MODEL, "info:fedora/pid:123", False)
+        purged = self.api_m.purgeRelationship(self.pid, unicode(modelns.hasModel), "info:fedora/pid:123", False)
         self.assertEqual(purged, True)
 
         # purge non-existent rel on valid pid

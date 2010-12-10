@@ -1,47 +1,44 @@
 #!/usr/bin/env python
 from datetime import datetime
-from dateutil.tz import tzutc
 import os
 import tempfile
 
+from dateutil.tz import tzutc
 from rdflib import URIRef, Graph as RdfGraph
 
-from eulcore.fedora.models import Datastream, DatastreamObject, DigitalObject, \
-        XmlDatastream, XmlDatastreamObject, RdfDatastream, RdfDatastreamObject, \
-        FileDatastream, FileDatastreamObject, DigitalObjectSaveFailure, \
-        ContentModel
-from eulcore.fedora.server import URI_HAS_MODEL
+from eulcore.fedora import models
+from eulcore.fedora.rdfns import relsext, model as modelns
 from eulcore.fedora.xml import ObjectDatastream
 from eulcore.xmlmap.dc import DublinCore
 
 from test_fedora.base import FedoraTestCase, FEDORA_PIDSPACE, FIXTURE_ROOT
 from testcore import main
 
-class MyDigitalObject(DigitalObject):
+class MyDigitalObject(models.DigitalObject):
     CONTENT_MODELS = ['info:fedora/example:ExampleCModel',
                       'info:fedora/example:AnotherCModel']
 
     # extend digital object with datastreams for testing
-    text = Datastream("TEXT", "Text datastream", defaults={
+    text = models.Datastream("TEXT", "Text datastream", defaults={
             'mimetype': 'text/plain',
         })
-    extradc = XmlDatastream("EXTRADC", "Managed DC XML datastream", DublinCore,
+    extradc = models.XmlDatastream("EXTRADC", "Managed DC XML datastream", DublinCore,
         defaults={
             'mimetype': 'application/xml',
             'versionable': True,
         })
-    image = FileDatastream('IMAGE', 'managed binary image datastream', defaults={
+    image = models.FileDatastream('IMAGE', 'managed binary image datastream', defaults={
                 'mimetype': 'image/png'
         })
 
-class SimpleDigitalObject(DigitalObject):
+class SimpleDigitalObject(models.DigitalObject):
     CONTENT_MODELS = ['info:fedora/example:SimpleCModel' ]
 
     # extend digital object with datastreams for testing
-    text = Datastream("TEXT", "Text datastream", defaults={
+    text = models.Datastream("TEXT", "Text datastream", defaults={
             'mimetype': 'text/plain',
         })
-    extradc = XmlDatastream("EXTRADC", "Managed DC XML datastream", DublinCore)
+    extradc = models.XmlDatastream("EXTRADC", "Managed DC XML datastream", DublinCore)
 
 
 TEXT_CONTENT = "Here is some text content for a non-xml datastream."
@@ -78,12 +75,12 @@ class TestDatastreams(FedoraTestCase):
 
     def test_get_ds_content(self):
         dc = self.obj.dc.content
-        self.assert_(isinstance(self.obj.dc, XmlDatastreamObject))
+        self.assert_(isinstance(self.obj.dc, models.XmlDatastreamObject))
         self.assert_(isinstance(dc, DublinCore))
         self.assertEqual(dc.title, "A partially-prepared test object")
         self.assertEqual(dc.identifier, self.pid)
 
-        self.assert_(isinstance(self.obj.text, DatastreamObject))
+        self.assert_(isinstance(self.obj.text, models.DatastreamObject))
         self.assertEqual(self.obj.text.content, TEXT_CONTENT)
 
     def test_get_ds_info(self):
@@ -146,14 +143,12 @@ class TestDatastreams(FedoraTestCase):
 
     def test_rdf_datastream(self):
         # add a relationship to test RELS-EXT/rdf datastreams        
-        hasModel = "info:fedora/fedora-system:def/model#hasModel"
-        isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
         foo123 = "info:fedora/foo:123"
-        self.obj.add_relationship(isMemberOf, foo123)
+        self.obj.add_relationship(relsext.isMemberOf, foo123)
         
-        self.assert_(isinstance(self.obj.rels_ext, RdfDatastreamObject))
+        self.assert_(isinstance(self.obj.rels_ext, models.RdfDatastreamObject))
         self.assert_(isinstance(self.obj.rels_ext.content, RdfGraph))
-        self.assert_((URIRef(self.obj.uri), URIRef(isMemberOf), URIRef(foo123)) in
+        self.assert_((self.obj.uriref, relsext.isMemberOf, URIRef(foo123)) in
                      self.obj.rels_ext.content)
 
     def test_file_datastream(self):
@@ -168,7 +163,7 @@ class TestDatastreams(FedoraTestCase):
         self.assertEqual(return_status[0], True)
         
         # access via file datastream descriptor
-        self.assert_(isinstance(self.obj.image, FileDatastreamObject))
+        self.assert_(isinstance(self.obj.image, models.FileDatastreamObject))
         self.assertEqual(self.obj.image.content.read(), open(filename).read())
 
         # update via descriptor
@@ -182,7 +177,7 @@ class TestDatastreams(FedoraTestCase):
         expected_error = None
         try:
             self.obj.save()
-        except DigitalObjectSaveFailure as e:
+        except models.DigitalObjectSaveFailure as e:
             #Error should go here
             expected_error = e
         self.assert_(str(expected_error).endswith('successfully backed out '), 'Incorrect checksum should back out successfully.') 
@@ -238,6 +233,7 @@ class TestNewObject(FedoraTestCase):
     def test_basic_ingest(self):
         self.repo.default_pidspace = self.pidspace
         obj = self.repo.get_object(type=MyDigitalObject)
+        self.assertFalse(isinstance(obj.pid, basestring))
         obj.save()
 
         self.assertTrue(isinstance(obj.pid, basestring))
@@ -291,12 +287,10 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(obj.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
         self.assertEqual(obj.rels_ext.control_group, 'X')
 
-        hasModel = URIRef('info:fedora/fedora-system:def/model#hasModel')
-        uri = URIRef(obj.uri)
         self.assertTrue(isinstance(obj.rels_ext.content, RdfGraph))
-        self.assert_((uri, hasModel, URIRef("info:fedora/example:ExampleCModel")) in
+        self.assert_((obj.uriref, modelns.hasModel, URIRef("info:fedora/example:ExampleCModel")) in
                      obj.rels_ext.content)
-        self.assert_((uri, hasModel, URIRef("info:fedora/example:AnotherCModel")) in
+        self.assert_((obj.uriref, modelns.hasModel, URIRef("info:fedora/example:AnotherCModel")) in
                      obj.rels_ext.content)
 
         # test managed xml datastreams
@@ -327,9 +321,9 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(fetched.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
         self.assertEqual(fetched.rels_ext.control_group, 'X')
 
-        self.assert_((uri, hasModel, URIRef("info:fedora/example:ExampleCModel")) in
+        self.assert_((obj.uriref, modelns.hasModel, URIRef("info:fedora/example:ExampleCModel")) in
                      fetched.rels_ext.content)
-        self.assert_((uri, hasModel, URIRef("info:fedora/example:AnotherCModel")) in
+        self.assert_((obj.uriref, modelns.hasModel, URIRef("info:fedora/example:AnotherCModel")) in
                      fetched.rels_ext.content)
 
         self.assertEqual(fetched.extradc.label, 'Managed DC XML datastream')
@@ -450,7 +444,7 @@ class TestDigitalObject(FedoraTestCase):
         expected_error = None
         try:
             self.obj.save()
-        except DigitalObjectSaveFailure as e:
+        except models.DigitalObjectSaveFailure as e:
             #Error should go here
             expected_error = e
         self.assert_(str(expected_error).endswith('successfully backed out '), 'Incorrect checksum should back out successfully.') 
@@ -482,9 +476,9 @@ class TestDigitalObject(FedoraTestCase):
         # catch the exception so we can inspect it
         try:
             self.obj.save()
-        except DigitalObjectSaveFailure, f:
+        except models.DigitalObjectSaveFailure, f:
             save_error = f
-        self.assert_(isinstance(save_error, DigitalObjectSaveFailure))
+        self.assert_(isinstance(save_error, models.DigitalObjectSaveFailure))
         self.assertEqual(save_error.obj_pid, self.obj.pid,
             "save failure exception should include object pid %s, got %s" % (self.obj.pid, save_error.obj_pid))
         self.assertEqual(save_error.failure, "DC", )
@@ -504,9 +498,9 @@ class TestDigitalObject(FedoraTestCase):
         self.obj.label = ' '.join('too long' for i in range(50))
         try:
             self.obj.save()
-        except DigitalObjectSaveFailure, f:
+        except models.DigitalObjectSaveFailure, f:
             profile_save_error = f
-        self.assert_(isinstance(profile_save_error, DigitalObjectSaveFailure))
+        self.assert_(isinstance(profile_save_error, models.DigitalObjectSaveFailure))
         self.assertEqual(profile_save_error.obj_pid, self.obj.pid,
             "save failure exception should include object pid %s, got %s" % (self.obj.pid, save_error.obj_pid))
         self.assertEqual(profile_save_error.failure, "object profile", )
@@ -552,50 +546,48 @@ class TestDigitalObject(FedoraTestCase):
         cmodel_uri = "info:fedora/control:ContentType"
         # FIXME: checking when rels-ext datastream does not exist causes an error
         self.assertFalse(self.obj.has_model(cmodel_uri))
-        self.obj.add_relationship(URI_HAS_MODEL, cmodel_uri)
+        self.obj.add_relationship(modelns.hasModel, cmodel_uri)
         self.assertTrue(self.obj.has_model(cmodel_uri))
         self.assertFalse(self.obj.has_model(self.obj.uri))
 
     def test_add_relationships(self):
         # add relation to a resource, by digital object
-        related = DigitalObject(self.api, "foo:123")
-        isMemberOf = "info:fedora/fedora-system:def/relations-external#isMemberOf"
-        added = self.obj.add_relationship(isMemberOf, related)
+        related = models.DigitalObject(self.api, "foo:123")
+        added = self.obj.add_relationship(relsext.isMemberOf, related)
         self.assertTrue(added, "add relationship should return True on success, got %s" % added)
         rels_ext, url = self.obj.api.getDatastreamDissemination(self.pid, "RELS-EXT")
         self.assert_("isMemberOf" in rels_ext)
         self.assert_(related.uri in rels_ext) # should be full uri, not just pid
 
         # add relation to a resource, by string
-        isMemberOfCollection = "info:fedora/fedora-system:def/relations-external#isMemberOfCollection"
         collection_uri = "info:fedora/foo:456"
-        self.obj.add_relationship(isMemberOfCollection, collection_uri)
+        self.obj.add_relationship(relsext.isMemberOfCollection, collection_uri)
         rels_ext, url = self.obj.api.getDatastreamDissemination(self.pid, "RELS-EXT")
         self.assert_("isMemberOfCollection" in rels_ext)
         self.assert_(collection_uri in rels_ext)
 
         # add relation to a literal
-        self.obj.add_relationship("info:fedora/fedora-system:def/relations-external#owner", "testuser")
+        self.obj.add_relationship('info:fedora/example:owner', "testuser")
         rels_ext, url = self.obj.api.getDatastreamDissemination(self.pid, "RELS-EXT")
         self.assert_("owner" in rels_ext)
         self.assert_("testuser" in rels_ext)
 
         rels = self.obj.rels_ext.content
         # convert first added relationship to rdflib statement to check that it is in the rdf graph
-        st = (URIRef(self.obj.uri), URIRef(isMemberOf), URIRef(related.uri))
+        st = (self.obj.uriref, relsext.isMemberOf, related.uriref)
         self.assertTrue(st in rels)
 
     def test_registry(self):
         self.assert_('test_fedora.test_models.MyDigitalObject' in
-                     DigitalObject.defined_types)
+                     models.DigitalObject.defined_types)
 
 
 class TestContentModel(FedoraTestCase):
     def test_for_class(self):
-        CMODEL_URI = ContentModel.CONTENT_MODELS[0]
+        CMODEL_URI = models.ContentModel.CONTENT_MODELS[0]
 
         # first: create a cmodel for SimpleDigitalObject, the simple case
-        cmodel = ContentModel.for_class(SimpleDigitalObject, self.repo)
+        cmodel = models.ContentModel.for_class(SimpleDigitalObject, self.repo)
         self.append_test_pid(cmodel.pid)
         expect_uri = SimpleDigitalObject.CONTENT_MODELS[0]
         self.assertEqual(cmodel.uri, expect_uri)
@@ -611,8 +603,8 @@ class TestContentModel(FedoraTestCase):
         # try ContentModel itself. Content model objects have the "content
         # model" content model. That content model should already be in
         # every repo, so for_class shouldn't need to make anything.
-        cmodel = ContentModel.for_class(ContentModel, self.repo)
-        expect_uri = ContentModel.CONTENT_MODELS[0]
+        cmodel = models.ContentModel.for_class(models.ContentModel, self.repo)
+        expect_uri = models.ContentModel.CONTENT_MODELS[0]
         self.assertEqual(cmodel.uri, expect_uri)
         self.assertTrue(cmodel.has_model(CMODEL_URI))
 
@@ -623,7 +615,7 @@ class TestContentModel(FedoraTestCase):
 
         # try MyDigitalObject. this should fail, as MyDigitalObject has two
         # CONTENT_MODELS: we support only one
-        self.assertRaises(ValueError, ContentModel.for_class,
+        self.assertRaises(ValueError, models.ContentModel.for_class,
                           MyDigitalObject, self.repo)
 
 

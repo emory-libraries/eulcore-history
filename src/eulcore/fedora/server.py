@@ -17,8 +17,9 @@
 import csv
 from urllib import urlencode
 
+from eulcore.fedora.rdfns import model as modelns
 from eulcore.fedora.api import HTTP_API_Base, ApiFacade
-from eulcore.fedora.models import DigitalObject, URI_HAS_MODEL
+from eulcore.fedora.models import DigitalObject
 # FIXME: should risearch be moved to apis?
 from eulcore.fedora.util import RelativeOpener, parse_rdf, parse_xml_object, RequestFailed
 from eulcore.fedora.xml import SearchResults, NewPids
@@ -126,7 +127,7 @@ class Repository(object):
         :param type: type of object to return (e.g., class:`DigitalObject`)
         :rtype: list of objects
         """
-        uris = self.risearch.get_subjects(URI_HAS_MODEL, cmodel_uri)
+        uris = self.risearch.get_subjects(modelns.hasModel, cmodel_uri)
         return [ self.get_object(uri, type) for uri in uris ]
 
     def get_object(self, pid=None, type=None, create=None):
@@ -134,8 +135,9 @@ class Repository(object):
         Initialize a single object from Fedora, or create a new one, with the
         same Fedora configuration and credentials.
 
-        :param pid: pid of the object to request (if not specified,
-                    generates a new pid)
+        :param pid: pid of the object to request, or a function that can be
+                    called to get one. if not specified, :meth:`get_next_pid`
+                    will be called if a pid is needed
         :param type: type of object to return; defaults to :class:`DigitalObject`
         :rtype: single object of the type specified
         :create: boolean: create a new object? (if not specified, defaults
@@ -144,15 +146,15 @@ class Repository(object):
         type = type or self.default_object_type
 
         if pid is None:
-            pid = self.get_next_pid()
+            pid = self.get_next_pid
             if create is None:
                 create = True
         else:
+            if pid.startswith('info:fedora/'): # passed a uri
+                pid = pid[len('info:fedora/'):]
+
             if create is None:
                 create = False
-
-        if pid.startswith('info:fedora/'): # passed a uri
-            pid = pid[len('info:fedora/'):]
 
         return type(self.api, pid, create)
 

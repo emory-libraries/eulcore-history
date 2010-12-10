@@ -3,7 +3,8 @@
 from datetime import date
 
 from test_fedora.base import FedoraTestCase, load_fixture_data, FEDORA_ROOT_NONSSL, FEDORA_PIDSPACE
-from eulcore.fedora.models import DigitalObject, URI_HAS_MODEL
+from eulcore.fedora.rdfns import model as modelns
+from eulcore.fedora.models import DigitalObject
 from eulcore.fedora.server import Repository, UnrecognizedQueryLanguage
 
 from testcore import main
@@ -118,7 +119,7 @@ class TestBasicFedoraFunctionality(FedoraTestCase):
         obj = self.repo.get_object(pid)
         # add a cmodel to test object so we can find our test object by cmodel
         cmodel = DigitalObject(self.api, "control:TestObject")
-        obj.add_relationship(URI_HAS_MODEL, cmodel)
+        obj.add_relationship(modelns.hasModel, cmodel)
         # query by test cmodel
         objs_by_cmodel = self.repo.get_objects_with_cmodel(cmodel.uri)
         self.assertEqual(objs_by_cmodel[0].pid, obj.pid)
@@ -161,7 +162,7 @@ class TestResourceIndex(FedoraTestCase):
         self.object = self.repo.get_object(pid)
         # add some rels to query
         self.cmodel = DigitalObject(self.api, "control:TestObject")
-        self.object.add_relationship(URI_HAS_MODEL, self.cmodel)
+        self.object.add_relationship(modelns.hasModel, self.cmodel)
         self.related = DigitalObject(self.api, "foo:123")
         self.object.add_relationship(self.rel_isMemberOf, self.related)
         self.object.add_relationship(self.rel_owner, "testuser")
@@ -169,7 +170,7 @@ class TestResourceIndex(FedoraTestCase):
     def testGetPredicates(self):
         # get all predicates for test object
         predicates = list(self.risearch.get_predicates(self.object.uri, None))        
-        self.assertTrue(URI_HAS_MODEL in predicates)
+        self.assertTrue(unicode(modelns.hasModel) in predicates)
         self.assertTrue(self.rel_isMemberOf in predicates)
         self.assertTrue(self.rel_owner in predicates)
         # resource
@@ -191,7 +192,7 @@ class TestResourceIndex(FedoraTestCase):
         self.assertEqual(len(subjects), 0)
 
     def testGetObjects(self):
-        objects =  list(self.risearch.get_objects(self.object.uri, URI_HAS_MODEL))
+        objects =  list(self.risearch.get_objects(self.object.uri, modelns.hasModel))
         self.assert_(self.cmodel.uri in objects)
         # also includes generic fedora-object cmodel
 

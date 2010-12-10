@@ -26,3 +26,8 @@ relsext = ClosedNamespace('info:fedora/fedora-system:def/relations-external#', [
     'hasEquivalent',
 ])
 
+# TODO: find and catalog full namespace. currently this is just a list of
+# names we use in this ns.
+model = ClosedNamespace('info:fedora/fedora-system:def/model#', [
+    'hasModel',
+])
