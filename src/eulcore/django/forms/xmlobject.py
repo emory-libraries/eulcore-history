@@ -33,10 +33,8 @@ from eulcore import xmlmap
 
 def fieldname_to_label(name):
     """Default conversion from xmlmap Field variable name to Form field label:
-    convert '_' to ' ' and capitalize words."""
-    # NOTE: xmlmap fields have nothing analogous to django model fields verbose_name
-    # Doing a rough-conversion from variable name to a default
-    # human-readable version for formfield labels
+    convert '_' to ' ' and capitalize words.  Should only be used when verbose_name
+    is not set."""
     return capwords(name.replace('_', ' '))
 
 
@@ -571,10 +569,6 @@ class XmlObjectForm(BaseForm):
         subform_html = _html_output(subform)
         # if html section is configured, add section label and wrapper for
         if self._html_section is not None:
-            # output = {'label': fieldname_to_label(name), 'content': subform_html}
-            #if subform.verbose_name is not None:
-            #    output['label'] = subform.verbose_name
-            #return self._html_section % output
             return self._html_section % \
                 {'label': fieldname_to_label(name), 'content': subform_html}               
         else:
