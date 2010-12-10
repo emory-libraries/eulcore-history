@@ -149,12 +149,30 @@ class XmlObjectFormTest(unittest.TestCase):
             (expected, got))
 
         expected, got = 13, initial_data['int']
-        self.assertEqual(expected, initial_data['int'],
+        self.assertEqual(expected, got,
            "initial instance-based form value for 'int' should be %s, got %s" % \
             (expected, got))
 
         expected, got = True, initial_data['bool']
-        self.assertEqual(True, initial_data['bool'],
+        self.assertEqual(expected, got,
+           "initial instance-based form value for 'bool' should be %s, got %s" % \
+            (expected, got))
+
+        # test with prefixes
+        update_form = TestForm(instance=self.testobj, prefix='pre')
+        initial_data = update_form.initial   # initial values set on BaseForm
+        expected, got = 'a', initial_data['pre-id']
+        self.assertEqual(expected, got,
+            "initial instance-based form value for 'pre-id' should be %s, got %s" % \
+            (expected, got))
+
+        expected, got = 13, initial_data['pre-int']
+        self.assertEqual(expected, got,
+           "initial instance-based form value for 'int' should be %s, got %s" % \
+            (expected, got))
+
+        expected, got = True, initial_data['pre-bool']
+        self.assertEqual(expected, got,
            "initial instance-based form value for 'bool' should be %s, got %s" % \
             (expected, got))
 
@@ -368,13 +386,25 @@ class XmlObjectFormTest(unittest.TestCase):
         # subform is initialized with appropriate instance data
         subform = self.update_form.subforms['child']
         # initial values from subobject portion of test fixture
-        expected, got = 'forty-two', subform.initial['id2']
+        expected, got = 'forty-two', subform.initial['child-id2']
         self.assertEqual(expected, got,
-            "initial instance-based form value for 'id2' should be %s, got %s" % \
+            "initial instance-based form value for 'child-id2' should be %s, got %s" % \
             (expected, got))
-        expected, got = 42, subform.initial['val']
+        expected, got = 42, subform.initial['child-val']
         self.assertEqual(expected, got,
-            "initial instance-based form value for 'val' should be %s, got %s" % \
+            "initial instance-based form value for 'child-val' should be %s, got %s" % \
+            (expected, got))
+
+        # test with prefixes
+        update_form = TestForm(instance=self.testobj, prefix='pre')
+        subform = update_form.subforms['child']
+        expected, got = 'forty-two', subform.initial['pre-child-id2']
+        self.assertEqual(expected, got,
+            "initial instance-based form value for 'pre-child-id2' should be %s, got %s" % \
+            (expected, got))
+        expected, got = 42, subform.initial['pre-child-val']
+        self.assertEqual(expected, got,
+            "initial instance-based form value for 'pre-child-valval' should be %s, got %s" % \
             (expected, got))
 
         # initialize with request data to test subform validation / instance update
@@ -411,6 +441,14 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertEqual(42, formset.forms[0].initial['val'])
         self.assertEqual(None, formset.forms[1].initial['id2'])
         self.assertEqual(13, formset.forms[1].initial['val'])
+
+        # initialize with prefix
+        update_form = TestForm(instance=self.testobj, prefix='pre')
+        formset = update_form.formsets['children']
+        self.assertEqual('forty-two', formset.forms[0].initial['pre-children-0-id2'])
+        self.assertEqual(42, formset.forms[0].initial['pre-children-0-val'])
+        self.assertEqual(None, formset.forms[1].initial['pre-children-1-id2'])
+        self.assertEqual(13, formset.forms[1].initial['pre-children-1-val'])
 
         # initialize with an instance and form data
         update_form = TestForm(self.post_data, instance=self.testobj)

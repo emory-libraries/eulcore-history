@@ -287,6 +287,11 @@ def xmlobject_to_dict(instance, fields=None, exclude=None, prefix=''):
     :param exclude: optional list of fields to exclude from the data
     """
     data = {}
+    # convert prefix to combining form for convenience
+    if prefix:
+        prefix = '%s-' % prefix
+    else:
+        prefix = ''
 
     for name, field in instance._fields.iteritems():
         # not editable?
@@ -297,12 +302,12 @@ def xmlobject_to_dict(instance, fields=None, exclude=None, prefix=''):
         if isinstance(field, xmlmap.fields.NodeField):
             nodefield = getattr(instance, name)
             if nodefield is not None:
-                subprefix = '%s%s-' % (prefix, name)
+                subprefix = '%s%s' % (prefix, name)
                 node_data = xmlobject_to_dict(nodefield, prefix=subprefix)
                 data.update(node_data)   # FIXME: fields/exclude
         if isinstance(field, xmlmap.fields.NodeListField):
             for i, child in enumerate(getattr(instance, name)):
-                subprefix = '%s%s-%d-' % (prefix, name, i)
+                subprefix = '%s%s-%d' % (prefix, name, i)
                 node_data = xmlobject_to_dict(child, prefix=subprefix)
                 data.update(node_data)   # FIXME: fields/exclude
         else:
@@ -419,7 +424,7 @@ class XmlObjectForm(BaseForm):
                 # generate dictionary of initial data based on current instance
                 kwargs['initial'] = {}
             # allow initial data from instance to co-exist with other initial data
-            kwargs['initial'].update(xmlobject_to_dict(self.instance))  # fields, exclude?
+            kwargs['initial'].update(xmlobject_to_dict(self.instance, prefix=prefix))  # fields, exclude?
             # FIXME: is this backwards? should initial data override data from instance?
 
         # initialize subforms for all nodefields that belong to the xmlobject model
@@ -443,13 +448,14 @@ class XmlObjectForm(BaseForm):
             else:
                 subinstance = None
     
-            subprefix = name
             if prefix:
-                subprefix = prefix + '-' + subprefix
+                subprefix = '%s-%s' % (prefix, name)
+            else:
+                subprefix = name
 
             # instantiate the subform class with field data and model instance
             # - setting prefix based on field name, to distinguish similarly named fields
-            self.subforms[name] = subform(data=data, instance=subinstance, prefix=name)
+            self.subforms[name] = subform(data=data, instance=subinstance, prefix=subprefix)
 
     def _init_formsets(self, data=None, prefix=None):
         self.formsets = {}
@@ -459,11 +465,12 @@ class XmlObjectForm(BaseForm):
             else:
                 subinstances = None
 
-            subprefix = name
-            if prefix:
-                subprefix = prefix + '-' + subprefix
+            if prefix is not None:
+                subprefix = '%s-%s' % (prefix, name)
+            else:
+                subprefix = name
 
-            self.formsets[name] = formset(data=data, instances=subinstances, prefix=name)
+            self.formsets[name] = formset(data=data, instances=subinstances, prefix=subprefix)
 
     def update_instance(self):
         """Save bound form data into the XmlObject model instance and return the
@@ -528,7 +535,7 @@ class XmlObjectForm(BaseForm):
                 self._errors[NON_FIELD_ERRORS].append("There was an unexpected schema validation error.  " +
                     "This should not happen!  Please report the following errors:")
                 for err in instance.validation_errors():
-                    self._errors[NON_FIELD_ERRORS].append('VALIDATION ERROR: %s' % err.message)               
+                    self._errors[NON_FIELD_ERRORS].append('VALIDATION ERROR: %s' % err.message)
                 return False
         return valid
 
@@ -564,8 +571,12 @@ class XmlObjectForm(BaseForm):
         subform_html = _html_output(subform)
         # if html section is configured, add section label and wrapper for
         if self._html_section is not None:
+            # output = {'label': fieldname_to_label(name), 'content': subform_html}
+            #if subform.verbose_name is not None:
+            #    output['label'] = subform.verbose_name
+            #return self._html_section % output
             return self._html_section % \
-                {'label': fieldname_to_label(name), 'content': subform_html}
+                {'label': fieldname_to_label(name), 'content': subform_html}               
         else:
             return subform_html
         
