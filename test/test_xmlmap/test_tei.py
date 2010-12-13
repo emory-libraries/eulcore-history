@@ -4,13 +4,13 @@ import unittest
 from os import path
 
 from eulcore.xmlmap import load_xmlobject_from_file, NodeListField
-from eulcore.xmlmap.teimap import Tei, TeiSection, TeiDiv, TeiFigure, TeiInterpGroup, TeiInterp, TeiLineGroup, TeiLine, TeiEpigraph, TeiQuote
+from eulcore.xmlmap import teimap
 from testcore import main
 
-class ExtendedTei(Tei):
+class ExtendedTei(teimap.Tei):
     # additional mappings for testing
-    figure = NodeListField('//tei:figure', TeiFigure)
-    interpGroup = NodeListField('//tei:interpGrp', TeiInterpGroup)
+    figure = NodeListField('//tei:figure', teimap.TeiFigure)
+    interpGroup = NodeListField('//tei:interpGrp', teimap.TeiInterpGroup)
 
 class TestTei(unittest.TestCase):
     FIXTURE_FILE = path.join(path.dirname(path.abspath(__file__)) ,
@@ -19,7 +19,7 @@ class TestTei(unittest.TestCase):
         self.tei = load_xmlobject_from_file(self.FIXTURE_FILE, ExtendedTei)
 
     def testInit(self):
-        self.assert_(isinstance(self.tei, Tei))
+        self.assert_(isinstance(self.tei, teimap.Tei))
 
     def testBasicFields(self):
         self.assertEqual(self.tei.id, "clarke")
@@ -27,23 +27,32 @@ class TestTei(unittest.TestCase):
         #self.assertEqual(self.tei.author, "Various")
         self.assertEqual(self.tei.editor, "George Herbert Clarke")
 
-        self.assert_(isinstance(self.tei.front, TeiSection))
-        self.assert_(isinstance(self.tei.body, TeiSection))
-        self.assert_(isinstance(self.tei.back, TeiSection))
+        self.assert_(isinstance(self.tei.front, teimap.TeiSection))
+        self.assert_(isinstance(self.tei.body, teimap.TeiSection))
+        self.assert_(isinstance(self.tei.back, teimap.TeiSection))
+        self.assert_(isinstance(self.tei.header, teimap.TeiHeader))
 
-        self.assert_(isinstance(self.tei.body.div[0], TeiDiv))
+        self.assert_(isinstance(self.tei.body.div[0], teimap.TeiDiv))
+
+    def test_teiHeader(self):
+        header = self.tei.header
+        self.assertEqual('A Treasury of War Poetry: Electronic Edition', header.title)
+        self.assert_(isinstance(header.editor_list[0], teimap.TeiName))
+        self.assertEqual('Clarke, George Herbert', header.editor_list[0].reg)
+        self.assertEqual('George Herbert Clarke', header.editor_list[0].value)
+        self.assert_('Lewis H. Beck Center for Electronic Collections' in header.publisher)
+        self.assertEqual('2004', header.publication_date)
+        self.assert_('download, transmit, or otherwise reproduce,' in header.availability)        
+        self.assert_('A Treasury of War Poetry: British' in header.source_description)
+        self.assert_('The Great War' in header.series_statement)
 
     def testTeiDiv(self):
         div = self.tei.body.div[0]
         self.assertEqual('clarke005', div.id)
         self.assertEqual('Chapter', div.type)
-        self.assertEqual('America', div.title)
-        # reference to document-level info
-        self.assertEqual('A Treasury of War Poetry: Electronic Edition', div.doctitle)
-        self.assertEqual('clarke', div.doc_id)
-
+        self.assertEqual('America', div.title)       
         # subdiv (recursive mapping)
-        self.assert_(isinstance(div.div[0], TeiDiv))
+        self.assert_(isinstance(div.div[0], teimap.TeiDiv))
         self.assertEqual('clarke006', div.div[0].id)
         self.assertEqual('The Choice', div.div[0].title)
         self.assertEqual('Rudyard Kipling', div.div[0].author)
@@ -51,15 +60,15 @@ class TestTei(unittest.TestCase):
         self.assert_("THE RIVERSIDE PRESS LIMITED, EDINBURGH" in self.tei.back.div[1].text)
 
     def testTeiFigure(self):
-        self.assert_(isinstance(self.tei.figure[0], TeiFigure))
+        self.assert_(isinstance(self.tei.figure[0], teimap.TeiFigure))
         self.assertEqual("chateau_thierry2", self.tei.figure[0].entity)
         self.assertEqual("Chateau-Thierry", self.tei.figure[0].head)
         self.assertEqual("nat-fr mil-f con-r im-ph t-wwi", self.tei.figure[0].ana)
         self.assert_("photo of ruined houses" in self.tei.figure[0].description)
 
     def testTeiInterpGroup(self):
-        self.assert_(isinstance(self.tei.interpGroup[0], TeiInterpGroup))
-        self.assert_(isinstance(self.tei.interpGroup[0].interp[0], TeiInterp))
+        self.assert_(isinstance(self.tei.interpGroup[0], teimap.TeiInterpGroup))
+        self.assert_(isinstance(self.tei.interpGroup[0].interp[0], teimap.TeiInterp))
         self.assertEqual("image", self.tei.interpGroup[0].type)
         self.assertEqual("time period", self.tei.interpGroup[1].type)
         self.assertEqual("im-ph", self.tei.interpGroup[0].interp[0].id)
@@ -69,8 +78,8 @@ class TestTei(unittest.TestCase):
 
     def testTeiLineGroup(self):
         poem = self.tei.body.div[0].div[2] #using clarke008
-        self.assert_(isinstance(poem.linegroup[0], TeiLineGroup))
-        self.assert_(isinstance(poem.linegroup[0].line[0], TeiLine))
+        self.assert_(isinstance(poem.linegroup[0], teimap.TeiLineGroup))
+        self.assert_(isinstance(poem.linegroup[0].line[0], teimap.TeiLine))
         self.assertEqual(4, poem.linegroup[1].line[3].indent())
         self.assertEqual(0, poem.linegroup[0].line[2].indent())
        # print poem.linegroup[0].line[2].indent()
@@ -79,9 +88,9 @@ class TestTei(unittest.TestCase):
     def testTeiEpigraph(self):
         epigraph = self.tei.front.div[1].epigraph[0] #using clarke002
         self.assertEqual("epigraph", self.tei.front.div[1].type)
-        self.assert_(isinstance(epigraph, TeiEpigraph))
-        self.assert_(isinstance(epigraph.quote[0], TeiQuote))
-        self.assert_(isinstance(epigraph.quote[0].line[0], TeiLine))
+        self.assert_(isinstance(epigraph, teimap.TeiEpigraph))
+        self.assert_(isinstance(epigraph.quote[0], teimap.TeiQuote))
+        self.assert_(isinstance(epigraph.quote[0].line[0], teimap.TeiLine))
 
         
 if __name__ == '__main__':

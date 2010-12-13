@@ -61,11 +61,8 @@ class TeiDiv(_TeiBase):
     author   = xmlmap.StringField('tei:docAuthor/tei:name/tei:choice/tei:sic')
     docauthor = xmlmap.StringField('tei:docAuthor')
     title     = xmlmap.StringField('tei:head[1]') # easy access to FIRST head
-    title_list    = xmlmap.StringListField('tei:head')   # access to all heads when there are multiple #added filter to help with queries that expect this
+    title_list = xmlmap.StringListField('tei:head')   # access to all heads when there are multiple
     text     = xmlmap.StringField('.')   # short-hand mapping for full text of a div (e.g., for short divs)
-    # reference to top-level elements, e.g. for retrieving a single div
-    doctitle = xmlmap.StringField('ancestor::tei:TEI/tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:title')
-    doc_id   = xmlmap.StringField('ancestor::tei:TEI/@xml:id')
     linegroup = xmlmap.NodeListField('tei:lg', TeiLineGroup)
     div      = xmlmap.NodeListField('tei:div', 'self')
     byline   = xmlmap.StringField('tei:byline')
@@ -99,6 +96,27 @@ class TeiInterpGroup(_TeiBase):
     type        = xmlmap.StringField("@type")
     interp      = xmlmap.NodeListField("tei:interp", TeiInterp)
 
+class TeiName(_TeiBase):
+    type = xmlmap.StringField('@person')
+    reg = xmlmap.StringField('tei:choice/tei:reg')
+    'regularized value for a name'
+    value = xmlmap.StringField('tei:choice/tei:sic')
+    'name as displayed in the text'
+
+class TeiHeader(_TeiBase):
+    '''xmlmap object for a TEI (Text Encoding Initiative) header'''
+    title  = xmlmap.StringField('tei:fileDesc/tei:titleStmt/tei:title')
+    author_list = xmlmap.NodeListField('tei:fileDesc/tei:titleStmt/tei:author/tei:name',
+        TeiName)
+    editor_list = xmlmap.NodeListField('tei:fileDesc/tei:titleStmt/tei:editor/tei:name',
+        TeiName)
+    publisher = xmlmap.StringField('tei:fileDesc/tei:publicationStmt/tei:publisher')
+    publication_date = xmlmap.StringField('tei:fileDesc/tei:publicationStmt/tei:date')
+    availability = xmlmap.StringField('tei:fileDesc/tei:publicationStmt/tei:availability')
+    source_description = xmlmap.StringField('tei:fileDesc/tei:sourceDesc')
+    series_statement = xmlmap.StringField('tei:fileDesc/tei:seriesStmt')
+
+
 class Tei(_TeiBase):
     """xmlmap object for a TEI (Text Encoding Initiative) XML document """
     id     = xmlmap.StringField('@xml:id')
@@ -106,6 +124,7 @@ class Tei(_TeiBase):
     author = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:author/tei:name/tei:choice/tei:sic')
     editor = xmlmap.StringField('tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:editor/tei:name/tei:choice/tei:sic')
 
+    header = xmlmap.NodeField('tei:teiHeader', TeiHeader)
     front  = xmlmap.NodeField('tei:text/tei:front', TeiSection)
     body   = xmlmap.NodeField('tei:text/tei:body', TeiSection)
     back   = xmlmap.NodeField('tei:text/tei:back', TeiSection)
