@@ -16,7 +16,18 @@
 
 from eulcore import xmlmap
 
-class DublinCore(xmlmap.XmlObject):
+class _BaseDublinCore(xmlmap.XmlObject):
+    'Base Dublin Core class for common namespace declarations'
+    ROOT_NS = 'http://www.openarchives.org/OAI/2.0/oai_dc/'
+    ROOT_NAMESPACES = { 'oai_dc' : ROOT_NS,
+                        'dc': 'http://purl.org/dc/elements/1.1/'}
+
+class DublinCoreElement(_BaseDublinCore):
+    'Generic Dublin Core element with access to element name and value'
+    name = xmlmap.StringField('local-name(.)')
+    value = xmlmap.StringField('.')
+
+class DublinCore(_BaseDublinCore):
     """
     XmlObject for Simple (unqualified) Dublin Core metadata.
 
@@ -24,10 +35,7 @@ class DublinCore(xmlmap.XmlObject):
     XmlObject will be created.
     """    
 
-    ROOT_NS = 'http://www.openarchives.org/OAI/2.0/oai_dc/'
     ROOT_NAME = 'dc'
-    ROOT_NAMESPACES = { 'oai_dc' : ROOT_NS,
-                        'dc': 'http://purl.org/dc/elements/1.1/'}
 
     XSD_SCHEMA = "http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
     xmlschema = xmlmap.loadSchema(XSD_SCHEMA)
@@ -76,3 +84,6 @@ class DublinCore(xmlmap.XmlObject):
 
     type = xmlmap.StringField("dc:type")
     type_list = xmlmap.StringListField("dc:type")
+
+    elements = xmlmap.NodeListField('dc:*', DublinCoreElement)
+    'list of all DC elements as instances of :class:`DublinCoreElement`'

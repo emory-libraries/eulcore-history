@@ -83,6 +83,14 @@ class TestDc(unittest.TestCase):
         self.assertEqual(self.dc.rights, "Permission granted by the author.")
         self.assertEqual(self.dc.rights_list[0], "Permission granted by the author.")
 
+        # elements should provide access to all DC fields
+        self.assertEqual(self.dc.elements[0].name, 'title')
+        self.assertEqual(self.dc.elements[0].value, 'Feet in the Fire')
+        self.assertEqual(self.dc.elements[8].name, 'subject')
+        self.assertEqual(self.dc.elements[8].value, 'Ethnicity')
+        self.assertEqual(self.dc.elements[-1].name, 'rights')
+        self.assertEqual(self.dc.elements[-1].value, 'Permission granted by the author.')
+
     def testTemplateInit(self):
         dc = DublinCore()
         dc_xml = dc.serialize()
