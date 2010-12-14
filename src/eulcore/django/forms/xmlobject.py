@@ -192,7 +192,9 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
             # FIXME: how to properly do non-required choice field?
             # if field is optional, add a blank choice at the beginning of the list
             if field.required == False and '' not in field.choices:
-                kwargs['choices'].insert(0, ('', '--'))
+                # TODO: add an empty_label option (like django ModelChoiceField)
+                # to xmlobjectform and pass it in to make this easier to customize
+                kwargs['choices'].insert(0, ('', ''))
         elif isinstance(field, xmlmap.fields.StringField):
             field_type = CharField
         elif isinstance(field, xmlmap.fields.IntegerField):
