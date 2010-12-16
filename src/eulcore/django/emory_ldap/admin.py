@@ -14,7 +14,24 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from django.core.urlresolvers import reverse
 from django.contrib import admin
 from eulcore.django.emory_ldap.models import EmoryLDAPUserProfile
 
-admin.site.register(EmoryLDAPUserProfile)
+class EmoryLDAPUserProfileAdmin(admin.ModelAdmin):
+    list_display = ('__unicode__', 'full_name', 'edit_user')
+
+    def edit_user(self, profile):
+        href = reverse('admin:auth_user_change', args=(profile.user.id,))
+        return 'User <a href="%s">%s</a>' % (href, profile.user.username)
+    edit_user.allow_tags = True
+
+    def get_urls(self):
+        from django.conf.urls.defaults import patterns, url
+        base_urls = super(EmoryLDAPUserProfileAdmin, self).get_urls()
+        my_urls = patterns('eulcore.django.emory_ldap.views',
+            url(r'add-username/', 'add_username', name='add_username'),
+        )
+        return my_urls + base_urls
+
+admin.site.register(EmoryLDAPUserProfile, EmoryLDAPUserProfileAdmin)
