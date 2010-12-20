@@ -14,6 +14,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import logging
 from urllib import urlencode
 from urlparse import urlsplit
 
@@ -26,13 +27,22 @@ from soaplib.wsgi_soap import SimpleWSGISoapApp
 from eulcore.fedora.util import auth_headers, encode_multipart_formdata, \
                                 get_content_type, datetime_to_fedoratime
 
+logger = logging.getLogger(__name__)
+
 # low-level wrappers for Fedora APIs
 
 class HTTP_API_Base(object):
     def __init__(self, opener):
         self.opener = opener
-        self.open = self.opener.open
-        self.read = self.opener.read
+
+    def open(self, method, rel_url, body=None, headers={}, throw_errors=True):
+        logger.debug('open: %s %s %s <![BODY[%s]]>' % 
+                (method, rel_url, repr(headers), body))
+        return self.opener.open(method, rel_url, body, headers, throw_errors)
+
+    def read(self, rel_url, data=None):
+        logger.debug('read: %s <![DATA[%s]]>' % (rel_url, data))
+        return self.opener.read(rel_url, data)
 
 
 class REST_API(HTTP_API_Base):
