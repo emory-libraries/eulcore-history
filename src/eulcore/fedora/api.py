@@ -36,12 +36,12 @@ class HTTP_API_Base(object):
         self.opener = opener
 
     def open(self, method, rel_url, body=None, headers={}, throw_errors=True):
-        logger.debug('open: %s %s %s <![BODY[%s]]>' % 
-                (method, rel_url, repr(headers), body))
+        logger.debug('open: %s %s %s (%d body bytes)' % 
+                (method, rel_url, repr(headers), len(body or '')))
         return self.opener.open(method, rel_url, body, headers, throw_errors)
 
     def read(self, rel_url, data=None):
-        logger.debug('read: %s <![DATA[%s]]>' % (rel_url, data))
+        logger.debug('read: %s (%d data bytes)' % (rel_url, len(data or '')))
         return self.opener.read(rel_url, data)
 
 
