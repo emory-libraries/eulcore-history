@@ -90,14 +90,6 @@ class DatastreamObject(object):
                 self._info = self._bootstrap_info()
             else:
                 self._info = self.obj.getDatastreamProfile(self.id)
-            if not self.versionable:
-                self._info_backup = { 'dsLabel': self._info.label,
-                                      'mimeType': self._info.mimetype,
-                                      'versionable': self._info.versionable,
-                                      'dsState': self._info.state,
-                                      'formatURI': self._info.format,
-                                      'checksumType': self._info.checksum_type,
-                                      'checksum': self._info.checksum }
         return self._info
 
     def _bootstrap_info(self):
@@ -120,8 +112,6 @@ class DatastreamObject(object):
             else:
                 data, url = self.obj.api.getDatastreamDissemination(self.obj.pid, self.id)
                 self._content = self._convert_content(data, url)
-                if not self.versionable:   
-                    self._content_backup = data
                 # calculate and store a digest of the current datastream text content
                 self.digest = self._content_digest()
         return self._content
@@ -269,6 +259,9 @@ class DatastreamObject(object):
                 modify_opts['mimeType'] = self.mimetype
             else:
                 modify_opts['mimeType'] = self.defaults['mimetype']
+
+        if not self.versionable:
+            self._backup()
             
         success, msg = self.obj.api.modifyDatastream(self.obj.pid, self.id, content=data,
                 logMessage=logmessage, **modify_opts) 
@@ -280,6 +273,19 @@ class DatastreamObject(object):
             self.digest = self._content_digest()
             
         return success      # msg ?
+
+    def _backup(self):
+        info = self.obj.getDatastreamProfile(self.id)
+        self._info_backup = { 'dsLabel': info.label,
+                              'mimeType': info.mimetype,
+                              'versionable': info.versionable,
+                              'dsState': info.state,
+                              'formatURI': info.format,
+                              'checksumType': info.checksum_type,
+                              'checksum': info.checksum }
+
+        data, url = self.obj.api.getDatastreamDissemination(self.obj.pid, self.id)
+        self._content_backup = data
 
     def undo_last_save(self, logMessage=None):
         """Undo the last change made to the datastream content and profile, effectively 
