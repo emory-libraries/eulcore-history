@@ -17,6 +17,7 @@
 import logging
 from urllib import urlencode
 from urlparse import urlsplit
+import time
 
 from soaplib.serializers import primitive as soap_types
 from soaplib.serializers.clazz import ClassSerializer
@@ -36,13 +37,19 @@ class HTTP_API_Base(object):
         self.opener = opener
 
     def open(self, method, rel_url, body=None, headers={}, throw_errors=True):
-        logger.debug('open: %s %s %s (%d body bytes)' % 
-                (method, rel_url, repr(headers), len(body or '')))
-        return self.opener.open(method, rel_url, body, headers, throw_errors)
+        start = time.time()
+        val = self.opener.open(method, rel_url, body, headers, throw_errors)
+        logger.debug('open: %s %s %s (%d body bytes; %f secs)' % 
+                (method, rel_url, repr(headers), len(body or ''),
+                 time.time() - start))
+        return val
 
     def read(self, rel_url, data=None):
-        logger.debug('read: %s (%d data bytes)' % (rel_url, len(data or '')))
-        return self.opener.read(rel_url, data)
+        start = time.time()
+        val = self.opener.read(rel_url, data)
+        logger.debug('read: %s (%d data bytes; %f secs)' %
+                (rel_url, len(data or ''), time.time() - start))
+        return val
 
 
 class REST_API(HTTP_API_Base):
