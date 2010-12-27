@@ -158,7 +158,8 @@ class TestDatastreams(FedoraTestCase):
         return_status = self.obj.api.addDatastream(self.obj.pid, self.obj.image.id, defaults['label'],
             defaults['mimetype'], controlGroup=defaults['control_group'],
             versionable=defaults['versionable'], filename=filename, checksum='d745e8a99847777dabf0d8c6e11fca84', checksumType='MD5')
-        
+        #Have to set the datastream as existing for the object now.
+        self.obj.image.exists = True
         #Verify the insertion succeeded
         self.assertEqual(return_status[0], True)
         
