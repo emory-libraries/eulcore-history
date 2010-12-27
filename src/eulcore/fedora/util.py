@@ -155,7 +155,7 @@ class HttpServerConnection(object):
         response = self._connect_and_request(method, url, body, headers)
 
         # FIXME: handle 3xx
-        if response.status >= 400:
+        if response.status >= 400 and throw_errors:
             # separate out 401 and 403 (permission errors) to enable
             # special handling in client code.
             if response.status in (401, 403):
@@ -253,7 +253,7 @@ class AuthorizingServerConnection(object):
     def open(self, method, rel_url, body=None, headers={}, throw_errors=True):
         headers = headers.copy()
         headers.update(self._auth_headers())
-        return self.base.open(self, method, rel_url, body, headers, throw_errors)
+        return self.base.open(method, rel_url, body, headers, throw_errors)
 
     def read(self, rel_url, data=None):
         return self.base.read(rel_url, data, self._auth_headers())
