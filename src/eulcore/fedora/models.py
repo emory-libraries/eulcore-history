@@ -81,12 +81,19 @@ class DatastreamObject(object):
         self.info_modified = False
         self.digest = None
         self.checksum_modified = False
+        
+        #Indicates whether the datastream exists in fedora.
+	self.exists = False        
+        #If this is an object with a real pid, then check if the datastream is actually there. If it does, exists should be true.
+	if not self.obj._create:
+            if self.obj.ds_list.has_key(id):
+                self.exists = True
     
     @property
     def info(self):
         # pull datastream profile information from Fedora, but only when accessed
         if self._info is None:
-            if self.obj._create:
+            if not self.exists:
                 self._info = self._bootstrap_info()
             else:
                 self._info = self.obj.getDatastreamProfile(self.id)
@@ -107,7 +114,7 @@ class DatastreamObject(object):
     def _get_content(self):
         # pull datastream content from Fedora, but only when accessed
         if self._content is None:
-            if self.obj._create:
+            if not self.exists:
                 self._content = self._bootstrap_content()
             else:
                 data, url = self.obj.api.getDatastreamDissemination(self.obj.pid, self.id)
@@ -262,9 +269,15 @@ class DatastreamObject(object):
 
         if not self.versionable:
             self._backup()
-            
-        success, msg = self.obj.api.modifyDatastream(self.obj.pid, self.id, content=data,
-                logMessage=logmessage, **modify_opts) 
+        
+        if(self.exists):    
+            success, msg = self.obj.api.modifyDatastream(self.obj.pid, self.id, content=data,
+                    logMessage=logmessage, **modify_opts)
+        else:
+            success, msg = self.obj.api.addDatastream(self.obj.pid, self.id, controlGroup='M', content=data, logMessage=logmessage, **modify_opts)
+            #If added successfully, set the exists flag to true.
+            if success:
+                self.exists = True
  
         if success:
             # update modification indicators

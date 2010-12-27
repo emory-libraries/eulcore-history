@@ -167,9 +167,9 @@ class REST_API(HTTP_API_Base):
 
     ### API-M methods (management) ####
 
-    def addDatastream(self, pid, dsID, dsLabel,  mimeType, logMessage=None,
+    def addDatastream(self, pid, dsID, dsLabel=None,  mimeType=None, logMessage=None,
         controlGroup=None, dsLocation=None, altIDs=None, versionable=None,
-        dsState=None, formatURI=None, checksumType=None, checksum=None, filename=None):
+        dsState=None, formatURI=None, checksumType=None, checksum=None, filename=None, content=None):
         # objects/{pid}/datastreams/NEWDS? [opts]
         # content via multipart file in request content, or dsLocation=URI
         # one of dsLocation or filename must be specified
@@ -194,13 +194,21 @@ class REST_API(HTTP_API_Base):
         if checksum:
             http_args['checksum'] = checksum
 
-        
+        #Legacy code for files.
         if filename:
             fp = open(filename, 'rb')
             content_type, body = encode_multipart_formdata({}, [ ('file', filename, fp.read())])
             headers = { 'Content-Type' : content_type,
                         'Content-Length' : str(len(body)) }
             fp.close()
+        #Added code to match how content is now handled, see modifyDatastream.
+        elif content:
+            if hasattr(content, 'read'):    # allow content to be a file
+                body = content.read()
+            else:
+                body = content
+            headers = { 'Content-Type' : mimeType,
+                        'Content-Length' : str(len(body)) }
         else:
             headers = {}
             body = None
