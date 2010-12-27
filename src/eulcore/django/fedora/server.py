@@ -15,7 +15,9 @@
 #   limitations under the License.
 
 from django.conf import settings
-from eulcore.fedora import server
+from eulcore.fedora import server, util
+
+_connection = util.RelativeServerConnection(settings.FEDORA_ROOT)
 
 class Repository(server.Repository):
     """Connect to a Fedora Repository based on configuration in ``settings.py``.
@@ -30,7 +32,7 @@ class Repository(server.Repository):
             username = settings.FEDORA_USER
         if password is None and hasattr(settings, 'FEDORA_PASS'):
             password = settings.FEDORA_PASS
-        super(Repository, self).__init__(settings.FEDORA_ROOT, username, password)
+        super(Repository, self).__init__(_connection, username, password)
 
         if hasattr(settings, 'FEDORA_PIDSPACE'):
             self.default_pidspace = settings.FEDORA_PIDSPACE

@@ -21,7 +21,7 @@ from eulcore.fedora.rdfns import model as modelns
 from eulcore.fedora.api import HTTP_API_Base, ApiFacade
 from eulcore.fedora.models import DigitalObject
 # FIXME: should risearch be moved to apis?
-from eulcore.fedora.util import RelativeOpener, parse_rdf, parse_xml_object, RequestFailed
+from eulcore.fedora.util import AuthorizingServerConnection, parse_rdf, parse_xml_object, RequestFailed
 from eulcore.fedora.xml import SearchResults, NewPids
 
 # a repository object, basically a handy facade for easy api access
@@ -51,9 +51,10 @@ class Repository(object):
     
     
     def __init__(self, root, username=None, password=None):
-        self.opener = RelativeOpener(root, username, password)
+        self.opener = AuthorizingServerConnection(root, username, password)
         self.api = ApiFacade(self.opener)
-        self.fedora_root = root
+        self.fedora_root = self.opener.base_url
+
         self.username = username
         self.password = password
         self._risearch = None

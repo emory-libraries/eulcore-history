@@ -14,13 +14,15 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import httplib
+from contextlib import contextmanager
 from datetime import datetime
 from dateutil.tz import tzutc
+import httplib
 import mimetypes
 import random
 import re
 import string
+import threading
 from cStringIO import StringIO
 
 from base64 import b64encode
@@ -139,51 +141,105 @@ class PermissionDenied(RequestFailed):
 # fedora.server.errors.ObjectValidityException
 # ObjectExistsException
 
+class HttpServerConnection(object):
+    def __init__(self, url):
+        self.urlparts = urlsplit(url)
+        if self.urlparts.scheme == 'http':
+            self.connection_class = httplib.HTTPConnection
+        elif self.urlparts.scheme == 'https':
+            self.connection_class = httplib.HTTPSConnection
+        
+        self.thread_local = threading.local()
 
-class RequestContextManager(object):
-    # used by HTTP APIs to close http connections automatically and
-    # ease connection creation
-    def __init__(self, method, url, body=None, headers=None, throw_errors=True):
-        self.method = method
-        self.url = url
-        self.body = body
-        self.headers = headers
-        self.throw_errors = throw_errors
+    def request(self, method, url, body=None, headers=None, throw_errors=True):
+        response = self._connect_and_request(method, url, body, headers)
 
-    def __enter__(self):
-        urlparts = urlsplit(self.url)
-        if urlparts.scheme == 'http':
-            connection = httplib.HTTPConnection(urlparts.hostname, urlparts.port)
-        elif urlparts.scheme == 'https':
-            connection = httplib.HTTPSConnection(urlparts.hostname, urlparts.port)
-        self.connection = connection
+        # FIXME: handle 3xx
+        if response.status >= 400:
+            # separate out 401 and 403 (permission errors) to enable
+            # special handling in client code.
+            if response.status in (401, 403):
+                raise PermissionDenied(response)
+            else:
+                raise RequestFailed(response)
 
+        return response
+
+    def _connect_and_request(self, method, url, body, headers):
+        if getattr(self.thread_local, 'connection', None) is not None:
+            try:
+                # we're already connected. try to reuse it.
+                return self._make_request(method, url, body, headers)
+            except:
+                # that didn't work. maybe the server disconnected on us.
+                # reset the connection and try again.
+                self._reset_connection()
+
+        # either we didn't have a conn, or we had one but it failed
+        self._get_connection()
+        
+        # now try sending the request again. this is the first time for this
+        # new connection. if this fails, all hope is lost. just try to tidy
+        # up a little then propagate the exception.
         try:
-            connection.request(self.method, self.url, self.body, self.headers)
-            response = connection.getresponse()
-            # FIXME: handle 3xx
-            if response.status >= 400 and self.throw_errors:
-                # separate out 401 and 403 (permission errors) to enable
-                # special handling in client code.
-                if response.status in (401, 403):
-                    raise PermissionDenied(response)
-                else:
-                    raise RequestFailed(response)
-            return response
+            return self._make_request(method, url, body, headers)
         except:
-            connection.close()
+            self._reset_connection()
             raise
 
-    def __exit__(self, exc_type, exc_value, exc_tb):
-        self.connection.close()
+    def _get_connection(self):
+        connection = self.connection_class(self.urlparts.hostname, self.urlparts.port)
+        connection._http_vsn = 11
+        connection._http_vsn_str = 'HTTP/1.1'
+        self.thread_local.connection = connection
+
+    def _reset_connection(self):
+        self.thread_local.connection.close()
+        self.thread_local.connection = None
+        
+    def _make_request(self, method, url, body, headers):
+        self.thread_local.connection.request(method, url, body, headers)
+        return self.thread_local.connection.getresponse()
+
+    @contextmanager
+    def open(self, method, url, body=None, headers=None, throw_errors=True):
+        response = self.request(method, url, body, headers, throw_errors)
+        yield response
+        response.read()
 
 
 # wrap up all of our common aspects of accessing data over HTTP, from
 # authentication to http/s switching to connection management to relative
 # path resolving. sorta like urllib2 with extras.
-class RelativeOpener(object):
-    def __init__(self, base_url, username=None, password=None):
+class RelativeServerConnection(HttpServerConnection):
+    def __init__(self, base_url):
+        super(RelativeServerConnection, self).__init__(base_url)
         self.base_url = base_url
+
+    def absurl(self, rel_url):
+        return urljoin(self.base_url, rel_url)
+
+    def open(self, method, rel_url, body=None, headers={}, throw_errors=True):
+        abs_url = self.absurl(rel_url)
+        super_open = super(RelativeServerConnection, self).open
+        return super_open(method, abs_url, body, headers, throw_errors)
+
+    def read(self, rel_url, data=None, headers={}):
+        method = 'GET'
+        if data is not None:
+            method = 'POST'
+
+        abs_url = self.absurl(rel_url)
+        response = self.request(method, abs_url, data, headers)
+        return response.read(), abs_url
+
+
+class AuthorizingServerConnection(object):
+    def __init__(self, base, username=None, password=None):
+        if isinstance(base, basestring):
+            base = RelativeServerConnection(base)
+        self.base = base
+        self.base_url = base.base_url
         self.username = username
         self.password = password
 
@@ -194,26 +250,13 @@ class RelativeOpener(object):
         else:
             return {}
 
-    def absurl(self, rel_url):
-        return urljoin(self.base_url, rel_url)
-
-    def _abs_open(self, method, abs_url, body=None, headers={}, throw_errors=True):
+    def open(self, method, rel_url, body=None, headers={}, throw_errors=True):
         headers = headers.copy()
         headers.update(self._auth_headers())
-        return RequestContextManager(method, abs_url, body, headers, throw_errors)
-
-    def open(self, method, rel_url, body=None, headers={}, throw_errors=True):
-        abs_url = self.absurl(rel_url)
-        return self._abs_open(method, abs_url, body, headers,
-                              throw_errors=throw_errors)
+        return self.base.open(self, method, rel_url, body, headers, throw_errors)
 
     def read(self, rel_url, data=None):
-        method = 'GET'
-        if data is not None:
-            method = 'POST'
-        abs_url = self.absurl(rel_url)
-        with self._abs_open(method, abs_url, data) as fobj:
-            return fobj.read(), abs_url
+        return self.base.read(rel_url, data, self._auth_headers())
 
 
 def parse_rdf(data, url, format=None):
