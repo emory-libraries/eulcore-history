@@ -1076,6 +1076,12 @@ class DigitalObject(object):
         elif isinstance(object, str) and object.startswith('info:fedora/'):
             obj_is_literal = False
 
+        # this call will change RELS-EXT, possibly creating it if it's
+        # missing. remove any cached info we have for that datastream.
+        if 'RELS-EXT' in self.dscache:
+            del self.dscache['RELS-EXT']
+        self._ds_list = None
+
         return self.api.addRelationship(self.pid, rel_uri, object, obj_is_literal)
 
     def has_model(self, model):
