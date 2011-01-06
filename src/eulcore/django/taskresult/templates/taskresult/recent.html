@@ -1,0 +1,32 @@
+{% extends "site_base.html" %}
+
+{% block page-subtitle %}: Tasks : Recently completed{% endblock %}
+{% block content-title %}Recently completed tasks{% endblock %}
+
+{% block content-body %}
+<style type="text/css">
+div#task-results li {
+    list-style-type: circle;
+    margin-left:15px;
+    background: none;
+    padding: 0px 0px 10px 5px;
+}
+div#task-results li.success { list-style-image: url('{{MEDIA_URL}}/images/check.png'); }
+div#task-results li.failure { list-style-image: url('{{MEDIA_URL}}/images/x.png'); }
+
+div#task-results li.success span.code { color: green; font-weight:bold }
+div#task-results li.failure span.code { color: red; font-weight:bold  }
+div#task-results div.detail { border:0px; padding: 0px; margin:0px; font-size: 90%; }
+</style>
+
+<div id="task-results">
+   <h3>Task Results</h3>
+   <ul>
+      {% for r in task_results %}
+        {% include 'taskresult/_display_task.html' %}
+      {% empty %}
+        <li>No recent tasks.</li>
+      {% endfor %}
+   </ul>
+</div>
+{% endblock %}
