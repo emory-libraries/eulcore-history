@@ -463,6 +463,28 @@ class RdfDatastreamObject(DatastreamObject):
         return obj.node
 
     def replace_uri(self, src, dest):
+        """Replace a uri reference everywhere it appears in the graph with
+        another one. It could appear as the subject, predicate, or object of
+        a statement, so for each position loop through each statement that
+        uses the reference in that position, remove the old statement, and
+        add the replacement. """
+
+        # NB: The hypothetical statement <src> <src> <src> will be removed
+        # and re-added several times. The subject block will remove it and
+        # add <dest> <src> <src>. The predicate block will remove that and
+        # add <dest> <dest> <src>. The object block will then remove that
+        # and add <dest> <dest> <dest>.
+
+        # NB2: The list() call here is necessary. .triples() is a generator:
+        # It calculates its matches as it progressively iterates through the
+        # graph. Actively changing the graph inside the for loop while the
+        # generator is in the middle of examining it risks invalidating the
+        # generator and could conceivably make it Just Break, depending on
+        # the implementation of .triples(). Wrapping .triples() in a list()
+        # forces it to exhaust the generator, running through the entire
+        # graph to calculate the list of matches before continuing to the
+        # for loop.
+
         subject_triples = list(self.content.triples((src, None, None)))
         for s, p, o in subject_triples:
             self.content.remove((src, p, o))
@@ -479,6 +501,11 @@ class RdfDatastreamObject(DatastreamObject):
             self.content.add((s, p, dest))
 
     def _prepare_ingest(self):
+        """If the RDF datastream refers to the object by the default dummy
+        uriref then we need to replace that dummy reference with a real one
+        before we ingest the object."""
+
+        # see also commentary on DigitalObject.DUMMY_URIREF
         self.replace_uri(self.obj.DUMMY_URIREF, self.obj.uriref)
 
 
@@ -625,6 +652,9 @@ class DigitalObject(object):
         # pid = None signals to create a new object, using a default pid
         # generation function.
         if pid is None:
+            # self._getDefaultPid is probably the method defined elsewhere
+            # in this class. Barring clever hanky-panky, it should be
+            # reliably callable.
             pid = self._getDefaultPid
 
         # callable(pid) signals a function to call to obtain a pid if and
@@ -646,7 +676,7 @@ class DigitalObject(object):
 
     def __str__(self):
         if callable(self.pid):
-            return '(generated pid)'
+            return '(generated pid; uningested)'
         elif self._create:
             return self.pid + ' (uningested)'
         else:
@@ -656,6 +686,9 @@ class DigitalObject(object):
         return '<%s %s>' % (self.__class__.__name__, str(self))
 
     def _getDefaultPid(self, namespace=None):
+        # This function is used by __init__ as a default pid generator if
+        # none is specified. If you get the urge to override it, make sure
+        # it still works there.
         kwargs = {}
         if namespace is not None:
             kwargs['namespace'] = namespace
@@ -671,6 +704,26 @@ class DigitalObject(object):
         ps, pid = self.pid.split(':', 1)
         return ps
 
+    # This dummy pid stuff is ugly. I'd rather not need it. Every now and
+    # then, though, something needs a PID or URI for a brand-new object
+    # (i.e., with a callable self.pid) before we've even had a chance to
+    # generate one. In particular, if we want to add statements to an
+    # object's RELS-EXT, then the the object URI needs to be the subject of
+    # those statements. We can't just generate the PID early because we get
+    # PIDs from ARKs, and those things stick around. Also, most objects get
+    # RELS-EXT statements right as we create them anyway (see references to
+    # CONTENT_MODELS in _init_as_new_object()), so calling self.pid as soon
+    # as we need a uri would be essentially equivalent to "at object
+    # creation," which negates the whole point of lazy callable pids.
+    #
+    # So anyway, this DUMMY_PID gives us something we can use as a pid for
+    # new objects, with the understanding that we have to clean it up to use
+    # the real pid in obj._prepare_ingest(), which is called after we've
+    # committed to trying to ingest the object, and thus after self.pid has
+    # been called and replaced with a real string pid. DatastreamObject
+    # subclasses can do this in their own _prepare_ingest() methods.
+    # RELS-EXT (and all other RDF datastreams for that matter) get that
+    # implemented in RdfDatastreamObject above.
     DUMMY_PID = 'TEMP:DUMMY_PID'
     DUMMY_URIREF = URIRef('info:fedora/' + DUMMY_PID)
 
@@ -728,17 +781,17 @@ class DigitalObject(object):
 
     @property
     def exists(self):
-        if callable(self.pid):
+        """Does the object exist in Fedora?"""
+
+        # If we made the object under the pretext that it doesn't exist in
+        # fedora yet, then assume it doesn't exist in fedora yet.
+        if self._create:
             return False
 
-        # If we can get the object profile, this object exists. If not, then
-        # it doesn't. We could conceivably use self.info or
-        # self.getProfile() for this, but it seems to make more sense for
-        # this property to bypass their _create checks and go straight to
-        # the repo. Unfortunately that means that if you get obj.exists
-        # and obj.info, you'll poke fedora twice.
+        # If we can get a valid object profile, regardless of its contents,
+        # then this object exists. If not, then it doesn't. 
         try:
-            self.api.getObjectProfile(self.pid)
+            self.getProfile()
             return True
         except RequestFailed:
             return False
@@ -750,7 +803,7 @@ class DigitalObject(object):
         :rtype: :class:`DatastreamProfile`
         """
         # NOTE: used by DatastreamObject
-        if callable(self.pid):
+        if self._create:
             return None
 
         data, url = self.api.getDatastream(self.pid, dsid)
@@ -764,7 +817,7 @@ class DigitalObject(object):
 
     def getHistory(self):
         if self._create:
-            history = ObjectHistory()
+            return None
         else:
             data, url = self.api.getObjectHistory(self.pid)
             history = parse_xml_object(ObjectHistory, data, url)
@@ -857,6 +910,12 @@ class DigitalObject(object):
         return [ds for ds in datastreams if self.dscache[ds].undo_last_save(logMessage)]
 
     def _prepare_ingest(self):
+        # This should only ever be called on newly-created objects, and only
+        # immediately before ingest. It's used to clean up any rough edges
+        # left over from being hewn from raw bits (instead of loaded from
+        # the repo, like most other DigitalObjects are). In particular, see
+        # the comments by DigitalObject.DUMMY_PID.
+
         if callable(self.pid):
             self.pid = self.pid()
 
