@@ -1,3 +1,11 @@
+"""Template tags utilities for communicating with a Fedora server
+
+This module defines a single template tag, {% fedora_access %} (and matched
+{% end_fedora_access %}), which further recognizes internal tags
+{% permission_denied %} and {% fedora_failed %}. See Sphinx docs for
+sample template code.
+"""
+
 from django import template
 from eulcore.fedora.util import RequestFailed, PermissionDenied
 
@@ -36,6 +44,12 @@ def do_catch_fedora_errors(parser, token):
     optional ``{% permission_denied %}`` and ``{% fedora_failed %}``
     sections with fallback content in case of permission or other errors
     while rendering the main block.
+
+    Note that when Django's ``TEMPLATE_DEBUG`` setting is on, it precludes
+    all error handling and displays the Django exception screen for all
+    errors, including fedora errors, even if you use this template tag. Turn
+    off ``TEMPLATE_DEBUG`` if that debug screen is getting in the way of the
+    use of {% fedora_access %}.
     """
 
     END_TAGS = ('end_fedora_access',
