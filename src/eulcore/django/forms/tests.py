@@ -168,17 +168,25 @@ class XmlObjectFormTest(unittest.TestCase):
         # test with prefixes
         update_form = TestForm(instance=self.testobj, prefix='pre')
         initial_data = update_form.initial   # initial values set on BaseForm
-        expected, got = 'a', initial_data['pre-id']
+        expected, got = 'a', initial_data['id']
         self.assertEqual(expected, got,
             "initial instance-based form value for 'pre-id' should be %s, got %s" % \
             (expected, got))
+        # the *rendered* field should actually have the value
+        # ... there should probably be a way to inspect the BoundField value directly (can't get it to work)
+        self.assert_('value="%s"' % expected in str(update_form['id']),
+            'rendered form field has correct initial value')
+        self.assert_('name="pre-id"' in str(update_form['id']),
+            'rendered form field has a name with the requested prefix')
+        self.assert_('id="id_pre-id"' in str(update_form['id']),
+            'rendered form field has an id with the requested prefix')
 
-        expected, got = 13, initial_data['pre-int']
+        expected, got = 13, initial_data['int']
         self.assertEqual(expected, got,
            "initial instance-based form value for 'int' should be %s, got %s" % \
             (expected, got))
 
-        expected, got = True, initial_data['pre-bool']
+        expected, got = True, initial_data['bool']
         self.assertEqual(expected, got,
            "initial instance-based form value for 'bool' should be %s, got %s" % \
             (expected, got))
@@ -393,26 +401,35 @@ class XmlObjectFormTest(unittest.TestCase):
         # subform is initialized with appropriate instance data
         subform = self.update_form.subforms['child']
         # initial values from subobject portion of test fixture
-        expected, got = 'forty-two', subform.initial['child-id2']
+        expected, got = 'forty-two', subform.initial['id2']
         self.assertEqual(expected, got,
-            "initial instance-based form value for 'child-id2' should be %s, got %s" % \
+            "initial instance-based form value for 'id2' should be %s, got %s" % \
             (expected, got))
-        expected, got = 42, subform.initial['child-val']
+        # check rendered field for initial value
+        self.assert_('value="%s"' % expected in str(subform['id2']),
+            'rendered subform field has correct initial value')
+        expected, got = 42, subform.initial['val']
         self.assertEqual(expected, got,
-            "initial instance-based form value for 'child-val' should be %s, got %s" % \
+            "initial instance-based form value for 'val' should be %s, got %s" % \
             (expected, got))
+        self.assert_('value="%s"' % expected in str(subform['val']),
+            'rendered subform field has correct initial value')
 
         # test with prefixes
         update_form = TestForm(instance=self.testobj, prefix='pre')
         subform = update_form.subforms['child']
-        expected, got = 'forty-two', subform.initial['pre-child-id2']
+        expected, got = 'forty-two', subform.initial['id2']
         self.assertEqual(expected, got,
-            "initial instance-based form value for 'pre-child-id2' should be %s, got %s" % \
+            "initial instance-based subform value for 'id2' should be %s, got %s" % \
             (expected, got))
-        expected, got = 42, subform.initial['pre-child-val']
+        self.assert_('value="%s"' % expected in str(subform['id2']),
+            'rendered subform field has correct initial value')
+        expected, got = 42, subform.initial['val']
         self.assertEqual(expected, got,
-            "initial instance-based form value for 'pre-child-valval' should be %s, got %s" % \
+            "initial instance-based form value for 'val' should be %s, got %s" % \
             (expected, got))
+        self.assert_('value="%s"' % expected in str(subform['val']),
+            'rendered subform field has correct initial value')
 
         # initialize with request data to test subform validation / instance update
         update_form = TestForm(self.post_data, instance=self.testobj)
@@ -448,14 +465,31 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertEqual(42, formset.forms[0].initial['val'])
         self.assertEqual(None, formset.forms[1].initial['id2'])
         self.assertEqual(13, formset.forms[1].initial['val'])
+         # check rendered fields for initial values
+        self.assert_('value="forty-two"' in str(formset.forms[0]['id2']),
+            'rendered formset field has correct initial value')
+        self.assert_('value="42"' in str(formset.forms[0]['val']),
+            'rendered formset field has correct initial value')
+        self.assert_('value=""' not in str(formset.forms[1]['id2']),
+            'rendered formset field has correct initial value')
+        self.assert_('value="13"' in str(formset.forms[1]['val']),
+            'rendered formset field has correct initial value')
 
         # initialize with prefix
         update_form = TestForm(instance=self.testobj, prefix='pre')
         formset = update_form.formsets['children']
-        self.assertEqual('forty-two', formset.forms[0].initial['pre-children-0-id2'])
-        self.assertEqual(42, formset.forms[0].initial['pre-children-0-val'])
-        self.assertEqual(None, formset.forms[1].initial['pre-children-1-id2'])
-        self.assertEqual(13, formset.forms[1].initial['pre-children-1-val'])
+        self.assertEqual('forty-two', formset.forms[0].initial['id2'])
+        self.assertEqual(42, formset.forms[0].initial['val'])
+        self.assertEqual(None, formset.forms[1].initial['id2'])
+        self.assertEqual(13, formset.forms[1].initial['val'])
+        self.assert_('value="forty-two"' in str(formset.forms[0]['id2']),
+            'rendered formset field has correct initial value')
+        self.assert_('value="42"' in str(formset.forms[0]['val']),
+            'rendered formset field has correct initial value')
+        self.assert_('value=""' not in str(formset.forms[1]['id2']),
+            'rendered formset field has correct initial value')
+        self.assert_('value="13"' in str(formset.forms[1]['val']),
+            'rendered formset field has correct initial value')
 
         # initialize with an instance and form data
         update_form = TestForm(self.post_data, instance=self.testobj)

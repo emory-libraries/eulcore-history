@@ -421,7 +421,7 @@ class XmlObjectForm(BaseForm):
             self.instance = instance
             # generate dictionary of initial data based on current instance
             # allow initial data from instance to co-exist with other initial data
-            local_initial.update(xmlobject_to_dict(self.instance, prefix=prefix))  # fields, exclude?
+            local_initial.update(xmlobject_to_dict(self.instance)) #, prefix=prefix))  # fields, exclude?
             # FIXME: is this backwards? should initial data override data from instance?
 
         # initialize subforms for all nodefields that belong to the xmlobject model
