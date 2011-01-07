@@ -405,8 +405,10 @@ class XmlObjectForm(BaseForm):
     :class:`~eulcore.xmlmap.XmlObject` model, keyed on field name.  Ordered by
     field creation order or by specified fields."""
 
-    def __init__(self, data=None, instance=None, prefix=None, **kwargs):
+    def __init__(self, data=None, instance=None, prefix=None, initial={}, **kwargs):
         opts = self._meta
+        # make a copy of any initial data for local use, since it may get updated with instance data
+        local_initial = initial.copy()
         if instance is None:
             if opts.model is None:
                 raise ValueError('XmlObjectForm has no XmlObject model class specified')
@@ -415,16 +417,11 @@ class XmlObjectForm(BaseForm):
             # currently requires that instantiate_on_get param be set to True for NodeFields
             self.instance = opts.model()
             # track adding new instance instead of updating existing?
-
-            if 'initial' not in kwargs:
-                kwargs['initial'] = {}    # no initial data
         else:
             self.instance = instance
-            if 'initial' not in kwargs:
-                # generate dictionary of initial data based on current instance
-                kwargs['initial'] = {}
+            # generate dictionary of initial data based on current instance
             # allow initial data from instance to co-exist with other initial data
-            kwargs['initial'].update(xmlobject_to_dict(self.instance, prefix=prefix))  # fields, exclude?
+            local_initial.update(xmlobject_to_dict(self.instance, prefix=prefix))  # fields, exclude?
             # FIXME: is this backwards? should initial data override data from instance?
 
         # initialize subforms for all nodefields that belong to the xmlobject model
@@ -432,7 +429,7 @@ class XmlObjectForm(BaseForm):
         self._init_formsets(data, prefix)
             
         super_init = super(XmlObjectForm, self).__init__
-        super_init(data=data, prefix=prefix, **kwargs)
+        super_init(data=data, prefix=prefix, initial=local_initial, **kwargs)
         # other kwargs accepted by XmlObjectForm.__init__:
         #    files, auto_id, object_data,
         #    error_class, label_suffix, empty_permitted

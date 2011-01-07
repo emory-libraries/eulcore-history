@@ -138,6 +138,13 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertFalse(formfields['longtext'].required,
             'form field generated from xmlobject field with required=False is not required')
 
+    def test_unchanged_initial_param(self):
+        # initial data dictionary passed in should not be changed by class init
+        my_initial_data = {'foo': 'bar'}
+        initial_copy = my_initial_data.copy()
+        TestForm(instance=self.testobj, initial=initial_copy)
+        self.assertEqual(my_initial_data, initial_copy)
+
     def test_field_value_from_instance(self):
         # when form is initialized from an xmlobject instance, form should 
         # have initial field values be pulled from the xml object
