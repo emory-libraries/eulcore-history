@@ -4,6 +4,14 @@ from urlparse import urlsplit
 #from test_existdb import settings as exist_settings
 from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_ROOT_COLLECTION, EXISTDB_TEST_COLLECTION
 
+from os import path
+
+# Get the directory of this file for relative dir paths.
+# Django sets too many absolute paths.
+BASE_DIR = path.dirname(path.abspath(__file__))
+
+
+
 # Django settings for eulcore project.
 DEBUG = True
 TEMPLATE_DEBUG = False
@@ -67,12 +75,13 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
 )
 
-ROOT_URLCONF = ''
+ROOT_URLCONF = 'django_tester.urls'
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
+    path.join(BASE_DIR, 'templates'),
 )
 
 INSTALLED_APPS = (
@@ -84,6 +93,8 @@ INSTALLED_APPS = (
     'eulcore.django.forms',
     'eulcore.django.http',
     'eulcore.django.ldap',
+    'djcelery',
+    'eulcore.django.taskresult',
     'eulcore.django.testsetup',
 
     # needed for test dependencies:
@@ -95,6 +106,21 @@ INSTALLED_APPS = (
 )
 
 AUTH_PROFILE_MODULE = 'emory_ldap.EmoryLDAPUserProfile'
+
+
+
+# celery config for taskresult
+CELERY_ALWAYS_EAGER = True
+import djcelery
+djcelery.setup_loader()
+
+BROKER_HOST = "localhost" # e.g "localhost"
+BROKER_PORT =  '5672'  # e.g 5672
+BROKER_USER = "guest" # e.g "user"
+BROKER_PASSWORD = "guest" #e.g. "password"
+BROKER_VHOST = "/" # e.g. "digitalmasters_vhost"
+CELERY_RESULT_BACKEND = "database" # e.g "amqp"
+
 
 from test_fedora.base import FEDORA_ROOT, FEDORA_USER, FEDORA_PASS, FEDORA_PIDSPACE
 
