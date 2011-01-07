@@ -2,4 +2,4 @@ ply
 unittest-xml-reporting
 sphinx
 coverage
-djcelery
+django-celery
