@@ -664,6 +664,10 @@ class DigitalObject(object):
 
         self.pid = pid
 
+        # self._create is True when we should create (ingest) this object in
+        # fedora on first save(), False if we should assume it's already
+        # there. Note that if pid is callable, create is always True (for
+        # which see above)
         self._create = bool(create)
 
         if create:
