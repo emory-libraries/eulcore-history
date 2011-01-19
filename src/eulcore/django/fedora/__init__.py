@@ -18,7 +18,7 @@ from django.conf import settings
 from django.core.management import call_command
 
 from eulcore.django.testsetup import starting_tests, finished_tests
-from eulcore.django.fedora.server import Repository
+from eulcore.django.fedora.server import Repository, init_pooled_connection
 
 _stored_default_fedora_root = None
 _stored_default_fedora_pidspace = None
@@ -32,7 +32,10 @@ def _use_test_fedora(sender, **kwargs):
 
     if getattr(settings, "FEDORA_TEST_ROOT", None):
         settings.FEDORA_ROOT = settings.FEDORA_TEST_ROOT
-        print "Switching to test Fedora: %s" % settings.FEDORA_ROOT        
+        print "Switching to test Fedora: %s" % settings.FEDORA_ROOT
+        # pooled fedora connection gets initialized before this change;
+        # re-initialize connection with new fedora root configured
+        init_pooled_connection()
     else:
         print "FEDORA_TEST_ROOT is not configured in settings; tests will run against %s" % \
             settings.FEDORA_ROOT
@@ -65,6 +68,8 @@ def _restore_fedora_root(sender, **kwargs):
     if _stored_default_fedora_root is not None:
         print "Restoring Fedora root: %s" % _stored_default_fedora_root
         settings.FEDORA_ROOT = _stored_default_fedora_root
+        # re-initialize pooled connection with restored fedora root
+        init_pooled_connection()
 
 
 starting_tests.connect(_use_test_fedora)

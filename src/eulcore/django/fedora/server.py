@@ -17,7 +17,20 @@
 from django.conf import settings
 from eulcore.fedora import server, util
 
-_connection = util.RelativeServerConnection(settings.FEDORA_ROOT)
+_connection = None
+
+def init_pooled_connection(fedora_root=None):
+    '''Initialize pooled connection for use with :class:`Repository`.
+
+    :param fedora_root: base fedora url to use for connection.  If not specified,
+        uses FEDORA_ROOT from django settings
+    '''
+    global _connection
+    if fedora_root is None:
+        fedora_root = settings.FEDORA_ROOT
+    _connection = util.RelativeServerConnection(fedora_root)
+
+init_pooled_connection()
 
 class Repository(server.Repository):
     """Connect to a Fedora Repository based on configuration in ``settings.py``.
