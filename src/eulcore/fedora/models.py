@@ -112,7 +112,14 @@ class DatastreamObject(object):
         return profile
 
     def _get_content(self):
-        # pull datastream content from Fedora, but only when accessed
+        # Pull datastream content from Fedora and return it as a string, but
+        # only when accessed. Note that this will load the entire datastream
+        # contents into memory as a string. This is probably a bad idea for
+        # large files. Thus:
+        # TODO: Once we have an eulcore.fedora.api call that returns
+        # iterable chunks of datastream content, we need to either update
+        # this property or add another to expose that iterable chunk
+        # functionality at this layer.
         if self._content is None:
             if not self.exists:
                 self._content = self._bootstrap_content()

@@ -105,6 +105,12 @@ class REST_API(HTTP_API_Base):
         :param asOfDateTime: optional datetime; ``must`` be a non-naive datetime
         so it can be converted to a date-time format Fedora can understand
         """
+        # TODO: Note that this loads the entire datastream content into
+        # memory as a Python string. This will suck for very large
+        # datastreams. Eventually we need to either modify this function or
+        # else add another to return self.open(), allowing users to stream
+        # the result in a with block.
+
         # /objects/{pid}/datastreams/{dsID}/content ? [asOfDateTime] [download]
         http_args = {}
         if asOfDateTime:
