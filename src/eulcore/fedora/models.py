@@ -807,6 +807,15 @@ class DigitalObject(object):
         except RequestFailed:
             return False
 
+    @property
+    def has_requisite_content_models(self):
+        '''Does the object have the expected content models for this type of
+        :class:`DigitalObject` ?'''
+        for cmodel in getattr(self, 'CONTENT_MODELS', ()):
+            if not self.has_model(cmodel):
+                return False
+        return True
+
     def getDatastreamProfile(self, dsid):
         """Get information about a particular datastream belonging to this object.
 

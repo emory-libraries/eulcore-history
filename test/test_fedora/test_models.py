@@ -551,6 +551,33 @@ class TestDigitalObject(FedoraTestCase):
         self.assertTrue(self.obj.has_model(cmodel_uri))
         self.assertFalse(self.obj.has_model(self.obj.uri))
 
+    def test_has_requisite_content_models(self):
+        # fixture has no content models
+        # init fixture as generic object
+        obj = models.DigitalObject(self.api, self.pid)
+        # should have all required content models because there are none
+        self.assertTrue(obj.has_requisite_content_models)
+
+        # init fixture as test digital object with cmodels
+        obj = MyDigitalObject(self.api, self.pid)
+        # initially false since fixture has no cmodels
+        self.assertFalse(obj.has_requisite_content_models)
+        # add first cmodel
+        obj.rels_ext.content.add((obj.uriref, modelns.hasModel,
+                                       URIRef(MyDigitalObject.CONTENT_MODELS[0])))
+        # should still be false since both are required
+        self.assertFalse(obj.has_requisite_content_models)
+        # add second cmodel
+        obj.rels_ext.content.add((obj.uriref, modelns.hasModel,
+                                       URIRef(MyDigitalObject.CONTENT_MODELS[1])))
+        # now all cmodels should be present
+        self.assertTrue(obj.has_requisite_content_models)
+        # add an additional, extraneous cmodel
+        obj.rels_ext.content.add((obj.uriref, modelns.hasModel,
+                                       URIRef(SimpleDigitalObject.CONTENT_MODELS[0])))
+        # should still be true
+        self.assertTrue(obj.has_requisite_content_models)
+
     def test_add_relationships(self):
         # add relation to a resource, by digital object
         related = models.DigitalObject(self.api, "foo:123")
