@@ -56,7 +56,15 @@ class TestFields(unittest.TestCase):
         # check required
         self.assertTrue(obj._fields['child'].required)
 
-        # test instantiate on get hack
+        # test create_foo functionality
+        class CreateTestObject(xmlmap.XmlObject):
+            missing = xmlmap.NodeField('missing', TestSubobject)
+        obj = CreateTestObject(self.fixture)
+        self.assert_(obj.missing is None)
+        obj.create_missing()
+        self.assert_(isinstance(obj.missing, TestSubobject))
+
+        # test DEPRECATED instantiate on get hack
         class GetTestObject(xmlmap.XmlObject):
             missing = xmlmap.NodeField('missing', TestSubobject, instantiate_on_get=True)
         obj = GetTestObject(self.fixture)

@@ -376,6 +376,8 @@ def _get_attribute_name(step, context):
 class SingleNodeManager(object):
 
     def __init__(self, instantiate_on_get=False):
+        # DEPRECATED: don't use instantiate_on_get. Use create_for_node() as
+        # described in XmlObjectType.__new__ comments and used by NodeField.
         self.instantiate_on_get = instantiate_on_get
 
     def get(self, xpath, node, context, mapper, xast):
@@ -399,6 +401,14 @@ class SingleNodeManager(object):
             # terminal (rightmost) step informs how we update the xml
             step = _find_terminal_step(xast)
             _set_in_xml(match, xvalue, context, step)
+
+    def create(self, xpath, xast, node, context):
+        # most clients will want to use get() or set(), but occasially we
+        # just want a basic node to match the xpath.
+        match = _find_xml_node(xpath, node, context)
+        if match is not None:
+            return match
+        return _create_xml_node(xast, node, context)
 
     def delete(self, xpath, xast, node, context, mapper):
         match = _find_xml_node(xpath, node, context)
@@ -712,10 +722,16 @@ class NodeField(Field):
     exception, it may be the string ``"self"``, in which case it recursively
     refers to objects of its containing :class:`XmlObject` class.
 
-    Optional ``instantiate_on_get`` flag: set to True if you need a non-existent
-    node to be created when the NodeField is accessed.  (Currently needed for
-    :class:`eulcore.django.forms.xmlobject.XmlObjectForm` if you want to dynamically
-    add missing fields under a NodeField to XML.)
+    If an :class:`XmlObject` contains a NodeField named ``foo``, then the
+    object will automatically have a ``create_foo()`` method in addition to
+    its ``foo`` property. Code can call this ``create_foo()`` method to
+    create the child element if it doesn't exist; the method will have no
+    effect if the element is already present.
+
+    Deprecated ``instantiate_on_get`` flag: set to True if you need a
+    non-existent node to be created when the NodeField is accessed. This
+    feature is deprecated: Instead, create your node explicitly with
+    ``create_foo()`` as described above.
     """
 
     def __init__(self, xpath, node_class, instantiate_on_get=False, *args, **kwargs):
@@ -728,6 +744,10 @@ class NodeField(Field):
     def _set_node_class(self, val):
         self.mapper.node_class = val
     node_class = property(_get_node_class, _set_node_class)
+
+    def create_for_node(self, node, context):
+        return self.manager.create(self.xpath, self.parsed_xpath, node, context)
+
 
 class NodeListField(Field):
 

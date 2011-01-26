@@ -109,6 +109,7 @@ class _FieldDescriptor(object):
     def __delete__(self, obj):
         return self.field.delete_for_node(obj.node, obj.context)
 
+
 class XmlObjectType(type):
 
     """
@@ -171,6 +172,16 @@ class XmlObjectType(type):
                                                     repr(name))
                         raise ValueError(msg)
 
+                # if a field 'foo' has a 'create_for_node' method, then add
+                # a 'create_foo' method to call it. generally this isn't
+                # helpful, but NodeField uses it.
+                if hasattr(attr_val, 'create_for_node'):
+                    def create_field(xmlobject):
+                        field.create_for_node(xmlobject.node, xmlobject.context)
+                    create_method_name = 'create_' + attr_name
+                    create_field.__name__ = create_method_name
+                    use_attrs[create_method_name] = create_field
+
             else:
                 use_attrs[attr_name] = attr_val
         use_attrs['_fields'] = fields
@@ -185,6 +196,7 @@ class XmlObjectType(type):
             field.node_class = new_class
 
         return new_class
+
 
 class XmlObject(object):
 
