@@ -23,3 +23,9 @@ class HttpResponseUnauthorized(HttpResponse):
     def __init__(self, realm='Restricted Access'):
         HttpResponse.__init__(self)
         self['WWW-Authenticate'] = 'Basic realm="%s"' % realm
+
+class HttpResponseUnsupportedMediaType(HttpResponse):
+    """Variant of Django's :class:`django.http.HttpResponse` with status
+    code 415 Unsupported Media Type.
+    """
+    status_code = 415
