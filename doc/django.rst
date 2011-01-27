@@ -262,3 +262,8 @@ tag, add the following to your Django settings::
         than without, since every time eXist loads new documents (which happens
         every setUp), they must be reindexd.
 
+:mod:`~eulcore.django.taskresult`
+---------------------------------
+
+.. automodule:: eulcore.django.taskresult
+    :members:
