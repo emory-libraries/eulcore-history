@@ -139,11 +139,17 @@ class Unitid(_EadBase):
     value = xmlmap.StringField('.')
     "human-readable unitid - (contents of the element)"
 
+class UnitTitle(_EadBase):
+    unitdate = xmlmap.NodeField("e:unitdate", DateField)
+    "unit date"
+    short = xmlmap.StringField('text()')
+    "short-form of the unit title, excluding any unit date"
+
 class DescriptiveIdentification(_EadBase):
     """Descriptive Information (`did` element) for materials in a component"""
     unitid = xmlmap.NodeField("e:unitid", Unitid)
     ":class:`Unitid` - `unitid`"
-    unittitle = xmlmap.NodeField("e:unittitle", xmlmap.XmlObject)
+    unittitle = xmlmap.NodeField("e:unittitle", UnitTitle)
     "unit title - `unittitle`"
     unitdate = xmlmap.NodeField(".//e:unitdate", DateField)
     "unit date - `.//unitdate` can be anywhere under the DescriptiveIdentification"
@@ -414,7 +420,7 @@ class EncodedArchivalDescription(_EadBase):
     "record title - `eadheader/filedesc/titlestmt/titleproper`"
     author = xmlmap.StringField('e:eadheader/e:filedesc/e:titlestmt/e:author')
     "record author - `eadheader/filedesc/titlestmt/author`"
-    unittitle = xmlmap.NodeField('e:archdesc[@level="collection"]/e:did/e:unittitle', xmlmap.XmlObject)
+    unittitle = xmlmap.NodeField('e:archdesc[@level="collection"]/e:did/e:unittitle', UnitTitle)
     """unit title for the archive - `archdesc[@level="collection"]/did/unittitle`"""
     physical_desc = xmlmap.StringField('e:archdesc[@level="collection"]/e:did/e:physdesc')
     """collection level physical description - `archdesc[@level="collection"]/did/physdesc`"""
