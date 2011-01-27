@@ -176,11 +176,9 @@ class XmlObjectType(type):
                 # a 'create_foo' method to call it. generally this isn't
                 # helpful, but NodeField uses it.
                 if hasattr(attr_val, 'create_for_node'):
-                    def create_field(xmlobject):
-                        field.create_for_node(xmlobject.node, xmlobject.context)
                     create_method_name = 'create_' + attr_name
-                    create_field.__name__ = create_method_name
-                    use_attrs[create_method_name] = create_field
+                    create_method = cls._make_create_field(create_method_name, attr_val)
+                    use_attrs[create_method_name] = create_method
 
             else:
                 use_attrs[attr_name] = attr_val
@@ -196,6 +194,13 @@ class XmlObjectType(type):
             field.node_class = new_class
 
         return new_class
+
+    @staticmethod
+    def _make_create_field(field_name, field):
+        def create_field(xmlobject):
+            field.create_for_node(xmlobject.node, xmlobject.context)
+        create_field.__name__ = field_name
+        return create_field
 
 
 class XmlObject(object):
