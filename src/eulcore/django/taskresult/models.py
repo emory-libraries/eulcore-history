@@ -17,16 +17,19 @@
 from datetime import datetime
 from celery.result import AsyncResult
 from celery.signals import task_prerun, task_postrun
+import logging
 
 from django.contrib import admin
 from django.db import models
+
+logger = logging.getLogger(__name__)
 
 # store details about pdf reload celery task results for display on admin page
 class TaskResult(models.Model):
     label = models.CharField(max_length=100)
     object_id = models.CharField(max_length=50)
     url = models.URLField()
-    created = models.DateTimeField(default=datetime.now)
+    created = models.DateTimeField(auto_now_add=True)
     task_id = models.CharField(max_length=100)
     task_start = models.DateTimeField(blank=True, null=True)
     task_end = models.DateTimeField(blank=True, null=True)
@@ -43,7 +46,7 @@ class TaskResult(models.Model):
         if self.task_end and self.task_start:
             return self.task_end - self.task_start
         else:
-            return ''
+            return None
 
 # listeners to celery signals to store start and end time for tasks
 # NOTE: these functions do not filter on the sender/task function
@@ -54,7 +57,8 @@ def taskresult_start(sender, task_id, **kwargs):
         tr.task_start = datetime.now()
         tr.save()
     except Exception:
-        pass
+        logger.error("Error saving task start time: %s" % e)
+        logger.debug("Stack trace for task start time error:\n" + traceback.format_exc())
 task_prerun.connect(taskresult_start)
 
 def taskresult_end(sender, task_id, **kwargs):
@@ -63,17 +67,8 @@ def taskresult_end(sender, task_id, **kwargs):
         tr.task_end = datetime.now()
         tr.save()
     except Exception:
-        pass
+        logger.error("Error saving task end time: %s" % e)
+        logger.debug("Stack trace for task end time error:\n" + traceback.format_exc())
 task_postrun.connect(taskresult_end)
-
-class TaskResultAdmin(admin.ModelAdmin):
-    list_display = ('object_id', 'label', 'created', 'task_start', 'task_end', 'duration')
-    list_filter  = ('created',)
-    # disallow creating task results via admin site
-    def has_add_permission(self, request):
-        return False
-
-admin.site.register(TaskResult, TaskResultAdmin)
-
 
 
