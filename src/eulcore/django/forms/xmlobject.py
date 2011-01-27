@@ -472,6 +472,11 @@ class XmlObjectForm(BaseForm):
     def update_instance(self):
         """Save bound form data into the XmlObject model instance and return the
         updated instance."""
+
+        # NOTE: django model form has a save method - not applicable here,
+        # since an XmlObject by itself is not expected to have a save method
+        # (only likely to be saved in context of a fedora or exist object)
+
         opts = self._meta
         for name in self.instance._fields.iterkeys():
             if opts.fields and name not in opts.parsed_fields.fields:
@@ -487,17 +492,29 @@ class XmlObjectForm(BaseForm):
                 setattr(self.instance, name, self.cleaned_data[name])
 
         # update sub-model portions via any subforms
-        for subform in self.subforms.itervalues():
-            subform.update_instance()
+        for name, subform in self.subforms.iteritems():
+            self._update_subinstance(name, subform)
         for formset in self.formsets.itervalues():
             formset.update_instance()
 
         return self.instance
-    
-    # NOTE: django model form has a save method - not applicable here,
-    # since an XmlObject by itself is not expected to have a save method
-    # (only likely to be saved in context of a fedora or exist object)
 
+    def _update_subinstance(self, name, subform):
+        """Save bound data for a single subform into the XmlObject model
+        instance."""
+        old_subinstance = getattr(self.instance, name)
+        new_subinstance = subform.update_instance()
+
+        # if our instance previously had no node for the subform AND the
+        # updated one has data, then attach the new node.
+        if old_subinstance is None and not new_subinstance.is_empty():
+            setattr(self.instance, name, new_subinstance)
+
+        # on the other hand, if the instance previously had a node for the
+        # subform AND the updated one is empty, then remove the node.
+        if old_subinstance is not None and new_subinstance.is_empty():
+            delattr(self.instance, name)
+    
     def is_valid(self):
         """Returns True if this form and all subforms (if any) are valid.
         

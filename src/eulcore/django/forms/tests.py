@@ -34,6 +34,9 @@ class TestSubobject(xmlmap.XmlObject):
     val = xmlmap.IntegerField('baz', required=False)
     id2 = xmlmap.StringField('@id')
 
+class OtherTestSubobject(TestSubobject):
+    ROOT_NAME = 'plugh'
+
 class TestObject(xmlmap.XmlObject):
     ROOT_NAME = 'foo'
     id = xmlmap.StringField('@id', verbose_name='My Id', help_text='enter an id')
@@ -42,6 +45,7 @@ class TestObject(xmlmap.XmlObject):
     longtext = xmlmap.StringField('longtext', normalize=True, required=False)
     child = xmlmap.NodeField('bar[1]', TestSubobject)
     children = xmlmap.NodeListField('bar', TestSubobject)
+    other_child = xmlmap.NodeField('plugh', OtherTestSubobject)
     my_opt = xmlmap.StringField('opt', choices=['a', 'b', 'c'])
 
 FIXTURE_TEXT = '''
@@ -73,6 +77,8 @@ class XmlObjectFormTest(unittest.TestCase):
         'bool': False,
         'id': 'b',
         'my_opt': 'c',
+        'other_child-val': '0',
+        'other_child-id2': 'xyzzy',
         # children formset
         'children-TOTAL_FORMS': 5,
         'children-INITIAL_FORMS': 2,
@@ -330,6 +336,7 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertEqual(False, instance.bool)
         self.assertEqual('b', instance.id)
         self.assertEqual('completely new text content', instance.longtext)
+        self.assertEqual(0, instance.other_child.val)
         
         # spot check that values were set properly in the xml
         xml = instance.serialize()
