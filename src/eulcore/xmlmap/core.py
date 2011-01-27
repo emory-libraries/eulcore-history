@@ -446,6 +446,13 @@ class XmlObject(object):
         else:
             raise Exception('No XSD schema is defined, cannot return validation errors')
 
+    def is_empty(self):
+        """
+        Returns True if the root node contains no child elements and no
+        attributes. Returns False if any are present.
+        """
+        return len(self.node) == 0 and len(self.node.attrib) == 0
+
 
 def _get_xmlparser(xmlclass=XmlObject, validate=False, resolver=None):
     """Initialize an instance of :class:`lxml.etree.XMLParser` with appropriate

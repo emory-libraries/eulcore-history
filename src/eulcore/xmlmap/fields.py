@@ -74,6 +74,7 @@ class Field(object):
     def delete_for_node(self, node, context):
         return self.manager.delete(self.xpath, self.parsed_xpath, node, context, self.mapper)
 
+
 # data mappers to translate between identified xml nodes and Python values
 
 class Mapper(object):
@@ -83,6 +84,7 @@ class Mapper(object):
             return value
         else:
             return unicode(value)
+
 
 class StringMapper(Mapper):
     XPATH = etree.XPath('string()')
@@ -111,6 +113,7 @@ class IntegerMapper(Mapper):
         except ValueError:
             # anything that can't be converted to an Integer
             return None
+
 
 class SimpleBooleanMapper(Mapper):
     XPATH = etree.XPath('string()')
@@ -168,9 +171,11 @@ class DateMapper(object):
         # NOTE: untested!  this is probably close to what we need, but should be tested
         return unicode(dt.isoformat())
 
+
 class NullMapper(object):
     def to_python(self, node):
         return node
+
 
 class NodeMapper(object):
     def __init__(self, node_class):
@@ -180,6 +185,10 @@ class NodeMapper(object):
         if node is None:
             return None
         return self.node_class(node)
+
+    def to_xml(self, xmlobject):
+        if xmlobject:
+            return xmlobject.node
 
 
 # internal xml utility functions for use by managers
@@ -192,6 +201,7 @@ def _find_terminal_step(xast):
             return _find_terminal_step(xast.right)
     return None
 
+
 def _find_xml_node(xpath, node, context):
     #In some cases the this will return a value not a node
     matches = node.xpath(xpath, **context)
@@ -199,6 +209,7 @@ def _find_xml_node(xpath, node, context):
         return matches[0]
     elif matches:
         return matches
+
 
 def _create_xml_node(xast, node, context, insert_index=None):
     if isinstance(xast, ast.Step):
@@ -235,6 +246,7 @@ def _create_xml_node(xast, node, context, insert_index=None):
            "only for simple child and attribute nodes.") % (serialize(xast),)
     raise Exception(msg)
 
+
 def _create_child_node(node, context, step, insert_index=None):
     opts = {}
     ns_uri = None
@@ -250,6 +262,7 @@ def _create_child_node(node, context, step, insert_index=None):
         node.append(new_node)
     return new_node
 
+
 def _create_attribute_node(node, context, step):
     node_name, node_xpath, nsmap = _get_attribute_name(step, context)
     # create an empty attribute node
@@ -257,6 +270,7 @@ def _create_attribute_node(node, context, step):
     # find via xpath so a 'smart' string can be returned and set normally
     result = node.xpath(node_xpath, namespaces=nsmap)
     return result[0]
+
 
 def _predicate_is_constructible(pred):
     if isinstance(pred, ast.Step):
@@ -289,6 +303,7 @@ def _predicate_is_constructible(pred):
     # otherwise, i guess we're ok
     return True
 
+
 def _construct_predicate(xast, node, context):
     if isinstance(xast, ast.Step):
         return _create_xml_node(xast, node, context)
@@ -311,17 +326,32 @@ def _construct_predicate(xast, node, context):
             _set_in_xml(left_leaf, xvalue, context, step)
             return left_leaf
 
+
 def _set_in_xml(node, val, context, step):
-    if isinstance(node, etree._Element):
-        if not list(node):      # no child elements
-            node.text = val
-        else:                 
-            raise Exception("Cannot set string value - not a text node!")
-    elif hasattr(node, 'getparent'):
-        # by default, etree returns a "smart" string for attribute result;
-        # determine attribute name and set on parent node
+
+    # node could be either an element or an attribute
+    if isinstance(node, etree._Element): # if it's an element
+        if isinstance(val, etree._Element):
+            # remove node children and graft val children in.
+            node.clear()
+            node.text = val.text
+            for child in val:
+                node.append(child)
+            for name, val in val.attrib.iteritems():
+                node.set(name, val)
+        else: # set node contents to string val
+            if not list(node):      # no child elements
+                node.text = val
+            else:                 
+                raise Exception("Cannot set string value - not a text node!")
+
+    # by default, etree returns a "smart" string for attribute result. if
+    # it's not an element (above) then see if we can treat it as an
+    # attribute
+    elif hasattr(node, 'getparent'): # if it's an attribute
         attribute, node_xpath, nsmap = _get_attribute_name(step, context)
         node.getparent().set(attribute, val)
+
 
 def _remove_xml(xast, node, context):
     if isinstance(xast, ast.Step):
@@ -336,6 +366,7 @@ def _remove_xml(xast, node, context):
             left_node = _find_xml_node(left_xpath, node, context)
             if left_node is not None:
                 _remove_xml(xast.right, left_node, context)
+
     
 def _remove_child_node(node, context, xast):
     xpath = serialize(xast)
@@ -343,9 +374,11 @@ def _remove_child_node(node, context, xast):
     if child is not None:
         node.remove(child)
 
+
 def _remove_attribute_node(node, context, xast):
     node_name, node_xpath, nsmap = _get_attribute_name(xast, context)
     del node.attrib[node_name]
+
 
 def _get_attribute_name(step, context):
     # calculate attribute name, xpath, and nsmap based on node info and context namespaces
@@ -527,6 +560,7 @@ class NodeList(object):
         match = self.matches[key]
         match.getparent().remove(match)
 
+
 # according to python docs, Mutable sequences should provide the following methods:
 # append, count, index, extend, insert, pop, remove, reverse and sort
 # NOTE: not implementing sort/reverse at this time; not clear
@@ -576,8 +610,6 @@ class NodeList(object):
         else:
             raise IndexError("Can't insert '%s' at index %d - list length is only %d" \
                             % (x, i, len(self)))
-        
-
 
 
 class NodeListManager(object):
@@ -587,7 +619,6 @@ class NodeListManager(object):
     def delete(self, xpath, xast, node, context, mapper):
         list = self.get(xpath, node, context, mapper, xast)
         [list.remove(x) for x in list]
-
 
 
 # finished field classes mixing a manager and a mapper
@@ -614,6 +645,7 @@ class StringField(Field):
                 manager = SingleNodeManager(),
                 mapper = StringMapper(normalize=normalize), *args, **kwargs)
 
+
 class StringListField(Field):
 
     """Map an XPath expression to a list of Python strings. If the XPath
@@ -632,6 +664,7 @@ class StringListField(Field):
                 manager = NodeListManager(),
                 mapper = StringMapper(normalize=normalize), *args, **kwargs)
 
+
 class IntegerField(Field):
 
     """Map an XPath expression to a single Python integer. If the XPath
@@ -645,6 +678,7 @@ class IntegerField(Field):
         super(IntegerField, self).__init__(xpath,
                 manager = SingleNodeManager(),
                 mapper = IntegerMapper(), *args, **kwargs)
+
 
 class IntegerListField(Field):
 
@@ -661,6 +695,7 @@ class IntegerListField(Field):
                 manager = NodeListManager(),
                 mapper = IntegerMapper(), *args, **kwargs)
 
+
 class SimpleBooleanField(Field):
 
     """Map an XPath expression to a Python boolean.  Constructor takes additional
@@ -674,6 +709,7 @@ class SimpleBooleanField(Field):
         super(SimpleBooleanField, self).__init__(xpath,
                 manager = SingleNodeManager(),
                 mapper = SimpleBooleanMapper(true, false), *args, **kwargs)
+
 
 
 class DateField(Field):
@@ -691,6 +727,7 @@ class DateField(Field):
         super(DateField, self).__init__(xpath,
                 manager = SingleNodeManager(),
                 mapper = DateMapper(), *args, **kwargs)
+
 
 class DateListField(Field):
 
@@ -711,6 +748,7 @@ class DateListField(Field):
         super(DateListField, self).__init__(xpath,
                 manager = NodeListManager(),
                 mapper = DateMapper(), *args, **kwargs)
+
 
 class NodeField(Field):
 
@@ -774,6 +812,7 @@ class NodeListField(Field):
         self.mapper.node_class = val
     node_class = property(_get_node_class, _set_node_class)
 
+
 class ItemField(Field):
 
     """Access the results of an XPath expression directly. An ItemField does no
@@ -783,6 +822,7 @@ class ItemField(Field):
         super(ItemField, self).__init__(xpath,
                 manager = SingleNodeManager(),
                 mapper = NullMapper(), *args, **kwargs)
+
 
 class SchemaField(Field):
     """Schema-based field.  At class definition time, a SchemaField will be

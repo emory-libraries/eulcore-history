@@ -42,6 +42,7 @@ class TestFields(unittest.TestCase):
         
     def testNodeField(self):
         class TestSubobject(xmlmap.XmlObject):
+            ROOT_NAME = 'bar'
             val = xmlmap.StringField('baz')
 
         class TestObject(xmlmap.XmlObject):
@@ -53,6 +54,10 @@ class TestFields(unittest.TestCase):
         self.assertEqual(obj.missing, None)
         # undefined if >1 matched nodes
 
+        # test set
+        obj.child = TestSubobject(val='144')
+        self.assertEqual(obj.child.val, '144')
+
         # check required
         self.assertTrue(obj._fields['child'].required)
 
@@ -63,6 +68,10 @@ class TestFields(unittest.TestCase):
         self.assert_(obj.missing is None)
         obj.create_missing()
         self.assert_(isinstance(obj.missing, TestSubobject))
+
+        # test del
+        del obj.missing
+        self.assertEqual(obj.missing, None)
 
         # test DEPRECATED instantiate on get hack
         class GetTestObject(xmlmap.XmlObject):
