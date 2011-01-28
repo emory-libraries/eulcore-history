@@ -1,0 +1,11 @@
+/* Simple print CSS
+   - Suppress navigation elements including header, footer, and sidebar
+   - Adjust the content section of the page to be full width
+*/
+div#header, div#global-nav, div#navbar, div#sidebar-left, div#footer { 
+    display:none;
+}
+/* undo content margin that makes space for the sidebar */
+div#content {
+    margin-left: 0px;
+}
