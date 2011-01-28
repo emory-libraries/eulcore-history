@@ -50,7 +50,7 @@ Hey, nonny-nonny."""
         self.pid = self.fedora_fixtures_ingested[0]
         self.opener = AuthorizingServerConnection(FEDORA_ROOT_NONSSL, FEDORA_USER, FEDORA_PASS)
         self.rest_api = REST_API(self.opener)
-        self.today = date.today()
+        self.today = datetime.utcnow().date()
 
     # API-A calls
 
