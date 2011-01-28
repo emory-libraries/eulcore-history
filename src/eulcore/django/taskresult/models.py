@@ -19,7 +19,6 @@ from celery.result import AsyncResult
 from celery.signals import task_prerun, task_postrun
 import logging
 
-from django.contrib import admin
 from django.db import models
 
 logger = logging.getLogger(__name__)

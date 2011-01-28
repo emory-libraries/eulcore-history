@@ -61,5 +61,5 @@ class TaskResultTestCase(TestCase):
         self.assertContains(response, 'PENDING',        # no actual task, shows as pending
             msg_prefix='task status should be displayed in list')
         self.assertEqual(response.context['task_results'][0], task2,
-            'newest task shuold be listed first')
+            'newest task should be listed first')
         

@@ -3,22 +3,25 @@
 {% block page-subtitle %}: Tasks : Recently completed{% endblock %}
 {% block content-title %}Recently completed tasks{% endblock %}
 
+{% block style %}
+  {{ block.super }}
+    <style type="text/css">
+        #task-results li {
+            list-style-type: circle;
+            margin-left:15px;
+            background: none;
+            padding: 0px 0px 10px 5px;
+        }
+        #task-results .success { list-style-image: url('{{MEDIA_URL}}/images/check.png'); }
+        #task-results .failure { list-style-image: url('{{MEDIA_URL}}/images/x.png'); }
+
+        #task-results .success .code { color: green; font-weight:bold }
+        #task-results .failure .code { color: red; font-weight:bold  }
+        #task-results .detail { border:0px; padding: 0px; margin:0px; font-size: 90%; }
+    </style>
+{% endblock %}
+
 {% block content-body %}
-<style type="text/css">
-div#task-results li {
-    list-style-type: circle;
-    margin-left:15px;
-    background: none;
-    padding: 0px 0px 10px 5px;
-}
-div#task-results li.success { list-style-image: url('{{MEDIA_URL}}/images/check.png'); }
-div#task-results li.failure { list-style-image: url('{{MEDIA_URL}}/images/x.png'); }
-
-div#task-results li.success span.code { color: green; font-weight:bold }
-div#task-results li.failure span.code { color: red; font-weight:bold  }
-div#task-results div.detail { border:0px; padding: 0px; margin:0px; font-size: 90%; }
-</style>
-
 <div id="task-results">
    <h3>Task Results</h3>
    <ul>
