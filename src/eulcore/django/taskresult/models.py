@@ -18,6 +18,7 @@ from datetime import datetime
 from celery.result import AsyncResult
 from celery.signals import task_prerun, task_postrun
 import logging
+import traceback
 
 from django.db import models
 
@@ -55,7 +56,7 @@ def taskresult_start(sender, task_id, **kwargs):
         tr = TaskResult.objects.get(task_id=task_id)
         tr.task_start = datetime.now()
         tr.save()
-    except Exception:
+    except Exception as e:
         logger.error("Error saving task start time: %s" % e)
         logger.debug("Stack trace for task start time error:\n" + traceback.format_exc())
 task_prerun.connect(taskresult_start)
@@ -65,7 +66,7 @@ def taskresult_end(sender, task_id, **kwargs):
         tr = TaskResult.objects.get(task_id=task_id)
         tr.task_end = datetime.now()
         tr.save()
-    except Exception:
+    except Exception as e:
         logger.error("Error saving task end time: %s" % e)
         logger.debug("Stack trace for task end time error:\n" + traceback.format_exc())
 task_postrun.connect(taskresult_end)
