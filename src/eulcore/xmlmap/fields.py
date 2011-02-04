@@ -15,6 +15,7 @@
 #   limitations under the License.
 
 from datetime import datetime
+import logging
 from lxml import etree
 from lxml.builder import ElementMaker
 from eulcore.xpath import ast, parse, serialize
@@ -31,6 +32,7 @@ __all__ = [
     'SchemaField',
 ]
 
+logger = logging.getLogger(__name__)
 
 class Field(object):
     """Base class for all xmlmap fields.
@@ -233,6 +235,12 @@ def _create_xml_node(xast, node, context, insert_index=None):
                 _construct_predicate(pred, new_node, context)
 
             return new_node
+
+        # if this is a text() node, we don't need to create anything further
+        # return the node that will be parent to text()
+        elif _is_text_nodetest(xast):
+            return node
+        
     elif isinstance(xast, ast.BinaryExpression):
         if xast.op == '/':
             left_xpath = serialize(xast.left)
@@ -345,27 +353,40 @@ def _set_in_xml(node, val, context, step):
             else:                 
                 raise Exception("Cannot set string value - not a text node!")
 
-    # by default, etree returns a "smart" string for attribute result. if
-    # it's not an element (above) then see if we can treat it as an
-    # attribute
-    elif hasattr(node, 'getparent'): # if it's an attribute
-        attribute, node_xpath, nsmap = _get_attribute_name(step, context)
-        node.getparent().set(attribute, val)
+    # by default, etree returns a "smart" string for attributes and text.
+    # if it's not an element (above) then it is either a text node
+    # or an attribute
+    elif hasattr(node, 'getparent'): 
+        # if node test is text(), set the text of the parent node
+        if _is_text_nodetest(step):
+            node.getparent().text = val
+
+        # otherwise, treat it as an attribute
+        else:
+            attribute, node_xpath, nsmap = _get_attribute_name(step, context)
+            node.getparent().set(attribute, val)
 
 
 def _remove_xml(xast, node, context):
+    'Remove a node or attribute; returns True when something is deleted'
     if isinstance(xast, ast.Step):
         if isinstance(xast.node_test, ast.NameTest):
             if xast.axis in (None, 'child'):
-                _remove_child_node(node, context, xast)
+                return _remove_child_node(node, context, xast)
             elif xast.axis in ('@', 'attribute'):
-                _remove_attribute_node(node, context, xast)
+                return _remove_attribute_node(node, context, xast)
+        # special case for text()
+        # since it can't be removed, at least clear out any value in the text node
+        elif _is_text_nodetest(xast):
+            node.text = ''
+            return True
     elif isinstance(xast, ast.BinaryExpression):
         if xast.op == '/':
             left_xpath = serialize(xast.left)
             left_node = _find_xml_node(left_xpath, node, context)
             if left_node is not None:
-                _remove_xml(xast.right, left_node, context)
+                return _remove_xml(xast.right, left_node, context)
+    return False
 
     
 def _remove_child_node(node, context, xast):
@@ -373,11 +394,13 @@ def _remove_child_node(node, context, xast):
     child = _find_xml_node(xpath, node, context)
     if child is not None:
         node.remove(child)
+        return True
 
 
 def _remove_attribute_node(node, context, xast):
     node_name, node_xpath, nsmap = _get_attribute_name(xast, context)
     del node.attrib[node_name]
+    return True
 
 
 def _get_attribute_name(step, context):
@@ -402,6 +425,14 @@ def _get_attribute_name(step, context):
 
     return node_name, node_xpath, nsmap
 
+def _is_text_nodetest(step):
+    '''Fields selected with an xpath of text() need special handling; Check if
+    a xpath step is a text() node test. '''
+    try:
+        return step.node_test.name == 'text'
+    except:
+        pass
+    return False
 
 # managers to map operations to either a single identified node or a
 # list of them
@@ -427,7 +458,11 @@ class SingleNodeManager(object):
         if xvalue is None:
             # match must be None. if it exists, delete it.
             if match is not None:
-                _remove_xml(xast, node, context)
+                removed = _remove_xml(xast, node, context)
+                # if a node can't be removed, warn since it could have unexpected results
+                if not removed:
+                    logger.warn('''Could not remove xml for '%s' from %r''' % \
+                                (serialize(xast), node))
         else:
             if match is None:
                 match = _create_xml_node(xast, node, context)

@@ -200,6 +200,37 @@ class TestFields(unittest.TestCase):
         self.assertFalse(obj._fields['empty'].required)
         self.assertEqual(None, obj._fields['missing'].required)
 
+    def testTextNode(self):
+        # special case for text()
+        class TextObject(xmlmap.XmlObject):
+            text_node = xmlmap.StringField('text()')
+            missing_text = xmlmap.StringField('missing/text()')
+        # parseString wants a url. let's give it a proper one.
+        url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'TEXT_XML_FIXTURES')
+        obj = TextObject(xmlmap.parseString('<text>some text</text>', url))
+
+        self.assertEqual('some text', obj.text_node)
+        
+        # set text node
+        obj.text_node = 'la'
+        self.assertEqual('la', obj.node.xpath('string(text())'))
+        self.assertEqual('la', obj.text_node)
+        # set to empty string
+        obj.text_node = ''
+        self.assertEqual('', obj.node.xpath('string(text())'))
+        self.assertEqual('', obj.text_node)
+        # set to value then set to None - text should be cleared out
+        obj.text_node = 'la'
+        obj.text_node = None
+        self.assertEqual('', obj.node.xpath('string(text())'))
+        self.assertEqual('', obj.text_node)
+
+        # create parent of a text node
+        obj.missing_text = 'tra'
+        self.assertEqual('tra', obj.node.xpath('string(missing/text())'))
+        self.assertEqual('tra', obj.missing_text)
+
+
     def testStringListField(self):
         class TestObject(xmlmap.XmlObject):
             vals = xmlmap.StringListField('bar/baz', required=True)
