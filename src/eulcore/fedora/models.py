@@ -83,7 +83,7 @@ class DatastreamObject(object):
         self.checksum_modified = False
         
         #Indicates whether the datastream exists in fedora.
-	self.exists = False        
+	self.exists = False      
         #If this is an object with a real pid, then check if the datastream is actually there. If it does, exists should be true.
 	if not self.obj._create:
             if self.obj.ds_list.has_key(id):
@@ -1037,11 +1037,16 @@ class DigitalObject(object):
         if dsobj.label:
             ver_xml.set('LABEL', dsobj.label)
         #Set the checksum, if available.
+        #FIXME: Do this somewhere stuff somewhere else? Currently outside where the actual file content is attached....
         if dsobj.checksum:
             digest_xml = E('contentDigest')
             digest_xml.set('TYPE', "MD5")
             digest_xml.set('DIGEST', dsobj.checksum)
             ver_xml.append(digest_xml)
+        elif hasattr(dsobj._raw_content(), 'read'):
+            #Content exists, but no checksum, so log a warning.
+            #FIXME: Only works if the audio has a read attribute currently.... need a better way to check this.
+            logging.warning("File was ingested into fedora without a passed checksum for validation, pid was: %s and dsID was: %s." % (self.pid, dsid))
             
         ds_xml.append(ver_xml)
 
