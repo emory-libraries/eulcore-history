@@ -211,12 +211,12 @@ class REST_API(HTTP_API_Base):
         elif content:
             if hasattr(content, 'read'):    # allow content to be a file
                 body = content.read()
+                if not checksum:
+                    logging.warning("File was ingested into fedora without a passed checksum for validation, pid was: %s and dsID was: %s." % (pid, dsID))
             else:
                 body = content
             headers = { 'Content-Type' : mimeType,
                         'Content-Length' : str(len(body)) }
-            if not checksum:
-                logging.warning("File was ingested into fedora without a passed checksum for validation, pid was: %s and dsID was: %s." % (pid, dsID))
         else:
             headers = {}
             body = None
@@ -371,12 +371,13 @@ class REST_API(HTTP_API_Base):
         if content:
             if hasattr(content, 'read'):    # allow content to be a file
                 body = content.read()
+                if not checksum:
+                    logging.warning("File was ingested into fedora without a passed checksum for validation, pid was: %s and dsID was: %s." % (pid, dsID))
             else:
                 body = content
             headers = { 'Content-Type' : mimeType,
                         'Content-Length' : str(len(body)) }
-            if not checksum:
-                logging.warning("File was ingested into fedora without a passed checksum for validation, pid was: %s and dsID was: %s." % (pid, dsID))
+
 
         url = 'objects/%s/datastreams/%s?' % (pid, dsID) + urlencode(http_args)
         with self.open('PUT', url, body, headers, throw_errors=False) as response:
