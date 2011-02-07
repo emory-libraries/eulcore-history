@@ -448,10 +448,11 @@ class XmlObject(object):
 
     def is_empty(self):
         """
-        Returns True if the root node contains no child elements and no
-        attributes. Returns False if any are present.
+        Returns True if the root node contains no child elements, no
+        attributes, and no text. Returns False if any are present.
         """
-        return len(self.node) == 0 and len(self.node.attrib) == 0
+        return len(self.node) == 0 and len(self.node.attrib) == 0 \
+            and not self.node.text and not self.node.tail # regular text or text after a node
 
 
 def _get_xmlparser(xmlclass=XmlObject, validate=False, resolver=None):
