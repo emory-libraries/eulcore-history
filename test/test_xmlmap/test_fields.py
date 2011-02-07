@@ -204,10 +204,12 @@ class TestFields(unittest.TestCase):
         # special case for text()
         class TextObject(xmlmap.XmlObject):
             text_node = xmlmap.StringField('text()')
-            missing_text = xmlmap.StringField('missing/text()')
+            nested_text =  xmlmap.StringField('nest[@type="feather"]/text()')
+            missing_text = xmlmap.StringField('missing[@type="foo"]/text()')
         # parseString wants a url. let's give it a proper one.
         url = '%s#%s.%s' % (__file__, self.__class__.__name__, 'TEXT_XML_FIXTURES')
-        obj = TextObject(xmlmap.parseString('<text>some text</text>', url))
+        xml = '''<text>some text<nest type='feather'>robin</nest></text>'''
+        obj = TextObject(xmlmap.parseString(xml, url))
 
         self.assertEqual('some text', obj.text_node)
         
@@ -224,6 +226,8 @@ class TestFields(unittest.TestCase):
         obj.text_node = None
         self.assertEqual('', obj.node.xpath('string(text())'))
         self.assertEqual('', obj.text_node)
+
+        self.assertEqual('robin', obj.nested_text)
 
         # create parent of a text node
         obj.missing_text = 'tra'
