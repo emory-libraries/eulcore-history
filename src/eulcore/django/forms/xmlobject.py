@@ -388,9 +388,13 @@ class XmlObjectForm(BaseForm):
     has any fields of type :class:`~eulcore.xmlmap.fields.NodeField`, you should
     make sure to display the subforms for those fields.
 
-    NOTE: If your XmlObject includes NodeField elements and you want to be able
-    to dynamically add xml fields under those NodeFields, you must currently set
-    instantiate_on_get to True when declaring your NodeFields.
+    NOTE: If your XmlObject includes NodeField elements and you do not want
+    empty elements in your XML output when empty values are entered into the form,
+    you may wish to extend :meth:`eulcore.xmlmap.XmlObject.is_empty` to correctly
+    identify when your NodeField elements should be considered empty (if the
+    default definition is not accurate or appropriate).  Empty elements will not
+    be added to the :class:``eulcore.xmlmap.XmlObject` instance returned by
+    :meth:`update_instance`.
     """
 
     # django has a basemodelform with all the logic
@@ -441,6 +445,10 @@ class XmlObjectForm(BaseForm):
             # instantiate the new form with the current field as instance, if available
             if self.instance is not None:
                 # get the relevant instance for the current NodeField variable
+                # NOTE: calling create_foo will create the nodefield for element foo
+                # creating here so subfields will be set correctly
+                # if the resulting field is empty, it will be removed by update_instance
+                getattr(self.instance, 'create_' + name)()
                 subinstance = getattr(self.instance, name, None)
             else:
                 subinstance = None
