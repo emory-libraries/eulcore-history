@@ -128,9 +128,9 @@ class W3CDateWidget(Widget):
 
 
 class W3CDateField(CharField):
-    '''W3C date field that uses a :class:`W3CDateWidget` for presentation
-    and uses a simple regular expression to do basic validation on the input
-    (but does not actually test that it is a valid date).
+    '''W3C date field that uses a :class:`~eulcore.django.forms.fields.W3CDateWidget`
+    for presentation  and uses a simple regular expression to do basic validation
+    on the input (but does not actually test that it is a valid date).
     '''
     widget = W3CDateWidget
     default_error_messages = {

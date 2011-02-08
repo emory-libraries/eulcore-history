@@ -13,7 +13,7 @@ if it is valid.  It is recommended to pass this to any form that uses
 
     data = request.POST.copy()
     data['remote_ip'] = request.META['REMOTE_ADDR']
-    form = FeedbackForm(data)
+    form = EmailForm(data)
 
 ReCaptcha options can be specified when initializing the Widget, e.g.::
 
@@ -43,6 +43,9 @@ from django.utils.safestring import mark_safe
 
 
 class ReCaptchaWidget(Widget):
+    '''reCAPTCHA widget.  Rendering this widget on a form will generate and
+    display a reCAPTCHA challenge.  reCAPTCHA customization options (such as theme,
+    lang) can be passed as widget attributes.'''
     is_hidden = True
     # hidden input field names that will be added to the form via captcha.displayhtml
     recaptcha_challenge_name = 'recaptcha_challenge_field'
@@ -68,13 +71,16 @@ class ReCaptchaWidget(Widget):
         return mark_safe(u'%s %s' % (html_opts, captcha.displayhtml(settings.RECAPTCHA_PUBLIC_KEY)))
 
     def value_from_datadict(self, data, files, name):
-        # generate a list of all values needed to check the captcha response
+        'Generate a dictionary of the values needed to check the captcha response'
         return {'challenge': data.get(self.recaptcha_challenge_name, None),
             'response': data.get(self.recaptcha_response_name, None),
             'remote_ip': data.get(self.remote_ip_name, None)}
 
 
 class ReCaptchaField(CharField):
+    '''reCAPTCHA form field that uses a :class:`~eulcore.django.forms.captchafield.ReCaptchaWidget`
+    for presentation and submits the captcha challenge & resonse for validation.
+    '''
     widget = ReCaptchaWidget
     required = True
     default_error_messages = {

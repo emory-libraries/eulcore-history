@@ -202,8 +202,8 @@ tag, add the following to your Django settings::
    TEMPLATE_DEBUG = False
 
 
-:mod:`~eulcore.django.forms` - Django Form extensions
------------------------------------------------------
+:mod:`~eulcore.django.forms` - Django Form extensions, custom fields
+--------------------------------------------------------------------
 
 .. automodule:: eulcore.django.forms
 
@@ -213,6 +213,30 @@ tag, add the following to your Django settings::
 .. automethod:: eulcore.django.forms.xmlobjectform_factory
 
 .. autoclass:: eulcore.django.forms.SubformField
+    :members:
+
+Custom fields & widgets
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: eulcore.django.forms.fields.W3CDateField
+    :members:
+.. autoclass:: eulcore.django.forms.fields.W3CDateWidget
+    :members:
+
+.. autoclass:: eulcore.django.forms.fields.DynamicChoiceField
+    :members:
+.. autoclass:: eulcore.django.forms.fields.DynamicSelect
+    :members:
+
+
+reCAPTCHA  for django forms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. automodule:: eulcore.django.forms.captchafield
+
+.. autoclass:: eulcore.django.forms.captchafield.ReCaptchaWidget
+    :members:
+
+.. autoclass:: eulcore.django.forms.captchafield.ReCaptchaField
     :members:
 
 
