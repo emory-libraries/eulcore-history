@@ -11,6 +11,8 @@ Among released packages:
  * :mod:`eulcore.existdb` depends on ply_ and lxml_.
  * :mod:`eulcore.django.existdb` depends on ply_, lxml_, and Django_.
  * :mod:`eulcore.django.http` depends on mimeparse. Install with ``easy_install mimeparse``.
+ * :mod:`eulcore.django.forms.captchafield` depends on python-recaptcha.  Install with
+   `pip install recaptcha-client`
 
 .. _ply: http://www.dabeaz.com/ply/
 .. _lxml: http://codespeak.net/lxml/

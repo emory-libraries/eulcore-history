@@ -3,3 +3,4 @@ unittest-xml-reporting
 sphinx
 coverage
 django-celery
+recaptcha-client
