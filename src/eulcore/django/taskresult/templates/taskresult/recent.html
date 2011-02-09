@@ -5,20 +5,7 @@
 
 {% block style %}
   {{ block.super }}
-    <style type="text/css">
-        #task-results li {
-            list-style-type: circle;
-            margin-left:15px;
-            background: none;
-            padding: 0px 0px 10px 5px;
-        }
-        #task-results .success { list-style-image: url('{{MEDIA_URL}}/images/check.png'); }
-        #task-results .failure { list-style-image: url('{{MEDIA_URL}}/images/x.png'); }
-
-        #task-results .success .code { color: green; font-weight:bold }
-        #task-results .failure .code { color: red; font-weight:bold  }
-        #task-results .detail { border:0px; padding: 0px; margin:0px; font-size: 90%; }
-    </style>
+   {% include 'taskresult/snippets/task_styles.html' %}
 {% endblock %}
 
 {% block content-body %}
@@ -26,7 +13,7 @@
    <h3>Task Results</h3>
    <ul>
       {% for r in task_results %}
-        {% include 'taskresult/_display_task.html' %}
+        {% include 'taskresult/snippets/display_task.html' %}
       {% empty %}
         <li>No recent tasks.</li>
       {% endfor %}

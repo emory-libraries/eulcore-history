@@ -1,6 +1,7 @@
 <li class="{{r.task.status|lower}}">
     {{ r.label }} for <a href="{{ r.url }}">{{ r.object_id }}</a>
-    - <span class="code">{{ r.task.status }}</span> {{ r.task.result|default:'' }}
+    - <span class="code">{{ r.task.status }}</span> 
+      {% if r.task.result|length %}{{ r.task.result|default:'' }}{% endif %} {# don't display boolean result #}
     <div class="detail">
         {% if r.task_end %}
                 Completed {{ r.task_end|timesince }} ago{% if r.duration %},
