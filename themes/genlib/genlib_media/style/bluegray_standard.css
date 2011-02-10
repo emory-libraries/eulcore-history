@@ -10,7 +10,9 @@
 */
 
 #navbar {
-    background: url(images/navigation_background_grey.gif);
+    background: none;
+    background-color: #e4e6f0;    
+    /*background: url(images/navigation_background_grey.gif);*/
     border-left: none;
     border-right: none;
     color: #163B84;
@@ -28,8 +30,8 @@
     width: 978px;
 }
 
-#navbar ul
-{
+#navbar ul {
+    background-color: #e4e6f0;
     margin: 0;
     margin-top: 3px;
     padding: 0;
@@ -37,26 +39,31 @@
 
 #navbar li /* A simple method to get navbar links to appear in one line. */
 {
+    padding: 0px;
+    display:inline;
     float: left;
-    border-right-style: solid;
-    border-right-width: 1px;
-    border-right-color: #cccccc;
+    background-color: #e4e6f0;
+    font-size: 11px;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
 }
 
-#navbar #primary .first
-{    
-    border-left-style: solid;
+#navbar #primary .first {
+    border-left: none !important;
+    /*border-left-style: solid;
     border-left-width: 1px;
-    border-left-color: #cccccc;
+    border-left-color: #cccccc;*/
 }
 
-#navbar #primary a
-{
-    background: url(images/navigation_background_grey.gif);
+#navbar #primary a {
+    background-color: #e4e6f0;
+    /*background: url('images/navigation_background_grey.gif');*/
     color:#163B84;
+    height: 20px;
+    border-left: 1px solid #ffffff !important;
     border-right: none;
     position: relative;
-    padding: 5px 27px;
+    /*padding: 5px 27px;*/
     font-weight: bold;
     text-decoration: none;
     text-transform:uppercase;
@@ -65,11 +72,11 @@
 #navbar #primary a:hover,
 #navbar #primary a.active
 {
-    background: url(images/navigation_background_aqua.gif);
-    color:#163B84;
-    border-top: none;
-    border-left: none;
+    background-color: #6384c6;
+    border-left: 1px solid #ffffff !important;
     border-right: none;
+    /*background: url('images/navigation_background_aqua.gif');*/
+    color: #FFFFFF; /*#163B84;*/
 }
 
 #navbar #primary a.lastfill {
@@ -77,10 +84,12 @@
 }
 
 #navbar #primary a.active {
-    background: url(images/navigation_background_grey.gif);
+   background-color: #e4e6f0;
+   /*
+    background: url('images/navigation_background_grey.gif');*/
 }
-
+/*
 #navbar #primary a.first
 {
     border-left: 1px solid #cccccc;
-}
+}*/
