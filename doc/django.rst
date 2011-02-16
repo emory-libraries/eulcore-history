@@ -146,6 +146,13 @@ For more details on these commands, use ``manage.py <command> help``
 
    .. autoclass:: Repository
 
+:mod:`~eulcore.django.fedora.views` Fedora views
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: eulcore.django.fedora.views
+
+   .. automethod:: eulcore.django.fedora.views.raw_datastream
+
 :mod:`~eulcore.django.fedora` Management commands
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

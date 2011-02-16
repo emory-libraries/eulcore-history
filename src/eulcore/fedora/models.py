@@ -238,7 +238,14 @@ class DatastreamObject(object):
 
     @property
     def modified(self):
+        # FIXME: not actually available in datastreamProfile !!
         return self.info.modified
+
+    def last_modified(self):
+        # FIXME: **preliminary** actual last-modified, since the above does not
+        # actually work - should probably cache ds history...
+        history = self.obj.api.getDatastreamHistory(self.obj.pid, self.id)
+        return history.datastreams[0].createDate # fedora returns with most recent first
 
     def save(self, logmessage=None):
         """Save datastream content and any changed datastream profile
@@ -1036,12 +1043,20 @@ class DigitalObject(object):
             ver_xml.set('FORMAT_URI', dsobj.format)
         if dsobj.label:
             ver_xml.set('LABEL', dsobj.label)
-        #Set the checksum, if available.
+            
+        # Set the checksum, if available.
         #FIXME: Do this somewhere stuff somewhere else? Currently outside where the actual file content is attached....
-        if dsobj.checksum:
+        # if *either* a checksum or a checksum type is specified, set the contentDigest
+        # - if checksum_type is set but not the actual checksum, Fedora should calculate it for us
+        if dsobj.checksum or dsobj.checksum_type:
             digest_xml = E('contentDigest')
-            digest_xml.set('TYPE', "MD5")
-            digest_xml.set('DIGEST', dsobj.checksum)
+            if dsobj.checksum_type:
+                digest_xml.set('TYPE', dsobj.checksum_type)
+            else:
+                # default to MD5 checksum if not specified
+                digest_xml.set('TYPE', "MD5")
+            if dsobj.checksum:
+                digest_xml.set('DIGEST', dsobj.checksum)
             ver_xml.append(digest_xml)
         elif hasattr(dsobj._raw_content(), 'read'):
             #Content exists, but no checksum, so log a warning.
@@ -1129,8 +1144,18 @@ class DigitalObject(object):
         "Get any datastream on this object as a :class:`DatastreamObject`"
         if dsid in self.ds_list:
             ds_info = self.ds_list[dsid]
-            # FIXME: can we take advantage of Datastream descriptor? or at least use dscashe ?            
-            return DatastreamObject(self, dsid, label=ds_info.label, mimetype=ds_info.mimeType)
+            # FIXME: can we take advantage of Datastream descriptor? or at least use dscashe ?
+
+            # if datastream mimetype matches one of our base datastream objects, use it
+            if ds_info.mimeType == XmlDatastreamObject.default_mimetype:
+                dsobj_type = XmlDatastreamObject
+            elif ds_info.mimeType == RdfDatastreamObject.default_mimetype:
+                dsobj_type = RdfDatastreamObject
+            else:
+                # default to base datastream object class
+                dsobj_type = DatastreamObject
+
+            return dsobj_type(self, dsid, label=ds_info.label, mimetype=ds_info.mimeType)
         # exception if not ?
 
     def add_relationship(self, rel_uri, object):

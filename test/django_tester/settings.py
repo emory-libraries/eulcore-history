@@ -123,6 +123,9 @@ CELERY_RESULT_BACKEND = "database" # e.g "amqp"
 
 
 from test_fedora.base import FEDORA_ROOT, FEDORA_USER, FEDORA_PASS, FEDORA_PIDSPACE
+# store fedora fixture dir so fixtures can be shared with django and non-django fedora tests
+from test_fedora import base as test_fedora_base
+FEDORA_FIXTURES_DIR = path.join(path.dirname(path.abspath(test_fedora_base.__file__)), 'fixtures')
 
 try:
     # use xmlrunner if it's installed; default runner otherwise. download
