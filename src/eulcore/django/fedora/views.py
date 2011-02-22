@@ -37,7 +37,7 @@ from django.http import HttpResponse, Http404
 from eulcore.fedora.util import RequestFailed
 from eulcore.django.fedora.server import Repository
 
-def raw_datastream(request, pid, dsid, type=None, repo=None):
+def raw_datastream(request, pid, dsid, type=None, repo=None, headers={}):
     '''View to display a raw datastream that belongs to a Fedora Object.
     Returns an :class:`~django.http.HttpResponse` with the response content
     populated with the content of the datastream.  The following HTTP headers
@@ -64,6 +64,7 @@ def raw_datastream(request, pid, dsid, type=None, repo=None):
         :class:`~eulcore.fedora.models.DigitalObject`) (optional)
     :param repo: :class:`~eulcore.django.fedora.server.Repository` instance to use,
         in case your application requires custom repository initialization (optional)
+    :param headers: dictionary of additional headers to include in the response
     '''
     
     if repo is None:
@@ -88,6 +89,7 @@ def raw_datastream(request, pid, dsid, type=None, repo=None):
             # otherwise, use content directly
             else:
                 content = ds.content
+            # NOTE: this will probably need some work to be able to handle large datastreams
             response = HttpResponse(content, mimetype=ds.mimetype)
             # if we have a checksum, use it as an ETag
             if ds.checksum_type != 'DISABLED':
@@ -103,6 +105,11 @@ def raw_datastream(request, pid, dsid, type=None, repo=None):
                     response['Content-MD5'] = ds.checksum
                 if ds.info.size:
                     response['Content-Length'] = ds.info.size
+
+            # set any user-specified headers that were passed in
+            for header, val in headers.iteritems():
+                response[header] = val
+                
             return response
         else:
             raise Http404

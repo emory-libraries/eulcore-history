@@ -162,4 +162,10 @@ class FedoraViewsTest(unittest.TestCase):
         self.assertRaises(Http404, raw_datastream, 'rqst', 'bogus-pid:1', 'DC')
 
         # check type handling?
-        
+
+        # set extra headers in the response
+        extra_headers = {'Content-Disposition': 'attachment; filename=foo.txt'}
+        response = raw_datastream('rqst', self.obj.pid, 'TEXT',
+            headers=extra_headers)
+        self.assertTrue(response.has_header('Content-Disposition'))
+        self.assertEqual(response['Content-Disposition'], extra_headers['Content-Disposition'])
