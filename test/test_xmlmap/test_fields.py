@@ -394,7 +394,7 @@ class TestFields(unittest.TestCase):
         self.assertEqual('some text', valid.txt, 'schema field value is accessible as text')
         self.assert_(isinstance(valid._fields['txt'], xmlmap.StringField),
                 'txt SchemaField with base string in schema initialized as StringField')
-        self.assertEqual(['c', 'd', 'e'], valid._fields['txt'].choices,
+        self.assertEqual(['', 'c', 'd', 'e'], valid._fields['txt'].choices,
                 'txt SchemaField has choices based on restriction enumeration in schema')
 
         # check required
