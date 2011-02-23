@@ -891,7 +891,11 @@ class SchemaField(Field):
         kwargs = {}
         if type.restricted_values:
             # field has a restriction with enumerated values - pass as choices to field
-            kwargs['choices'] = type.restricted_values
+            # - empty value at beginning of list for unset value; for required fields,
+            #   forces user to select a value, rather than first item being default
+            choices = ['']
+            choices.extend(type.restricted_values)
+            kwargs['choices'] = choices
         # TODO: possibly also useful to look for pattern restrictions
         
         basetype = type.base_type()
