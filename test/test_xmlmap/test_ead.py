@@ -235,9 +235,13 @@ class TestEad(unittest.TestCase):
     def test_unittitle(self):
         title = self.ead.unittitle
         self.assert_(isinstance(title, eadmap.UnitTitle))
-        self.assertEqual(u'Seamus Heaney collection,', title.short)
+        self.assert_(isinstance(title.short, eadmap.UnitTitle))
         self.assert_(isinstance(title.unitdate, eadmap.DateField))
         self.assertEqual(u'1972-2005', unicode(title.unitdate))
+        # short title
+        self.assertEqual(u'Seamus Heaney collection,', unicode(title.short))
+        self.assertEqual(u'Writings by Seamus Heaney',
+            unicode(self.ead.dsc.c[0].did.unittitle.short))
 
         
 if __name__ == '__main__':

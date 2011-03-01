@@ -14,6 +14,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from copy import deepcopy
+
 from eulcore import xmlmap
 
 # xmlmap objects for various sections of an ead
@@ -142,8 +144,25 @@ class Unitid(_EadBase):
 class UnitTitle(_EadBase):
     unitdate = xmlmap.NodeField("e:unitdate", DateField)
     "unit date"
-    short = xmlmap.StringField('text()')
-    "short-form of the unit title, excluding any unit date"
+    
+    @property
+    def short(self):
+        '''Short-form of the unit title, excluding any unit date, as an instance
+        of :class:`~eulcore.xmlmap.eadmap.UnitTitle` . Can be used with formatting
+        anywhere the full form of the unittitle can be used.'''
+        # if there is no unitdate to remove, just return the current object
+        if not self.unitdate:
+            return self
+
+        # preserve any child elements (e.g., title or emph) 
+        # initialize a unittitle with a *copy* of the current node
+        ut = UnitTitle(node=deepcopy(self.node))
+        # remove the unitdate node and return
+        ut.node.remove(ut.unitdate.node)
+        return ut
+        # not caching the modified node because the main node could be modified
+        # and the short version should reflect any changes made
+
 
 class DescriptiveIdentification(_EadBase):
     """Descriptive Information (`did` element) for materials in a component"""
