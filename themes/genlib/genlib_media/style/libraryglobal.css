@@ -265,6 +265,7 @@ ul#utilityNav li.topLevel ul li a {
     background:none repeat scroll 0 0 transparent;
     color:#FFFFFF;
     padding:0 0 2px;
+    text-decoration: none;
 }
 ul#utilityNav li.topLevel ul li a:hover {
     background:none repeat scroll 0 0 transparent;
