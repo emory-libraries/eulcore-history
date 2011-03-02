@@ -40,10 +40,10 @@
     width: 978px; /* navbar should be full-width in blue-grey theme */
 }
 
-#navbar #primary .first {
+#navbar #primary .first, #navbar #primary a:first-child {
     border-left: none !important;
 }
-#navbar #primary .last {
+#navbar #primary .last, #navbar #primary a:last-child {
     border-right: none !important;
 }
 
