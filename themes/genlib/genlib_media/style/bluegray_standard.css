@@ -12,7 +12,6 @@
 #navbar {
     background: none;
     background-color: #e4e6f0;    
-    /*background: url(images/navigation_background_grey.gif);*/
     border-left: none;
     border-right: none;
     color: #163B84;
@@ -29,54 +28,49 @@
     height: 24px;
     width: 978px;
 }
-
-#navbar ul {
-    background-color: #e4e6f0;
+/* allow navbar links to be in a list, but don't require it */
+#navbar ul, #navbar li {
     margin: 0;
-    margin-top: 3px;
     padding: 0;
+    display: inline;
 }
 
-#navbar li /* A simple method to get navbar links to appear in one line. */
-{
-    padding: 0px;
-    display:inline;
-    float: left;
-    background-color: #e4e6f0;
-    font-size: 11px;
-    font-family: Arial, Helvetica, sans-serif;
-    text-align: center;
+#navbar #primary {
+    margin: auto;
+    width: 978px; /* navbar should be full-width in blue-grey theme */
 }
 
 #navbar #primary .first {
     border-left: none !important;
-    /*border-left-style: solid;
-    border-left-width: 1px;
-    border-left-color: #cccccc;*/
+}
+#navbar #primary .last {
+    border-right: none !important;
 }
 
 #navbar #primary a {
     background-color: #e4e6f0;
-    /*background: url('images/navigation_background_grey.gif');*/
+    display: block;
+    float: left;
+    padding: 0px !important;
+    height: 22px;
+    line-height:20px;
+    width: 138px;  /* 7 equally-spaced tabs; for x tabs, use (978-(x-1)*2)/x */
     color:#163B84;
-    height: 20px;
-    border-left: 1px solid #ffffff !important;
-    border-right: none;
-    position: relative;
-    /*padding: 5px 27px;*/
+    border-top: 0px !important;
+    border-left: 1px solid #ffffff !important;    
+    border-bottom: 1px solid #bfc1da !important;
+    border-right: 1px solid #bfc1da !important;
     font-weight: bold;
     text-decoration: none;
-    text-transform:uppercase;
+    text-align: center;
+    text-transform: uppercase;
+    font-family: Arial,Helvetica,sans-serif;
+    font-size: 11px;
 }
 
-#navbar #primary a:hover,
-#navbar #primary a.active
-{
+#navbar #primary a:hover, #navbar #primary a.active {
     background-color: #6384c6;
-    border-left: 1px solid #ffffff !important;
-    border-right: none;
-    /*background: url('images/navigation_background_aqua.gif');*/
-    color: #FFFFFF; /*#163B84;*/
+    color: #FFFFFF;
 }
 
 #navbar #primary a.lastfill {
@@ -85,11 +79,4 @@
 
 #navbar #primary a.active {
    background-color: #e4e6f0;
-   /*
-    background: url('images/navigation_background_grey.gif');*/
 }
-/*
-#navbar #primary a.first
-{
-    border-left: 1px solid #cccccc;
-}*/
