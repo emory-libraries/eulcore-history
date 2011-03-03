@@ -704,6 +704,10 @@ class BaseXmlObjectFormSet(BaseFormSet):
                 form.update_instance()
                 self.instances.append(form.instance)
 
+    # NOTE: when displaying forms that use formsets to the user, it is recommended
+    # to re-initialize the form after a successful update before re-displaying it
+    # so that the formset forms (initial, deleted, extra) will be re-initialized
+    # based on the latest data & display correctly
 
 class SubformField(Field):
     """This is a pseudo-form field: use to override the form class of a subform or
