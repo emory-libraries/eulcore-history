@@ -344,16 +344,16 @@ class XmlObject(object):
 
     def __eq__(self, other):
         # consider two xmlobjects equal if they are pointing to the same xml node
+        if hasattr(other, 'node') and self.node == other.node:
+            return True
+        # consider two xmlobjects equal if they serialize the same
+        if hasattr(other, 'serialize') and self.serialize() == other.serialize():
+            return True
         # NOTE: does not address "equivalent" xml, which is potentially very complex
-        if hasattr(other, 'node'):
-            return self.node == other.node
         return False
 
     def __ne__(self, other):
-        # use lxml node for not-equals comparison also
-        if hasattr(other, 'node'):
-            return self.node != other.node
-        return True
+        return not self.__eq__(other)
 
     def serialize(self, stream=None, pretty=False):
         """Serialize the contents of the XmlObject to a stream.  Serializes

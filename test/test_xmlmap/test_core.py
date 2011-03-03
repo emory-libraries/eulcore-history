@@ -262,6 +262,9 @@ class TestXmlObject(unittest.TestCase):
             'xmlobject not equal should return True for objects pointing at different nodes')
         self.assertFalse(obj.bar == obj.bar_list[1],
             'xmlobject equal should return False for object pointing at different nodes')
+        obj2 = xmlmap.load_xmlobject_from_string(TestXsl.FIXTURE_TEXT, XmlObj)
+        self.assertTrue(obj == obj2,
+            'two different xmlobjects that serialize the same should be considered equal')
 
         # compare to None
         self.assertTrue(obj != None,
