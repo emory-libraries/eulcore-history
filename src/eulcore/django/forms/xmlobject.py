@@ -230,8 +230,9 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
                 subforms[name] = subform
             elif isinstance(field, xmlmap.fields.NodeListField):
                 #formset_factory is from django core and we link into it here.
-                formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet, max_num=subform._meta.max_num)
-                #Steven - add here
+                formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet,
+                    max_num=subform._meta.max_num, can_delete=True)
+                    # for now, setting can_delete to for all xml list fields (should be reasonable)
         else:
             # raise exception for unsupported fields
             # currently doesn't handle list fields
@@ -690,6 +691,11 @@ class BaseXmlObjectFormSet(BaseFormSet):
         return super_construct(i, **defaults)
 
     def update_instance(self):
+        for form in self.deleted_forms:            
+            # update_instance may be called multiple times - instance can only
+            # be removed the first time, so don't consider it an error if it's not present
+            if form.instance in self.instances:
+                self.instances.remove(form.instance)
         for form in self.initial_forms:
             if form.has_changed():
                 form.update_instance()

@@ -368,6 +368,23 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assert_('id="A1"' in xml)
         self.assert_('<boolean>yes</boolean>' in xml)
 
+        # formset deletion
+        data = self.post_data.copy()
+        # update post data to test deleting items
+        data.update({
+            'children-INITIAL_FORMS': 4,        # only initial forms can be deleted
+            'children-0-DELETE': True,
+            'children-2-DELETE': True,
+        })
+        # make a copy object, since the instance will be updated by the form
+        testobj = xmlmap.load_xmlobject_from_string(self.testobj.serialize(), TestObject)
+        update_form = TestForm(data, instance=self.testobj)
+        # check that form is valid - if no errors, this populates cleaned_data
+        self.assertTrue(update_form.is_valid())
+        instance = update_form.update_instance()
+        # children 0 and 2 should be removed from the updated instance
+        self.assert_(testobj.children[0] not in instance.children)
+        self.assert_(testobj.children[2] not in instance.children)
 
     def test_unsupported_fields(self):
         # xmlmap fields that XmlObjectForm doesn't know how to convert into form fields
