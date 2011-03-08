@@ -342,7 +342,7 @@ See the individual blocks for overriding and structure.
 </address>
     <div id="footer-links">
             <ul id="site-links">
-                    <li class="first"><a href="http://web.library.emory.edu/services/ask-librarian/" title="Contact Us">Contact Us</a><span>|</span></li>
+                    <li class="first"><a href="{% block contact-us-link %}http://web.library.emory.edu/services/ask-librarian/{% endblock %}" title="Contact Us">Contact Us</a><span>|</span></li>
                     {% comment %}Originally just read RSS but changed to avoid confusion with any site RSS links.{% endcomment %}
                     <li class="icon-rss last"><a href="http://www.trumba.com/calendars/robert-woodruff-library.rss" title="Subscribe to RSS">Events RSS</a></li>
             </ul>
