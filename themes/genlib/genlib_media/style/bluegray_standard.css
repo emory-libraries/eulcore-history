@@ -40,11 +40,12 @@
     width: 978px; /* navbar should be full-width in blue-grey theme */
 }
 
-#navbar #primary .first, #navbar #primary a:first-child {
-    border-left: none !important;
+#navbar #primary .first, #navbar #primary a:first-child,
+#navbar #primary a.first:hover, #navbar #primary a:first-child.active {
+    border-left: 0px !important;
 }
-#navbar #primary .last, #navbar #primary a:last-child {
-    border-right: none !important;
+#navbar #primary .last {
+    border-right: 0px !important;
 }
 
 #navbar #primary a {
@@ -57,9 +58,9 @@
     width: 138px;  /* 7 equally-spaced tabs; for x tabs, use (978-(x-1)*2)/x */
     color:#163B84;
     border-top: 0px !important;
-    border-left: 1px solid #ffffff !important;    
-    border-bottom: 1px solid #bfc1da !important;
-    border-right: 1px solid #bfc1da !important;
+    border-left: 1px solid #ffffff;    
+    border-bottom: 1px solid #bfc1da;
+    border-right: 1px solid #bfc1da;
     font-weight: bold;
     text-decoration: none;
     text-align: center;
@@ -71,6 +72,7 @@
 #navbar #primary a:hover, #navbar #primary a.active {
     background-color: #6384c6;
     color: #FFFFFF;
+    border-left: 1px solid #bfc1da !important;
 }
 
 #navbar #primary a.lastfill {
