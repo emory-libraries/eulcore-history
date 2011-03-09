@@ -15,8 +15,8 @@ from test_fedora.base import FedoraTestCase, FEDORA_PIDSPACE, FIXTURE_ROOT
 from testcore import main
 
 class MyDigitalObject(models.DigitalObject):
-    CONTENT_MODELS = ['info:fedora/example:ExampleCModel',
-                      'info:fedora/example:AnotherCModel']
+    CONTENT_MODELS = ['info:fedora/%s:ExampleCModel' % FEDORA_PIDSPACE,
+                      'info:fedora/%sexample:AnotherCModel' % FEDORA_PIDSPACE]
 
     # extend digital object with datastreams for testing
     text = models.Datastream("TEXT", "Text datastream", defaults={
@@ -32,7 +32,7 @@ class MyDigitalObject(models.DigitalObject):
         })
 
 class SimpleDigitalObject(models.DigitalObject):
-    CONTENT_MODELS = ['info:fedora/example:SimpleCModel' ]
+    CONTENT_MODELS = ['info:fedora/%s:SimpleCModel' % FEDORA_PIDSPACE]
 
     # extend digital object with datastreams for testing
     text = models.Datastream("TEXT", "Text datastream", defaults={
