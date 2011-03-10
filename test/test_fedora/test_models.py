@@ -16,7 +16,7 @@ from testcore import main
 
 class MyDigitalObject(models.DigitalObject):
     CONTENT_MODELS = ['info:fedora/%s:ExampleCModel' % FEDORA_PIDSPACE,
-                      'info:fedora/%sexample:AnotherCModel' % FEDORA_PIDSPACE]
+                      'info:fedora/%s:AnotherCModel' % FEDORA_PIDSPACE]
 
     # extend digital object with datastreams for testing
     text = models.Datastream("TEXT", "Text datastream", defaults={
@@ -187,6 +187,7 @@ class TestDatastreams(FedoraTestCase):
         self.obj.image.content = open(new_file)
         self.obj.image.checksum='57d5eb11a19cf6f67ebd9e8673c9812e'
         return_status = self.obj.save()
+        self.fedora_fixtures_ingested.append(self.obj.pid)
         self.assertEqual(True, return_status)
 
         # grab a new copy from fedora, confirm contents match
@@ -201,6 +202,7 @@ class TestDatastreams(FedoraTestCase):
         self.obj.text.label = "totally new label"
         self.obj.text.content = "and totally new content, too"
         self.obj.text.save()
+        self.append_test_pid(self.obj.pid)
         self.assertTrue(self.obj.text.undo_last_save())
         history = self.obj.api.getDatastreamHistory(self.obj.pid, self.obj.text.id)
         self.assertEqual("text datastream", history.datastreams[0].label)
@@ -236,6 +238,7 @@ class TestNewObject(FedoraTestCase):
         obj = self.repo.get_object(type=MyDigitalObject)
         self.assertFalse(isinstance(obj.pid, basestring))
         obj.save()
+        self.append_test_pid(obj.pid)
 
         self.assertTrue(isinstance(obj.pid, basestring))
         self.append_test_pid(obj.pid)
@@ -289,9 +292,9 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(obj.rels_ext.control_group, 'X')
 
         self.assertTrue(isinstance(obj.rels_ext.content, RdfGraph))
-        self.assert_((obj.uriref, modelns.hasModel, URIRef("info:fedora/example:ExampleCModel")) in
+        self.assert_((obj.uriref, modelns.hasModel, URIRef(MyDigitalObject.CONTENT_MODELS[0])) in
                      obj.rels_ext.content)
-        self.assert_((obj.uriref, modelns.hasModel, URIRef("info:fedora/example:AnotherCModel")) in
+        self.assert_((obj.uriref, modelns.hasModel, URIRef(MyDigitalObject.CONTENT_MODELS[0])) in
                      obj.rels_ext.content)
 
         # test managed xml datastreams
@@ -322,9 +325,9 @@ class TestNewObject(FedoraTestCase):
         self.assertEqual(fetched.rels_ext.format, 'info:fedora/fedora-system:FedoraRELSExt-1.0')
         self.assertEqual(fetched.rels_ext.control_group, 'X')
 
-        self.assert_((obj.uriref, modelns.hasModel, URIRef("info:fedora/example:ExampleCModel")) in
+        self.assert_((obj.uriref, modelns.hasModel, URIRef(MyDigitalObject.CONTENT_MODELS[0])) in
                      fetched.rels_ext.content)
-        self.assert_((obj.uriref, modelns.hasModel, URIRef("info:fedora/example:AnotherCModel")) in
+        self.assert_((obj.uriref, modelns.hasModel, URIRef(MyDigitalObject.CONTENT_MODELS[1])) in
                      fetched.rels_ext.content)
 
         self.assertEqual(fetched.extradc.label, 'Managed DC XML datastream')
@@ -433,6 +436,7 @@ class TestDigitalObject(FedoraTestCase):
     def test_save(self):
         # unmodified object - save should do nothing
         self.obj.save()
+        self.append_test_pid(self.obj.pid)
 
         # modify object profile, datastream content, datastream info
         self.obj.label = "new label"        
@@ -611,6 +615,17 @@ class TestDigitalObject(FedoraTestCase):
 
 
 class TestContentModel(FedoraTestCase):
+
+    def tearDown(self):
+        super(TestContentModel, self).tearDown()
+        cmodels = list(MyDigitalObject.CONTENT_MODELS)
+        cmodels.extend(SimpleDigitalObject.CONTENT_MODELS)
+        for pid in cmodels:
+            try:
+                self.repo.purge_object(pid)
+            except Exception:
+                print 'exception purging ', pid
+
     def test_for_class(self):
         CMODEL_URI = models.ContentModel.CONTENT_MODELS[0]
 
