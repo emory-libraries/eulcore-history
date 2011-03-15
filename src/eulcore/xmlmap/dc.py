@@ -40,49 +40,49 @@ class DublinCore(_BaseDublinCore):
     XSD_SCHEMA = "http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
     xmlschema = xmlmap.loadSchema(XSD_SCHEMA)
 
-    contributor = xmlmap.StringField("dc:contributor")
+    contributor = xmlmap.StringField("dc:contributor", required=False)
     contributor_list = xmlmap.StringListField("dc:contributor")
 
-    coverage = xmlmap.StringField("dc:coverage")
+    coverage = xmlmap.StringField("dc:coverage", required=False)
     coverage_list = xmlmap.StringListField("dc:coverage")
 
-    creator = xmlmap.StringField("dc:creator")
+    creator = xmlmap.StringField("dc:creator", required=False)
     creator_list = xmlmap.StringListField("dc:creator")
 
-    date = xmlmap.StringField("dc:date")
+    date = xmlmap.StringField("dc:date", required=False)
     date_list = xmlmap.StringListField("dc:date")
 
-    description = xmlmap.StringField("dc:description")
+    description = xmlmap.StringField("dc:description", required=False)
     description_list = xmlmap.StringListField("dc:description")
 
-    format = xmlmap.StringField("dc:format")
+    format = xmlmap.StringField("dc:format", required=False)
     format_list = xmlmap.StringListField("dc:format")
 
-    identifier = xmlmap.StringField("dc:identifier")
+    identifier = xmlmap.StringField("dc:identifier", required=False)
     identifier_list = xmlmap.StringListField("dc:identifier")
 
-    language = xmlmap.StringField("dc:language")
+    language = xmlmap.StringField("dc:language", required=False)
     language_list = xmlmap.StringListField("dc:language")
 
-    publisher = xmlmap.StringField("dc:publisher")
+    publisher = xmlmap.StringField("dc:publisher", required=False)
     publisher_list = xmlmap.StringListField("dc:publisher")
 
-    relation = xmlmap.StringField("dc:relation")
+    relation = xmlmap.StringField("dc:relation", required=False)
     relation_list = xmlmap.StringListField("dc:relation")
 
-    rights = xmlmap.StringField("dc:rights")
+    rights = xmlmap.StringField("dc:rights", required=False)
     rights_list = xmlmap.StringListField("dc:rights")
 
-    source = xmlmap.StringField("dc:source")
+    source = xmlmap.StringField("dc:source", required=False)
     source_list = xmlmap.StringListField("dc:source")
 
-    subject = xmlmap.StringField("dc:subject")
+    subject = xmlmap.StringField("dc:subject", required=False)
     subject_list = xmlmap.StringListField("dc:subject")
 
-    title = xmlmap.StringField("dc:title")
+    title = xmlmap.StringField("dc:title", required=False)
     title_list = xmlmap.StringListField("dc:title")
 
-    type = xmlmap.StringField("dc:type")
+    type = xmlmap.StringField("dc:type", required=False)
     type_list = xmlmap.StringListField("dc:type")
 
     elements = xmlmap.NodeListField('dc:*', DublinCoreElement)
