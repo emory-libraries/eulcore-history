@@ -21,6 +21,7 @@ Contents
    existdb
    django
    fedora
+   binfile
 
 Dependencies
 ------------

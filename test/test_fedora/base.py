@@ -14,7 +14,7 @@ FEDORA_ROOT = 'https://dev11.library.emory.edu:8943/fedora/'
 FEDORA_ROOT_NONSSL = 'http://dev11.library.emory.edu:8580/fedora/'
 FEDORA_USER = 'fedoraAdmin'
 FEDORA_PASS = 'fedoraAdmin'
-FEDORA_PIDSPACE = 'eulcoretest'
+FEDORA_PIDSPACE = 'eulcoretest-ben'
 
 FIXTURE_ROOT = os.path.join(os.path.dirname(__file__), 'fixtures')
 def fixture_path(fname):
