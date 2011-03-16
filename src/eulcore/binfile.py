@@ -119,7 +119,7 @@ class LengthPrependedStringField(object):
     When you instantiate the subclass and access the field, its length will
     be read from that location in the structure, and its data will be the
     bytes immediately following it. So with a file whose first bytes are
-    ``'\x04ABCD'``::
+    ``'\\x04ABCD'``::
 
         >>> o = MyObject('file.bin')
         >>> o.myfield
