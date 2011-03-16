@@ -76,8 +76,9 @@ class ByteField(object):
       byte data.
     :param end: The offset into the structure of the end of the byte data.
       This is actually one past the last byte of data, so a four-byte
-      `ByteField` starting at index 4 would be defined as `ByteField(4, 8)`
-      and would include bytes 4, 5, 6, and 7 of the binary structure.
+      ``ByteField`` starting at index 4 would be defined as
+      ``ByteField(4, 8)`` and would include bytes 4, 5, 6, and 7 of the
+      binary structure.
 
     Typical users will create a `ByteField` inside a :class:`BinaryStructure`
     subclass definition::
@@ -109,7 +110,7 @@ class LengthPrependedStringField(object):
 
     :param offset: The offset of the single-byte string length.
 
-    Typical users will create a `LengthPrependedStringField` inside a
+    Typical users will create a ``LengthPrependedStringField`` inside a
     :class:`BinaryStructure` subclass definition::
 
         class MyObject(BinaryStructure):
@@ -118,7 +119,7 @@ class LengthPrependedStringField(object):
     When you instantiate the subclass and access the field, its length will
     be read from that location in the structure, and its data will be the
     bytes immediately following it. So with a file whose first bytes are
-    '\x04ABCD'::
+    ``'\x04ABCD'``::
 
         >>> o = MyObject('file.bin')
         >>> o.myfield
@@ -139,15 +140,15 @@ class IntegerField(ByteField):
     """A field mapping fixed-length binary data to Python numbers.
 
     This field accessses arbitrary-length integers encoded as binary data.
-    Currently only `big-endian <http://en.wikipedia.org/wiki/Endianness>`,
+    Currently only `big-endian <http://en.wikipedia.org/wiki/Endianness>`_,
     unsigned integers are supported.
 
     :param start: The offset into the structure of the beginning of the
       byte data.
     :param end: The offset into the structure of the end of the byte data.
       This is actually one past the last byte of data, so a four-byte
-      `IntegerField` starting at index 4 would be defined as
-      `IntegerField(4, 8)` and would include bytes 4, 5, 6, and 7 of the
+      ``IntegerField`` starting at index 4 would be defined as
+      ``IntegerField(4, 8)`` and would include bytes 4, 5, 6, and 7 of the
       binary structure.
 
     Typical users will create an `IntegerField` inside a
