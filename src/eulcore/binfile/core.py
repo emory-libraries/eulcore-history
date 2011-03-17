@@ -1,4 +1,4 @@
-# file binfile.py
+# file binfile/core.py
 #
 #   Copyright 2011 Emory University General Library
 #
@@ -99,7 +99,10 @@ class ByteField(object):
         self.end = end
 
     def __get__(self, obj, owner):
-        return obj.mmap[self.start + obj._offset : self.end + obj._offset]
+        if obj is None:
+            return self
+        else:
+            return obj.mmap[self.start + obj._offset : self.end + obj._offset]
 
 
 class LengthPrependedStringField(object):
@@ -130,10 +133,13 @@ class LengthPrependedStringField(object):
         self.offset = offset
 
     def __get__(self, obj, owner):
-        length_offset = self.offset + obj._offset
-        length = ord(obj.mmap[length_offset])
-        data_offset = length_offset + 1
-        return obj.mmap[data_offset:data_offset + length]
+        if obj is None:
+            return self
+        else:
+            length_offset = self.offset + obj._offset
+            length = ord(obj.mmap[length_offset])
+            data_offset = length_offset + 1
+            return obj.mmap[data_offset:data_offset + length]
 
 
 class IntegerField(ByteField):
@@ -166,9 +172,12 @@ class IntegerField(ByteField):
         260
     """
     def __get__(self, obj, owner):
-        bytes = ByteField.__get__(self, obj, owner)
-        val = 0
-        for byte in bytes:
-            val *= 256
-            val += ord(byte)
-        return val
+        if obj is None:
+            return self
+        else:
+            bytes = ByteField.__get__(self, obj, owner)
+            val = 0
+            for byte in bytes:
+                val *= 256
+                val += ord(byte)
+            return val

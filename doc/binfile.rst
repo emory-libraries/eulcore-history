@@ -3,6 +3,15 @@
 
 .. automodule:: eulcore.binfile
 
+:class:`BinaryStructure` Subclasses
+-----------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   Eudora index files <binfile/eudora>
+   
+
 General Usage
 -------------
 
