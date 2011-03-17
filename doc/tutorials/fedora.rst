@@ -190,7 +190,7 @@ project urls.  Create ``repo/urls.py`` with this content::
 
 Then include that in your project ``urls.py``::
 
-    (r'^', include('eulrepo.repo.urls')),
+    (r'^', include('simplerepo.repo.urls')),
 
 Now, let's define a simple upload form and a view method to correspond to that url.  First, for the form,
 create a file named ``repo/forms.py`` and add the following::
@@ -232,7 +232,7 @@ Let's start the django server and make sure everything is working so far.  Start
 
     $ python manage.py runserver
 
-Then load `http://localhost:8000/upload/ <http://localhost:8000/upload/>`_ in your Web browser.  You should see a simple
+Then load `<http://localhost:8000/upload/>`_ in your Web browser.  You should see a simple
 upload form with the two fields defined.
 
 Process the upload
@@ -286,7 +286,7 @@ Fedora.  Let's update our template to show something if that is defined.  Add th
 form is displayed::
 
     {% if obj %}
-        <p>Successfully ingested {{ obj.label }} as {{ obj.pid }}.</p>
+        <p>Successfully ingested <b>{{ obj.label }}</b> as {{ obj.pid }}.</p>
         <hr/>
         {# re-display the form to allow additional uploads #}
         <p>Upload another file?</p>
@@ -297,6 +297,178 @@ label, select a file, and submit the form.  If all goes well, you should see a t
 successful ingest, along with the pid of the object you just created.
 
 .. TODO: error handling (e.g., permission denied on ingest)
+
+Display uploaded content
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Now we have a way to get content in Fedora, but we don't have any way
+to get it back out.  Let's build a display method that will allow us
+to view the object and its metadata.
+
+Object display view
+-------------------
+
+Add a new url for a single-object view to your urlpatterns in ``repo/urls.py``::
+
+    url(r'^objects/(?P<pid>[^/]+)/$', 'display', name='display'),
+
+Then define a simple view method that takes a pid in ``repo/views.py``::
+
+    def display(request, pid):
+        repo = Repository()
+        obj = repo.get_object(pid, type=FileObject)
+        return render_to_response('repo/display.html', {'obj': obj})
+
+For now, we're going to assume the object is the type of object we
+expect and that we have permission to access it in Fedora; we can add
+error handling for those cases a bit later.
+
+We still need a template to display something.  Create a new file
+called ``repo/display.html`` in your templates directory, and then add some
+code to output some information from the object::
+
+    <h1>{{ obj.label }}</h1>
+    <table>
+        <tr><th>pid:</th><td> {{ obj.pid }}</td></tr>
+        {% with obj.dc.content as dc %}
+            <tr><th>title:</th><td>{{ dc.title }}</td></tr>
+            <tr><th>creator:</th><td>{{ dc.creator }}</td></tr>
+            <tr><th>date:</th><td>{{ dc.date }}</td></tr>
+     {% endwith %}
+    </table>
+
+We're just using a simple table layout for now, but of course you can
+display this object information anyway you like.  We're just starting
+with a few of the Dublin Core fields for now, since most of them don't
+have any content yet.
+
+Go ahead and take a look at the object you created before using the
+upload form.  If you used the ``simplerepo`` PIDSPACE configured above,
+then the the first item you uploaded should now be viewable at 
+`<http://localhost:8000/objects/simplerepo:1/>`_.
+
+You might notice that we're displaying the text 'None' for creator and
+date.  This is because those fields aren't present at all yet in our
+object Dublin Core, and  :mod:`eulcore.xmlmap.` fields distinguish
+between an empty XML field and one that is not-present at all by using
+the empty string and None respectively.  Still, that doesn't look
+great, so let's adjust our template a little bit::
+
+    <tr><th>creator:</th><td>{{ dc.creator|default:'' }}</td></tr>
+    <tr><th>date:</th><td>{{ dc.date|default:'' }}</td></tr>
+
+We actually have more information about this object than we're
+currently displaying, so let's add a few more things to our object
+display template.  The object has information about when it was
+created and when it was last modified, so let's add a line after the object label:: 
+
+    <p> Uploaded at {{ obj.created }}; last modified {{ obj.modified }}.</p>
+
+These fields are actually Python datetime objects, so we can use
+Django template filters to display then a bit more nicely.  Try
+modifying the line we just added::
+
+    <p> Uploaded at {{ obj.created }}; last modified {{ obj.modified }} ({{  obj.modified|timesince }} ago).</p>
+
+It's pretty easy to display the Dublin Core datastream content as XML
+too.  This may not be something you'd want to expose to regular users,
+but it may be helpful as we develop the site.  Add a few more lines at
+the end of your ``repo/display.html`` template::
+
+    <hr/>
+    <pre>{{ obj.dc.content.serialize }}</pre>
+
+You could do this with the RELS-EXT just as easily (or basically any
+XML or RDF datastream), although it may not be as valuable for now,
+since we're not going to be modifying the RELS-EXST just yet.
+
+So far, we've got information about the object and the Dublin Core
+displaying, but nothing about the file that we uploaded to create this
+object.  Let's add a bit more to our template::
+
+    <p>{{ obj.file.label }} ({{ obj.file.info.size|filesizeformat }}, {{ obj.file.mimetype }})</p>
+
+Remember that in our ``upload`` view method we set the file datastream
+label and mimetype based on the file that was uploaded from the web
+form.  Those are stored in Fedora as part of the datastream
+information, along with some other things that Fedora calculates for
+us, like the size of the content.
+
+
+Download File datastream
+------------------------
+
+Now we're displaying information about the file, but we don't actually
+have a way to get the file back out of Fedora yet.  Let's add another
+view.
+
+Add another line to your url patterns in ``repo/urls.py``::
+
+    url(r'^objects/(?P<pid>[^/]+)/file/$', 'file', name='download'),
+
+And then update ``repo/views.py`` to define the new view method.
+First, we need to add a new import::
+
+    from eulcore.django.fedora.views import raw_datastream
+
+:meth:`eulcore.django.fedora.views.raw_datastream` is a generic view
+method that can be used for displaying datastream content from fedora
+objects.  In some cases you may be able to use
+:meth:`~eulcore.django.fedora.views.raw_datastream` directly (e.g., it
+might be useful for displaying XML datastreams), but in this case we
+want to add an extra header to indicate that the content should be
+downloaded.  Add this method to ``repo/views.py``::
+
+    def file(request, pid):
+        dsid = 'FILE'
+        extra_headers = {
+            'Content-Disposition': "attachment; filename=%s.pdf" % pid,
+        }
+        return raw_datastream(request, pid, dsid, type=FileObject, headers=extra_headers)
+
+We've defined a content disposition header so the user will be
+prompted to save the response with a filename based on the pid do the
+object in fedora.  The
+:meth:`~eulcore.django.fedora.views.raw_datastream` method will add a
+few additional response headers based on the datastream information
+from Fedora.  Let's link this in from our object display page so we
+can try it out.  Edit your ``repo/display.html`` template and turn
+the original filename into a link::
+
+	<a href="{% url download obj.pid %}">{{ obj.file.label }}</a> 
+
+Now, try it out!  You should be able to download the file you
+originally uploaded.
+
+But, hang on-- you may have noticed, there are a couple of details
+hard-coded in our download view that really shouldn't be.  What if the
+file you uploaded wasn't a PDF?  What if we decide we want to use a
+different datastream ID?  Let's revise our view method a bit::
+
+    def file(request, pid):
+        dsid = FileObject.file.id
+        repo = Repository()
+        obj = repo.get_object(pid, type=FileObject)
+        extra_headers = {
+            'Content-Disposition': "attachment; filename=%s" % obj.file.label,
+        }
+        return raw_datastream(request, pid, dsid, type=FileObject, headers=extra_headers)
+
+We can get the ID for the file datastream directly from the
+:class:`~eulcore.fedora.models.FileDatastream` object on our
+FileObject class.  And in our upload view we set the original file
+name as our datastream label, so we'll go ahead and use that as the
+download name.
+
+.. TODO: error handling (404, permission)
+
+Edit Fedora content
+^^^^^^^^^^^^^^^^^^^
+
+So far, we can get content into Fedora and we can get it back out.
+Now, how do we modify it?  Let's build an edit page where we can
+update the Dublin Core metadata.
+
 
 
 
