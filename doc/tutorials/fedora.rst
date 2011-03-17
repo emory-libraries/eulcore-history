@@ -466,9 +466,156 @@ Edit Fedora content
 ^^^^^^^^^^^^^^^^^^^
 
 So far, we can get content into Fedora and we can get it back out.
-Now, how do we modify it?  Let's build an edit page where we can
-update the Dublin Core metadata.
+Now, how do we modify it?  Let's build an edit form & a view that we
+can use to update the Dublin Core metadata.
 
+XmlObjectForm for Dublin Core
+-----------------------------
 
+We're going to create an :class:`eulcore.django.forms.XmlObjectForm`
+instance for editing :class:`eulcore.xmlmap.dc.DublinCore`.
+:class:`~eulcore.django.forms.XmlObjectForm` is roughly analogous to
+Django's ModelForm, except in place of a Django Model we have an
+:class:`~eulcore.xmlmap.XmlObject` that we want to make editable.
 
+First, add some new imports to ``repo/forms.py``::
+
+    from eulcore.xmlmap.dc import DublinCore
+    from eulcore.django.forms import XmlObjectForm
+
+Then we can define our new edit form::
+
+    class DublinCoreEditForm(XmlObjectForm):
+        class Meta:
+            model = DublinCore
+            fields = ['title', 'creator', 'date']
+
+We'll start simple, with just the three fields we're currently
+displaying on our object display page.  This code creates a custom
+:class:`~eulcore.django.forms.XmlObjectForm` with a *model* of (which
+for us is an instance of :class:`~eulcore.xmlmap.XmlObject`)
+:class:`~eulcore.xmlmap.dc.DublinCore`.  XmlObjectForm knows how to
+look at the model object and figure out how to generate form fields
+that correspond to the xml fields. By adding a list of fields, we tell
+XmlObjectForm to only build form fields for these attributes of our
+model.
+
+Now we need a view and a template to display our new form.  Add
+another url to ``repo/urls.py``::
+
+    url(r'^objects/(?P<pid>[^/]+)/edit/$', 'edit', name='edit'),
+
+And then define the corresponding method in ``repo/views.py``.  We
+need to import our new form::
+
+	from simplerepo.repo.forms import DublinCoreEditForm
+
+Then, use it in a view method. For now, we'll just instantiate the
+form, bind it to our content, and pass it to a template::
+
+    def edit(request, pid):
+        repo = Repository()
+        obj = repo.get_object(pid, type=FileObject)
+        form = DublinCoreEditForm(instance=obj.dc.content)
+        return render_to_response('repo/edit.html', {'form': form, 'obj': obj},
+                context_instance=RequestContext(request))
+
+We have to instantiate our object, and then pass in the *content* of
+the DC datastream as the instance to our model.  Our XmlObjectForm is
+using :class:`~eulcore.xmlmap.dc.DublinCore` as its model, and
+**obj.dc.content** is an instance of DublinCore with data loaded from
+Fedora.
+
+Create a new file called ``repo/edit.html`` in your templates
+directory and add a little bit of code to display the form::
+
+    <h1>Edit {{ obj.label }}</h1>
+    <form method="post">{% csrf_token %}
+        <table>{{ form.as_table }}</table>
+        <input type="submit" value="Save"/>
+    </form>
+
+Load the edit page for that first item you uploaded: `<http://localhost:8000/objects/simplerepo:1/edit/>`_.  You
+should see a form with the three fields that we listed.  Let's modify our view method so it will do something when we
+submit the form::
+
+    def edit(request, pid):
+        repo = Repository()
+        obj = repo.get_object(pid, type=FileObject)
+        if request.method == 'POST':
+            form = DublinCoreEditForm(request.POST, instance=obj.dc.content)
+            if form.is_valid():
+                form.update_instance()
+                obj.save()
+        elif request.method == 'GET':
+            form = DublinCoreEditForm(instance=obj.dc.content)
+        return render_to_response('repo/edit.html', {'form': form, 'obj': obj},
+                context_instance=RequestContext(request))
+	    
+When the data is posted to this view, we're binding our form to the posted data and the XmlObject instance.  If it's
+valid, then we can call the ``update_instance`` method, which actually updates the XmlObject that is attached to our
+DC datastream object based on the form data that was posted to the view.  When we save the object,
+the :class:`~eulcore.fedora.models.DigitalObject` class detects that the ``dc.content`` has been modified and will
+make the necessary API calls to update that content in Fedora.
+
+.. Note::
+  It may not matter too much in this case, since we are working with simple Dublin Core XML,
+  but it's probably worth noting that the form ``is_valid`` check actually includes XSD schema validation on
+  XmlObject instances that have a schema defined.  In most cases, it should be difficult (if not impossible) to generate
+  invalid XML via an XmlObjectForm; but if you edit the XML manually and introduce something that is not
+  schema-valid, you'll see the validation error when you attempt to update that content with XmlObjectForm.
+
+Try entering some text in your form and submitting the data.  It should update your object in Fedora with the changes
+you made.  However, our interface isn't very user friendly right now.  Let's adjust the edit view to redirect the user
+to the object display after changes are saved.
+
+We'll need some additional imports::
+
+    from django.core.urlresolvers import reverse
+    from eulcore.django.http import HttpResponseSeeOtherRedirect
+
+.. Note::
+  :class:`~eulcore.django.http.HttpResponseSeeOtherRedirect` is a custom subclass of :class:`django.http.HttpResponse`
+  analogous to HttpResponseRedirect or HttpResponsePermanentRedirect, but it returns a 'See Other' redirect (HTTP
+  status code 303).
+
+After the ``object.save()`` call in the edit view method, add this::
+
+    return HttpResponseSeeOtherRedirect(reverse('display', args=[obj.pid]))
+
+Now when you make changes to the Dublin Core fields and submit the form, it should redirect you to the object display
+page and show the changes you just made.
+
+Right now our edit form only has three fields.  Let's customize it a bit more.  First, let's add all of the Dublin Core
+fields.  Replace the original list of fields in DublinCoreEditForm with this::
+
+    fields = ['title', 'creator', 'contributor', 'date', 'subject',
+        'description', 'relation', 'coverage', 'source', 'publisher',
+        'rights', 'language', 'type', 'format', 'identifier']
+
+Right now all of those are getting displayed as text inputs, but we might want to treat some of them a bit
+differently.  Let's customize some of the widgets::
+
+    widgets = {
+        'description': forms.Textarea,
+        'date': SelectDateWidget,
+    }
+
+You'll also need to add another import line so you can use :class:`SelectDateWidget`::
+
+    from django.forms.extras.widgets import SelectDateWidget
+
+Reload the object edit page in your browser.  You should see all of the Dublin Core fields we added, and the custom
+widgets for description and date.  Go ahead and fill in some more fields and save your changes.
+
+While we're adding fields, let's change our display template so that we can see any Dublin Core fields that are
+present, not just those first three we started with.  Replace the title, creator, 
+and date lines in your ``repo/display.html`` template with this::
+
+    {% for el in dc.elements %}
+        <tr><th>{{ el.name }}:</th><td>{{el}}</td</tr>
+    {% endfor %}
+
+Now when you load the object page in your browser, you should see all of the fields that you entered data for on the
+edit page.
 
