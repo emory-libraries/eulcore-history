@@ -19,19 +19,50 @@
 This module facilitates exposing stored binary data using common Pythonic
 idioms. Fields in relocatable binary objects map to Python attributes using
 a priori knowledge about how the binary structure is organized. This is akin
-to the standard :mod:`struct` module, but with more flexibility in placement
-and size, at the cost of more verbose structure definitions and support only
-for file-based structures.
+to the standard :mod:`struct` module, but with some slightly different use
+cases. :mod:`struct`, for instance, offers a more terse syntax, which is
+handy for certain simple structures. :mod:`struct` is also a bit faster
+since it's implemented in C. This module's more verbose
+:class:`~eulcore.binfile.BinaryStructure` definitions give it a few
+advantages over :mod:`struct`, though:
+
+ * This module allows users to define their own field types, where
+   :mod:`struct` field types are basically inextensible.
+ * The object-based nature of :class:`~eulcore.binfile.BinaryStructure`
+   makes it easy to add non-structural properties and methods to subclasses,
+   which would require a bit of reimplementing and wrapping from a
+   :mod:`struct` tuple.
+ * :class:`~eulcore.binfile.BinaryStructure` instances access fields through
+   named properties instead of indexed tuples. :mod:`struct` tuples are fine
+   for structures a few fields long, but when a packed binary structure
+   grows to dozens of fields, navigating its :mod:`struct` tuple grows
+   perilous.
+ * :class:`~eulcore.binfile.BinaryStructure` unpacks fields only when
+   they're accessed, allowing us to define libraries of structures scores of
+   fields long, understanding that any particular application might access
+   only one or two of them.
+ * Fields in a :class:`~eulcore.binfile.BinaryStructure` can overlap
+   eachother, greatly simplifying both C `unions
+   <http://en.wikipedia.org/wiki/Union_(computer_science)>`_ and fields with
+   multiple interpretations (integer/string, signed/unsigned).
+ * This module makes sparse structures easy. If you're reverse-engineering a
+   large binary structure and discover a 4-byte integer in the middle of 68
+   bytes of unidentified mess, this module makes it easy to add an
+   :class:`~eulcore.binfile.IntegerField` at a known structure offset.
+   :mod:`struct` requires you to split your ``'68x'`` into a ``'32xI32x'``
+   (or was that a ``'30xi34x'``? Better recount.)
 
 This package exports the following names:
- * :class:`BinaryStructure` -- a base class for binary data structures
- * :class:`ByteField` -- a field that maps fixed-length binary data to
-   Python strings
- * :class:`LengthPrependedStringField` -- a field that maps variable-length
-   binary strings to Python strings
- * :class:`IntegerField` -- a field that maps fixed-length binary data to
-   Python numbers
+ * :class:`~eulcore.binfile.BinaryStructure` -- a base class for binary data
+   structures
+ * :class:`~eulcore.binfile.ByteField` -- a field that maps fixed-length
+   binary data to Python strings
+ * :class:`~eulcore.binfile.LengthPrependedStringField` -- a field that maps
+   variable-length binary strings to Python strings
+ * :class:`~eulcore.binfile.IntegerField` -- a field that maps fixed-length
+   binary data to Python numbers
 '''
+# see eulcore/binfile/__init__.py for more docs
 
 from mmap import mmap
 
@@ -101,8 +132,8 @@ class ByteField(object):
     def __get__(self, obj, owner):
         if obj is None:
             return self
-        else:
-            return obj.mmap[self.start + obj._offset : self.end + obj._offset]
+
+        return obj.mmap[self.start + obj._offset : self.end + obj._offset]
 
 
 class LengthPrependedStringField(object):
@@ -135,11 +166,11 @@ class LengthPrependedStringField(object):
     def __get__(self, obj, owner):
         if obj is None:
             return self
-        else:
-            length_offset = self.offset + obj._offset
-            length = ord(obj.mmap[length_offset])
-            data_offset = length_offset + 1
-            return obj.mmap[data_offset:data_offset + length]
+
+        length_offset = self.offset + obj._offset
+        length = ord(obj.mmap[length_offset])
+        data_offset = length_offset + 1
+        return obj.mmap[data_offset:data_offset + length]
 
 
 class IntegerField(ByteField):
@@ -165,7 +196,8 @@ class IntegerField(ByteField):
 
     When you instantiate the subclass and access the field, its value will
     be big-endian unsigned integer encoded at that location in the
-    structure. So with a file whose bytes 3, 4, and 5 are '\x00\x01\x04'::
+    structure. So with a file whose bytes 3, 4, and 5 are
+    ``'\\x00\\x01\\x04'``::
 
         >>> o = MyObject('file.bin')
         >>> o.myfield
@@ -174,10 +206,18 @@ class IntegerField(ByteField):
     def __get__(self, obj, owner):
         if obj is None:
             return self
-        else:
-            bytes = ByteField.__get__(self, obj, owner)
-            val = 0
-            for byte in bytes:
-                val *= 256
-                val += ord(byte)
-            return val
+
+        # Conveniently, ByteField already supports arbitrary fixed-length
+        # strings. Draw on our ByteField parent to get the bytes underlying
+        # this number field, and then interpret those bytes as a number.
+
+        bytes = ByteField.__get__(self, obj, owner)
+        val = 0
+        # we only support big-endian for now. big-endian integers are sort
+        # of like base-256 numbers. in base 10 to get from 432 to 4326 we
+        # multiply by 10 and add 6. so in base 256 we multiply by 256 and
+        # add our next byte.
+        for byte in bytes:
+            val *= 256
+            val += ord(byte)
+        return val

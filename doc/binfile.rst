@@ -1,7 +1,11 @@
 :mod:`eulcore.binfile` -- Map binary data to Python objects
 ===========================================================
 
-.. automodule:: eulcore.binfile
+.. automodule:: eulcore.binfile.core
+.. pull in core's __doc__, even though we're treating the symbols as if
+   they're in eulcore.binfile
+
+.. module:: eulcore.binfile
 
 :class:`BinaryStructure` Subclasses
 -----------------------------------
