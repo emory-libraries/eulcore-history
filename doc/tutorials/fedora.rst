@@ -619,3 +619,111 @@ and date lines in your ``repo/display.html`` template with this::
 Now when you load the object page in your browser, you should see all of the fields that you entered data for on the
 edit page.
 
+Search Fedora content
+^^^^^^^^^^^^^^^^^^^^^
+
+So far, we've just been working with the objects we uploaded, where we know the PID of the object we want to view or
+edit.  But how do we come back and find that again later?  Or find other content that someone else created?  Let's
+build a simple search to find objects in Fedora.
+
+.. Note::
+  For this tutorial, we'll us the Fedora ``findObjects`` API method.  This search is quite limited,
+  and for a production system, you'll probably want to use something more powerful, such as GSearch or Solr.
+
+.. TODO: link gsearch
+
+The built-in fedora search can either do a keyword search across all indexed fields *or* a fielded search.  For the
+purposes of this tutorial, a simple keyword search will accomplish what we need.  Let's create a simple form with one
+input for keyword search terms.  Add the following to ``repo/forms.py``::
+
+    class SearchForm(forms.Form):
+        keyword = forms.CharField()
+
+Add a search url to ``repo/urls.py``::
+
+    url(r'^search/$', 'search', name='search'),
+
+Then import the new form into ``repo/views.py`` and define the view that will actually do the searching::
+
+    from simplerepo.repo.forms import SearchForm
+
+    def search(request):
+        objects = None
+        if request.method == 'POST':
+            form = SearchForm(request.POST)
+            if form.is_valid():
+                repo = Repository()
+                objects = list(repo.find_objects(form.cleaned_data['keyword'], type=FileObject))
+
+        elif request.method == 'GET':
+            form = SearchForm()
+        return render_to_response('repo/search.html', {'form': form, 'objects': objects},
+                context_instance=RequestContext(request))
+
+As before, on a GET request we simple pass the form to the template for display.  When the request is a POST with
+valid search data, we're going to instantiate our :class:`~eulcore.django.fedora.server.Repository` object and call
+the :meth:`~eulcore.fedora.server.Repository.find_objects` method.  Since we're just doing a term search,
+we can just pass in the keywords from the form.  If you wanted to do a fielded search,
+you could build a keyword-argument style list of fields and search terms instead.  We're telling ``find_objects`` to
+return everything it finds as an instance of our ``FileObject`` class for now,
+even though that is an over-simplification and in searching across all content in the Fedora repository we may well
+find other kinds of content.
+
+Let's create a search template to display the search form and search results.  Create ``repo/search.html`` in your
+templates directory and add this::
+
+    <h1>Search for objects</h1>
+    <form method="post">{% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Submit"/>
+    </form>
+    {% if objects %}
+        <hr/>
+        {% for obj in objects %}
+            <p><a href="{% url display obj.pid %}">{{ obj.label }}</a></p>
+        {% endfor %}
+    {% endif %}
+
+This template will always display the search form, and if any objects were found, it will list them.  Let's take it
+for a whirl!  Go to `<http://localhost:8000/search/>`_ and enter a search term.  Try searching for the object labels,
+any of the values you entered into the Dublin Core fields that you edited, or if you're using ``simplerepo`` for your
+configured PIDSPACE, search on ``simplerepo:*`` to find the objects you've uploaded.
+
+When you are searching across disparate content in the Fedora repository, depending on how you have access
+configured for that repository, there is a possibility that the search could return an object that the current
+user doesn't actually have permission to view.  For efficiency reasons, the :class:`~eulcore.fedora.models
+.DigitalObject` postpones any Fedora API calls until the last possibly moment-- which means that in our search
+results, any connection errors will happen in the template instead of in the view method.  Fortunately, there is an
+``eulcore`` template tag to help with that!  Let's rewrite the search template to use it::
+
+    {% load fedora %}
+    <h1>Search for objects</h1>
+    <form method="post">{% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Submit"/>
+    </form>
+    {% if objects %}
+        <hr/>
+        {% for obj in objects %}
+          {% fedora_access %}
+            <p><a href="{% url view obj.pid %}">{{ obj.label }}</a></p>
+          {% permission_denied %}
+            <p>You don't have permission to view this object.</p>
+          {% fedora_failed %}
+            <p>There was an error accessing fedora.</p>
+          {% end_fedora_access %}
+        {% endfor %}
+    {% endif %}
+
+What we're doing here is loading the ``fedora`` template tag, and then
+using ``fedora_access`` for each object that we want to display.  That
+way we can catch any permission or connection errors and display some
+kind of message to the user, and still display all the content they
+have permission to view.  See `eulcore.django.fedora.templatetags`_
+for more details.
+
+For this template tag to work correctly, you're also going to have
+disable template debugging (otherwise, the Django template debugging
+will catch the error first).  Edit your ``settings.py`` and change
+``TEMPLATE_DEBUG`` to False.
+
