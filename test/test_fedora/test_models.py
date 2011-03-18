@@ -90,6 +90,8 @@ class TestDatastreams(FedoraTestCase):
         self.assertEqual(self.obj.dc.versionable, True) 
         self.assertEqual(self.obj.dc.control_group, "X")
         self.assert_(self.now < self.obj.dc.created)
+        # short-cut to datastream size
+        self.assertEqual(self.obj.dc.info.size, self.obj.dc.size)
 
         self.assertEqual(self.obj.text.label, "text datastream")
         self.assertEqual(self.obj.text.mimetype, "text/plain")

@@ -237,6 +237,11 @@ class DatastreamObject(object):
         return self.info.created
 
     @property
+    def size(self):
+        'Size of the datastream content'
+        return self.info.size
+
+    @property
     def modified(self):
         # FIXME: not actually available in datastreamProfile !!
         return self.info.modified
