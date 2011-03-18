@@ -691,10 +691,13 @@ class StringListField(Field):
     Takes an optional parameter to indicate that the string contents should have
     whitespace normalized.  By default, does not normalize.
 
+    Takes an optional list of choices to restrict possible values.
+
     Actual return type is :class:`~eulcore.xmlmap.fields.NodeList`, which can be
     treated like a regular Python list, and includes set and delete functionality.
     """
-    def __init__(self, xpath, normalize=False, *args, **kwargs):
+    def __init__(self, xpath, normalize=False, choices=None, *args, **kwargs):
+        self.choices = choices
         super(StringListField, self).__init__(xpath,
                 manager = NodeListManager(),
                 mapper = StringMapper(normalize=normalize), *args, **kwargs)

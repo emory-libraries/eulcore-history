@@ -20,6 +20,7 @@ setting them as well.
 
    Encoded Archive Description (EAD) XmlObject <xmlmap/ead>
    Dublin Core XmlObject <xmlmap/dc>
+   Collaborative Electronic Records Project (CERP) XmlObject <xmlmap/cerp>
 
 General Usage
 -------------
