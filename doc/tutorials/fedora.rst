@@ -706,7 +706,7 @@ results, any connection errors will happen in the template instead of in the vie
         <hr/>
         {% for obj in objects %}
           {% fedora_access %}
-            <p><a href="{% url view obj.pid %}">{{ obj.label }}</a></p>
+            <p><a href="{% url display obj.pid %}">{{ obj.label }}</a></p>
           {% permission_denied %}
             <p>You don't have permission to view this object.</p>
           {% fedora_failed %}
