@@ -32,72 +32,75 @@ from rdflib import URIRef, Graph
 
 from eulcore import xmlmap
 
+from poster import streaminghttp
+
+# NOTE: the multipart encoding below should be superceded by use of poster
 # functions for posting multipart form data
 # this code is a combination of:
 #  - http://code.activestate.com/recipes/146306/
 #  - urllib3.filepost.py    http://code.google.com/p/urllib3/
 
-ENCODE_TEMPLATE= """--%(boundary)s
-Content-Disposition: form-data; name="%(name)s"
+#ENCODE_TEMPLATE= """--%(boundary)s
+#Content-Disposition: form-data; name="%(name)s"
+#
+#%(value)s
+#""".replace('\n','\r\n')
+#
+#ENCODE_TEMPLATE_FILE = """--%(boundary)s
+#Content-Disposition: form-data; name="%(name)s"; filename="%(filename)s"
+#Content-Type: %(contenttype)s
+#
+#%(value)s
+#--%(boundary)s--
+#
+#""".replace('\n','\r\n')
+#
+#def encode_multipart_formdata(fields, files):
+#    """
+#    fields is a sequence of (name, value) elements for regular form fields.
+#    files is a sequence of (name, filename, value) elements for data to be uploaded as files
+#    Return (content_type, body) ready for httplib.HTTP instance
+#    """
+#    BOUNDARY = generate_boundary()
+#
+#    body = ""
+#
+#    # NOTE: Every non-binary possibly-unicode variable must be casted to str()
+#    # because if a unicode value pollutes the `body` string, then all of body
+#    # will become unicode. Appending a binary file string to a unicode string
+#    # will cast the binary data to unicode, which will raise an encoding
+#    # exception. Long story short, we want to stick to plain strings.
+#    # This is not ideal, but if anyone has a better method, I'd love to hear it.
+#
+#    for key, value in fields:
+#        body += ENCODE_TEMPLATE % {
+#                        'boundary': BOUNDARY,
+#                        'name': str(key),
+#                        'value': str(value)
+#                    }
+#    for (key, filename, value) in files:
+#        body += ENCODE_TEMPLATE_FILE % {
+#                    'boundary': BOUNDARY,
+#                    'name': str(key),
+#                    'value': str(value),
+#                    'filename': str(filename),
+#                    'contenttype': str(get_content_type(filename))
+#                    }
+#
+#    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
+#    return content_type, body
+#
+#def get_content_type(filename):
+#    if filename:
+#        guesses = mimetypes.guess_type(filename)
+#        if guesses:
+#            return guesses[0]
+#    return 'application/octet-stream'
 
-%(value)s
-""".replace('\n','\r\n')
-
-ENCODE_TEMPLATE_FILE = """--%(boundary)s
-Content-Disposition: form-data; name="%(name)s"; filename="%(filename)s"
-Content-Type: %(contenttype)s
-
-%(value)s
---%(boundary)s--
-
-""".replace('\n','\r\n')
-
-def encode_multipart_formdata(fields, files):
-    """
-    fields is a sequence of (name, value) elements for regular form fields.
-    files is a sequence of (name, filename, value) elements for data to be uploaded as files
-    Return (content_type, body) ready for httplib.HTTP instance
-    """    
-    BOUNDARY = generate_boundary()
-
-    body = ""
-
-    # NOTE: Every non-binary possibly-unicode variable must be casted to str()
-    # because if a unicode value pollutes the `body` string, then all of body
-    # will become unicode. Appending a binary file string to a unicode string
-    # will cast the binary data to unicode, which will raise an encoding
-    # exception. Long story short, we want to stick to plain strings.
-    # This is not ideal, but if anyone has a better method, I'd love to hear it.
-
-    for key, value in fields:
-        body += ENCODE_TEMPLATE % {
-                        'boundary': BOUNDARY,
-                        'name': str(key),
-                        'value': str(value)
-                    }
-    for (key, filename, value) in files:
-        body += ENCODE_TEMPLATE_FILE % {
-                    'boundary': BOUNDARY,
-                    'name': str(key),
-                    'value': str(value),
-                    'filename': str(filename),
-                    'contenttype': str(get_content_type(filename))
-                    }
-
-    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
-    return content_type, body
-
-def get_content_type(filename):
-    if filename:
-        guesses = mimetypes.guess_type(filename)
-        if guesses:
-            return guesses[0]
-    return 'application/octet-stream'
-
-# generate a random boundary character string
-def generate_boundary():
-    return ''.join(random.choice(string.hexdigits[:16]) for x in range(32))
-
+## generate a random boundary character string
+#def generate_boundary():
+#    return ''.join(random.choice(string.hexdigits[:16]) for x in range(32))
+#
 
 # utilities for making HTTP requests to fedora
 
@@ -144,10 +147,14 @@ class PermissionDenied(RequestFailed):
 class HttpServerConnection(object):
     def __init__(self, url):
         self.urlparts = urlsplit(url)
+        # instead of stock httplib connection classes, use patched versions from poster module
+        # - allows using a generator for content, in support of posting large files
         if self.urlparts.scheme == 'http':
-            self.connection_class = httplib.HTTPConnection
+            #self.connection_class = httplib.HTTPConnection
+            self.connection_class = streaminghttp.StreamingHTTPConnection
         elif self.urlparts.scheme == 'https':
-            self.connection_class = httplib.HTTPSConnection
+            #self.connection_class = httplib.HTTPSConnection
+            self.connection_class = streaminghttp.StreamingHTTPSConnection
         
         self.thread_local = threading.local()
 

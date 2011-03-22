@@ -15,6 +15,7 @@
 #   limitations under the License.
 
 import logging
+from os import path
 from urllib import urlencode
 from urlparse import urlsplit
 import time
@@ -25,8 +26,9 @@ from soaplib.service import soapmethod
 from soaplib.client import ServiceClient, SimpleSoapClient
 from soaplib.wsgi_soap import SimpleWSGISoapApp
 
-from eulcore.fedora.util import auth_headers, encode_multipart_formdata, \
-                                get_content_type, datetime_to_fedoratime
+from poster.encode import multipart_encode
+
+from eulcore.fedora.util import auth_headers, datetime_to_fedoratime
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +41,18 @@ class HTTP_API_Base(object):
     def open(self, method, rel_url, body=None, headers={}, throw_errors=True):
         start = time.time()
         val = self.opener.open(method, rel_url, body, headers, throw_errors)
+        # get number of bytes written for logging
+        # - if available in header, use that value instead of recalculating
+        if 'Content-Length' in headers:
+            bytes = int(headers['Content-Length'])
+        # - if this is a file object, get file size
+        elif hasattr(body, 'read') and hasattr(body, 'name'):
+            bytes = path.getsize(body.name)
+        # - otherwise, treat like a string
+        else:
+            bytes = len(body or '')
         logger.debug('open: %s %s %s (%d body bytes; %f secs)' % 
-                (method, rel_url, repr(headers), len(body or ''),
+                (method, rel_url, repr(headers), bytes,
                  time.time() - start))
         return val
 
@@ -201,33 +213,42 @@ class REST_API(HTTP_API_Base):
             http_args['checksum'] = checksum
 
         #Legacy code for files.
+        fp = None
         if filename:
             fp = open(filename, 'rb')
-            content_type, body = encode_multipart_formdata({}, [ ('file', filename, fp.read())])
-            headers = { 'Content-Type' : content_type,
-                        'Content-Length' : str(len(body)) }
-            fp.close()
+            body = fp
+            headers = {'Content-Type': mimeType}
+            # because file-like objects are posted in chunks, this file object has to stay open until the post
+            # completes - close it after we get a response
+
         #Added code to match how content is now handled, see modifyDatastream.
         elif content:
-            if hasattr(content, 'read'):    # allow content to be a file
-                body = content.read()
+            if hasattr(content, 'read'):    # if content is a file-like object, warn if no checksum
                 if not checksum:
                     logging.warning("File was ingested into fedora without a passed checksum for validation, pid was: %s and dsID was: %s." % (pid, dsID))
-            else:
-                body = content
+
+            body = content  # could be a string or a file-like object
             headers = { 'Content-Type' : mimeType,
-                        'Content-Length' : str(len(body)) }
+                        # - don't attempt to calculate length here (will fail on files)
+                        # the http connection class will calculate & set content-length for us
+                        #'Content-Length' : str(len(body))
+            }
         else:
             headers = {}
             body = None
 
         url = 'objects/%s/datastreams/%s?' % (pid, dsID) + urlencode(http_args)
-        with self.open('POST', url, body, headers, throw_errors=False) as response:            
+        with self.open('POST', url, body, headers, throw_errors=False) as response:
+            # if a file object was opened to post data, close it now
+            if fp is not None:
+                fp.close()
+
             # expected response: 201 Created (on success)
             # when pid is invalid, response body contains error message
             #  e.g., no path in db registry for [bogus:pid]
-            # return success/failure and any additional information
+            # return success/failure and any additional information          
             return (response.status == 201, response.read())
+
 
     # addRelationship not implemented in REST API
 
@@ -370,13 +391,15 @@ class REST_API(HTTP_API_Base):
         body = None
         if content:
             if hasattr(content, 'read'):    # allow content to be a file
-                body = content.read()
+                # warn about missing checksums for files
                 if not checksum:
                     logging.warning("File was ingested into fedora without a passed checksum for validation, pid was: %s and dsID was: %s." % (pid, dsID))
-            else:
-                body = content
+            # body can be either a string or a file-like object (http connection class will handle either)
+            body = content
             headers = { 'Content-Type' : mimeType,
-                        'Content-Length' : str(len(body)) }
+                        # let http connection class calculate the content-length for us (deal with file or string)
+                        #'Content-Length' : str(len(body))
+                        }
 
 
         url = 'objects/%s/datastreams/%s?' % (pid, dsID) + urlencode(http_args)
@@ -493,19 +516,13 @@ class API_A_LITE(HTTP_API_Base):
 
 class API_M_LITE(HTTP_API_Base):
     def upload(self, data):
-        filename = None
-        if hasattr(data, 'read'):
-            data = data.read()
-            filename = getattr(data, 'name', None)
-
         url = 'management/upload'
 
-        entry = ('file', filename, str(data))
-        content_type, body = encode_multipart_formdata({}, [entry])
-        headers = { 'Content-Type' : content_type,
-                    'Content-Length' : str(len(body)) }
+        # use poster multi-part encode to build the headers and a generator for body content,
+        # in order to handle posting large files that can't be read into memory all at once
+        body, headers = multipart_encode(data) #{'text': data})
 
-        with self.open('POST', url, body, headers) as response:
+        with self.open('POST', url, body, headers=headers) as response:
             # returns 201 Created on success
             # return response.status == 201
             # content of response should be upload id, if successful
