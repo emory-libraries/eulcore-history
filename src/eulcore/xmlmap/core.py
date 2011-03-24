@@ -17,6 +17,7 @@
 import cStringIO
 import logging
 import os
+import urllib2
 
 from lxml import etree
 from lxml.builder import ElementMaker
@@ -454,8 +455,13 @@ class XmlObject(object):
         return len(self.node) == 0 and len(self.node.attrib) == 0 \
             and not self.node.text and not self.node.tail # regular text or text after a node
 
+class Urllib2Resolver(etree.Resolver):
+    def resolve(self, url, public_id, context):
+        f = urllib2.urlopen(url)
+        return self.resolve_file(f, context, base_url=url)
+_defaultResolver = Urllib2Resolver()
 
-def _get_xmlparser(xmlclass=XmlObject, validate=False, resolver=None):
+def _get_xmlparser(xmlclass=XmlObject, validate=False, resolver=_defaultResolver):
     """Initialize an instance of :class:`lxml.etree.XMLParser` with appropriate
     settings for validation.  If validation is requested and the specified
     instance of :class:`XmlObject` has an XSD_SCHEMA defined, that will be used.
