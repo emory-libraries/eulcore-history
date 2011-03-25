@@ -26,7 +26,7 @@ from soaplib.service import soapmethod
 from soaplib.client import ServiceClient, SimpleSoapClient
 from soaplib.wsgi_soap import SimpleWSGISoapApp
 
-from poster.encode import multipart_encode
+from poster.encode import multipart_encode, MultipartParam
 
 from eulcore.fedora.util import auth_headers, datetime_to_fedoratime
 
@@ -514,13 +514,30 @@ class API_A_LITE(HTTP_API_Base):
         return self.read('describe?' + urlencode(http_args))
 
 
+class _NamedMultipartParam(MultipartParam):
+    # Fedora API_M_LITE upload fails (as of v3.2.1) if passed a file with no
+    # filename in its Content-Disposition. This MultipartParam forces a
+    # filename of 'None' if none is specified to work around that problem.
+    # This is necessary for calling API_M_LITE.upload on string data, since
+    # poster otherwise encodes those without any filename.
+    def __init__(self, name, value=None, filename=None, *args, **kwargs):
+        if filename is None:
+            filename = 'None'
+
+        super_init = super(_NamedMultipartParam, self).__init__
+        super_init(name, value, filename, *args, **kwargs)
+
+
 class API_M_LITE(HTTP_API_Base):
     def upload(self, data):
         url = 'management/upload'
 
-        # use poster multi-part encode to build the headers and a generator for body content,
-        # in order to handle posting large files that can't be read into memory all at once
-        body, headers = multipart_encode({'file': data}) #{'text': data})
+        # use poster multi-part encode to build the headers and a generator
+        # for body content, in order to handle posting large files that
+        # can't be read into memory all at once. use _NamedMultipartParam to
+        # force a filename as described above.
+        post_params = _NamedMultipartParam.from_params({'file':data})
+        body, headers = multipart_encode(post_params)
 
         with self.open('POST', url, body, headers=headers) as response:
             # returns 201 Created on success
