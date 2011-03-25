@@ -520,7 +520,7 @@ class API_M_LITE(HTTP_API_Base):
 
         # use poster multi-part encode to build the headers and a generator for body content,
         # in order to handle posting large files that can't be read into memory all at once
-        body, headers = multipart_encode(data) #{'text': data})
+        body, headers = multipart_encode({'file': data}) #{'text': data})
 
         with self.open('POST', url, body, headers=headers) as response:
             # returns 201 Created on success
