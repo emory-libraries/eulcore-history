@@ -775,8 +775,16 @@ class DigitalObject(object):
     def _get_label(self):
         return self.info.label
     def _set_label(self, val):
+        # Fedora object label property has a maximum of 255 characters
+        if len(val) > 255:
+            logger.warning('Attempting to set object label for %s to a value longer than 255 character max (%d); truncating' \
+                % (self.pid, len(val)))
+            val = val[0:255]
+
+        # if the new value is different, track object information modification for next save
+        if self.info.label != val:
+            self.info_modified = True
         self.info.label = val
-        self.info_modified = True       # only if new val is different!
     label = property(_get_label, _set_label, None, "object label")
 
     def _get_owner(self):

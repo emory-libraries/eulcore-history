@@ -435,6 +435,17 @@ class TestDigitalObject(FedoraTestCase):
         self.assertNotEqual(profile.created, profile.modified,
                 "object create date should not equal modified after updating object profile")
 
+    def test_object_label(self):
+        # object label set method has special functionality
+        self.obj.label = ' '.join('too long' for i in range(50))
+        self.assertEqual(255, len(self.obj.label), 'object label should be truncated to 255 characters')
+        self.assertTrue(self.obj.info_modified, 'object info modified when object label has changed')
+
+        self.obj.info_modified = False
+        self.obj.label = str(self.obj.label)
+        self.assertFalse(self.obj.info_modified,
+                         'object info should not be considered modified after setting label to its current value')
+
     def test_save(self):
         # unmodified object - save should do nothing
         self.obj.save()
@@ -502,7 +513,9 @@ class TestDigitalObject(FedoraTestCase):
         self.obj.text.content = "some new text"
         self.obj.dc.content.description = "happy happy joy joy"
         # object label is limited in length - force an error with a label that exceeds it
-        self.obj.label = ' '.join('too long' for i in range(50))
+        # NOTE: bypassing the label property because label set method now truncates to 255 characters
+        self.obj.info.label = ' '.join('too long' for i in range(50))
+        self.obj.info_modified = True
         try:
             self.obj.save()
         except models.DigitalObjectSaveFailure, f:
