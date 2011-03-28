@@ -457,6 +457,8 @@ class XmlObject(object):
 
 class Urllib2Resolver(etree.Resolver):
     def resolve(self, url, public_id, context):
+        if url.startswith('/'):
+            url = 'file:' + url
         f = urllib2.urlopen(url)
         return self.resolve_file(f, context, base_url=url)
 _defaultResolver = Urllib2Resolver()
