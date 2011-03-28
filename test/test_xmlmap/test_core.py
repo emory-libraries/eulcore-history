@@ -314,13 +314,13 @@ class TestLoadSchema(unittest.TestCase):
     
     def test_ioerror(self):
         # IO error - file path is wrong/incorrect OR network-based schema unavailable
-        self.assertRaises(IOError, xmlmap.loadSchema, 'bogus.xsd')
+        self.assertRaises(IOError, xmlmap.loadSchema, '/bogus.xsd')
         try:
-            xmlmap.loadSchema('bogus.xsd')
+            xmlmap.loadSchema('/bogus.xsd')
         except IOError as io_err:
-            self.assert_('Failed to load schema bogus.xsd' in str(io_err),
+            self.assert_('bogus.xsd' in str(io_err),
                 'exception message indicates load error on specific document')
-        self.assertRaises(IOError, xmlmap.loadSchema, 'bogus.xsd', 'file://some/dir')
+        self.assertRaises(IOError, xmlmap.loadSchema, '/bogus.xsd', 'file://some/dir')
 
     def test_parse_error(self):
         # test document that is loaded but can't be parsed as a schema
@@ -354,7 +354,7 @@ class TestLoadSchema(unittest.TestCase):
         try:
             xmlmap.loadSchema(FILE.name)
         except etree.XMLSchemaParseError as parse_err:
-            self.assert_('failed to load external entity' in str(parse_err),
+            self.assert_('Failed to parse' in str(parse_err),
                 'schema parse exception includes detail about what went wrong')
 
 if __name__ == '__main__':
