@@ -4,3 +4,4 @@ sphinx
 coverage
 django-celery
 recaptcha-client
+poster
