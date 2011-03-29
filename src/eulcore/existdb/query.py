@@ -1018,7 +1018,7 @@ class Xquery(object):
         self.start = 0
         self.end = None
 
-    def prep_xpath(self, xpath, context=None, return_field=False, parsed=False):
+    def prep_xpath(self, xpath, context=None, return_field=False):
         """Prepare an xpath for use in an xquery.
 
         :param xpath: xpath as string or parsed by :meth:`eulcore.xpath.parse`
@@ -1027,11 +1027,16 @@ class Xquery(object):
         :param return_field: xpath will be used as a return field; it will have
             additional node wrapping, and a return-field xpath will be calculated
             and stored for use in :meth:`get_return_xpaths`
-        :param parsed: boolean flag to indicate if xpath has already been parsed
         :rtype: string
         """
         # common xpath clean-up before handing off to exist
-        parsed_xpath = xpath if parsed else parse(xpath)
+
+        # if the xpath passed in is a basestring, it has not yet been parsed
+        if isinstance(xpath, basestring):
+            parsed_xpath = parse(xpath)
+        else:
+            parsed_xpath = xpath
+        #parsed_xpath = xpath if parsed else parse(xpath)
         if context is None:
             context = self.xq_var
 
@@ -1039,8 +1044,8 @@ class Xquery(object):
             # binary OR expression - prep the two expressions and put them back together
             xpath_str = '%(left)s%(op)s%(right)s' % {
                     'op': parsed_xpath.op,
-                    'left': self.prep_xpath(parsed_xpath.left, parsed=True, context=context),
-                    'right': self.prep_xpath(parsed_xpath.right, parsed=True, context=context),
+                    'left': self.prep_xpath(parsed_xpath.left, context=context),
+                    'right': self.prep_xpath(parsed_xpath.right, context=context),
                     }
             # xquery context variable has been added to individual portions and
             # should not be added again
@@ -1057,13 +1062,13 @@ class Xquery(object):
                 arg = parsed_xpath.args[i]
                 if isinstance(arg, ast.AbbreviatedStep) or isinstance(arg, ast.Step):
                     # prep_xpath returns string, but function arg needs to be parsed
-                    parsed_xpath.args[i] = parse(self.prep_xpath(arg, parsed=True))
+                    parsed_xpath.args[i] = parse(self.prep_xpath(arg))
 
                 # xpath like .//name needs to be made relative to xquery variable
                 elif isinstance(arg, ast.BinaryExpression) and arg.op == '//':
                     xpath_str = '%(left)s%(op)s%(right)s' % {
                     'op': arg.op,
-                    'left': self.prep_xpath(arg.left, parsed=True, context=context),
+                    'left': self.prep_xpath(arg.left, context=context),
                     # only the first portion needs xquery variable context
                     'right': serialize(arg.right)
                     }
@@ -1073,8 +1078,8 @@ class Xquery(object):
                 elif isinstance(arg, ast.BinaryExpression) and arg.op == '|':
                     xpath_str = '%(left)s%(op)s%(right)s' % {
                     'op': arg.op,
-                    'left': self.prep_xpath(arg.left, parsed=True, context=context),
-                    'right': self.prep_xpath(arg.right, parsed=True, context=context),
+                    'left': self.prep_xpath(arg.left, context=context),
+                    'right': self.prep_xpath(arg.right, context=context),
                     }
                     parsed_xpath.args[i] = parse(xpath_str)
 
