@@ -486,25 +486,27 @@ class XmlObjectForm(BaseForm):
         # since an XmlObject by itself is not expected to have a save method
         # (only likely to be saved in context of a fedora or exist object)
 
-        opts = self._meta
-        for name in self.instance._fields.iterkeys():
-            if opts.fields and name not in opts.parsed_fields.fields:
-                continue
-            if opts.exclude and name in opts.parsed_exclude.fields:
-                continue
-            if name in self.cleaned_data:
-                # special case: we don't want empty attributes and elements
-                # for fields which returned no data from the form
-                # converting '' to None and letting XmlObject handle
-                if self.cleaned_data[name] == '':
-                    self.cleaned_data[name] = None
-                setattr(self.instance, name, self.cleaned_data[name])
+        if hasattr(self, 'cleaned_data'):   # possible to have an empty object/no data
 
-        # update sub-model portions via any subforms
-        for name, subform in self.subforms.iteritems():
-            self._update_subinstance(name, subform)
-        for formset in self.formsets.itervalues():
-            formset.update_instance()
+            opts = self._meta
+            for name in self.instance._fields.iterkeys():
+                if opts.fields and name not in opts.parsed_fields.fields:
+                    continue
+                if opts.exclude and name in opts.parsed_exclude.fields:
+                    continue
+                if name in self.cleaned_data:
+                    # special case: we don't want empty attributes and elements
+                    # for fields which returned no data from the form
+                    # converting '' to None and letting XmlObject handle
+                    if self.cleaned_data[name] == '':
+                        self.cleaned_data[name] = None
+                    setattr(self.instance, name, self.cleaned_data[name])
+
+            # update sub-model portions via any subforms
+            for name, subform in self.subforms.iteritems():
+                self._update_subinstance(name, subform)
+            for formset in self.formsets.itervalues():
+                formset.update_instance()
 
         return self.instance
 
