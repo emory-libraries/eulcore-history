@@ -22,8 +22,6 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidde
 from django.template import RequestContext
 from django.template.loader import get_template
 from django.utils.http import urlquote
-from django.utils.functional import wraps
-#from django.utils.decorators import auto_adapt_to_methods
 
 def user_passes_test_with_403(test_func, login_url=None):
     """
@@ -79,19 +77,20 @@ def user_passes_test_with_ajax(test_func, login_url=None, redirect_field_name=RE
         login_url = settings.LOGIN_URL
 
     def decorator(view_func):
-        def _wrapped_view(request, *args, **kwargs):
+        @wraps(view_func)
+        def _check_user_test(request, *args, **kwargs):
             if test_func(request.user):
                 return view_func(request, *args, **kwargs)
             path = urlquote(request.get_full_path())
-            tup = login_url, redirect_field_name, path
-            # Hook in ajax
+            urlparts = login_url, redirect_field_name, path
+            # check for ajax request
             if not request.is_ajax():
-                return HttpResponseRedirect('%s?%s=%s' % tup)
+                return HttpResponseRedirect('%s?%s=%s' % urlparts)
             else:
                 # In case of ajax we send 401 - unauthorized HTTP response
-                return HttpResponse('%s?%s=%s' % tup, status=401)
+                return HttpResponse('%s?%s=%s' % urlparts, status=401)
 
-        return wraps(view_func)(_wrapped_view)
+        return _check_user_test
     return decorator
 
 def login_required_with_ajax(function=None, redirect_field_name=REDIRECT_FIELD_NAME):
@@ -100,13 +99,9 @@ def login_required_with_ajax(function=None, redirect_field_name=REDIRECT_FIELD_N
     to the log-in page if necessary, but returns a special response for ajax requests.
     See :meth:`eulcore.django.auth.decorators.user_passes_test_with_ajax`.
     """
-    actual_decorator = user_passes_test_with_ajax(
-        lambda u: u.is_authenticated(),
-        redirect_field_name=redirect_field_name
-    )
-    if function:
-        return actual_decorator(function)
-    return actual_decorator
+    if function is None:
+        function = lambda u: u.is_authenticated()
+    return user_passes_test_with_ajax(function, redirect_field_name=redirect_field_name)
 
 def permission_required_with_ajax(perm, login_url=None):
     """
