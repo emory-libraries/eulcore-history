@@ -362,4 +362,6 @@ def p_argument_list_recursive(p):
 #
 
 def p_error(p):
-    print "Syntax error at '%s'" % `p`
+    # In some cases, p could actually be None.
+    # However, stack trace should have enough information to identify the problem.
+    raise RuntimeError("Syntax error at '%s'" % repr(p))

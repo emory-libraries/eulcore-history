@@ -141,6 +141,11 @@ class ParseTest(unittest.TestCase):
         self.assertEqual('parent', xp.right.node_test.prefix)
         self.assertEqual('parent', xp.right.node_test.name)
 
+    def test_syntax_error(self):
+        # try to parse invalid xpath and make sure we get an exception
+        self.assertRaises(RuntimeError, xpath.parse, '''bogus-(''')
+        self.assertRaises(RuntimeError, xpath.parse, '''/bogus-(''')
+
 
 class TestSerializeRoundTrip(unittest.TestCase):
     def round_trip(self, xpath_str):
