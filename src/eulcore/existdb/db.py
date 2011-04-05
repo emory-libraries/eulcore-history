@@ -25,14 +25,16 @@ an eXist-db_ database and executing XQuery_ queries against it.
 """
 
 from functools import wraps
-import xmlrpclib
+import logging
 from socket import error as socket_error
 from urllib import unquote_plus
+import xmlrpclib
 
 from eulcore import xmlmap
 
 __all__ = ['ExistDB', 'QueryResult', 'ExistDBException', 'EXISTDB_NAMESPACE']
 
+logger = logging.getLogger(__name__)
 
 EXISTDB_NAMESPACE = 'http://exist.sourceforge.net/NS/exist'
 
@@ -89,6 +91,7 @@ class ExistDB:
         :rtype: string contents of the document
 
         """
+        logger.debug('getDocumentAsString %s options=%s' % (name, kwargs))
         return self.server.getDocumentAsString(name, kwargs)
 
     def getDoc(self, name, **kwargs):
@@ -107,6 +110,7 @@ class ExistDB:
         if not overwrite and self.hasCollection(collection_name):
             raise ExistDBException(collection_name + " exists")
 
+        logger.debug('createCollection %s' % collection_name)
         return self.server.createCollection(collection_name)
 
     @_wrap_xmlrpc_fault
@@ -119,6 +123,8 @@ class ExistDB:
         """
         if (not self.hasCollection(collection_name)):
             raise ExistDBException(collection_name + " does not exist")
+
+        logger.debug('removeCollection %s' % collection_name)
         return self.server.removeCollection(collection_name)
 
     def hasCollection(self, collection_name):
@@ -129,6 +135,7 @@ class ExistDB:
 
         """
         try:
+            logger.debug('describeCollection %s' % collection_name)
             self.server.describeCollection(collection_name)
             return True
         except xmlrpclib.Fault, e:
@@ -181,6 +188,7 @@ class ExistDB:
         :rtype: dictionary
 
         """
+        logger.debug('describeResource %s' % document_path)
         return self.server.describeResource(document_path)
 
     @_wrap_xmlrpc_fault
@@ -190,7 +198,8 @@ class ExistDB:
         :param collection_name: string name of collection
         :rtype: boolean
 
-        """    
+        """
+        logger.debug('getCollectionDesc %s' % collection_name)
         return self.server.getCollectionDesc(collection_name)
 
     @_wrap_xmlrpc_fault
@@ -206,6 +215,7 @@ class ExistDB:
         if hasattr(xml, 'read'):
             xml = xml.read()
 
+        logger.debug('parse %s overwrite=%s' % (path, overwrite))
         return self.server.parse(xml, path, int(overwrite))
 
     @_wrap_xmlrpc_fault
@@ -216,6 +226,7 @@ class ExistDB:
         :rtype: boolean indicating success
 
         """
+        logger.debug('remove %s' % name)
         return self.server.remove(name)
 
     @_wrap_xmlrpc_fault
@@ -245,6 +256,7 @@ class ExistDB:
                 defaults to :class:`QueryResult`.
 
         """
+        logger.debug('query how_many=%d start=%d args=%s\n%s' % (how_many, start, kwargs, xquery))
         xml_s = self.server.query(xquery, how_many, start, kwargs)
 
         # xmlrpclib tries to guess whether the result is a string or
@@ -270,7 +282,9 @@ class ExistDB:
         #   This parameter is not documented in the eXist docs at
         #   http://demo.exist-db.org/exist/devguide_xmlrpc.xml
         #   so it's not clear what we can pass there.
-        return self.server.executeQuery(xquery, {})
+        result_id = self.server.executeQuery(xquery, {})
+        logger.debug('executeQuery\n%s\nresult id %d' % (xquery, result_id))
+        return result_id
 
     @_wrap_xmlrpc_fault
     def querySummary(self, result_id):
@@ -300,7 +314,10 @@ class ExistDB:
         # FIXME: This just exposes the existdb xmlrpc querySummary function.
         #   Frankly, this return is just plain ugly. We should come up with
         #   something more meaningful.
-        return self.server.querySummary(result_id)
+        summary = self.server.querySummary(result_id)
+        logger.debug('querySummary result id %d : ' % result_id + \
+                     '%(hits)s hits, query took %(queryTime)s ms' % summary)
+        return summary
 
     @_wrap_xmlrpc_fault
     def getHits(self, result_id):
@@ -310,7 +327,10 @@ class ExistDB:
         :rtype: integer representing the number of hits
 
         """
-        return self.server.getHits(result_id)
+
+        hits = self.server.getHits(result_id)
+        logger.debug('getHits result id %d : %s' % (result_id, hits))
+        return hits
 
     @_wrap_xmlrpc_fault
     def retrieve(self, result_id, position, highlight=False, **options):
@@ -330,6 +350,7 @@ class ExistDB:
             # pretty-printing with eXist matches can introduce unwanted whitespace
             if 'indent' not in options:
                 options['indent'] = 'no'
+        logger.debug('retrieve result id %d position=%d options=%s' % (result_id, position, options))
         return self.server.retrieve(result_id, position, options)
 
     @_wrap_xmlrpc_fault
@@ -339,6 +360,7 @@ class ExistDB:
         :param result_id: an integer handle returned by :meth:`executeQuery`
 
         """
+        logger.debug('releaseQueryResult result id %d' % result_id)
         self.server.releaseQueryResult(result_id)
 
     @_wrap_xmlrpc_fault
@@ -349,6 +371,7 @@ class ExistDB:
         :param permissions: int or string permissions statement
         """
         # TODO: support setting owner, group ?
+        logger.debug('setPermissions %s %s' % (resource, permissions))
         self.server.setPermissions(resource, permissions)
 
     @_wrap_xmlrpc_fault

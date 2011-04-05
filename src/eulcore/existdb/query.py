@@ -113,7 +113,11 @@ class QuerySet(object):
     def __del__(self):
         # release any queries in eXist 
         if self._result_id is not None:
-            self._db.releaseQueryResult(self._result_id)
+            self._release_query_result()
+
+    def _release_query_result(self):
+        # tell eXist we are done with this result set
+        self._db.releaseQueryResult(self._result_id)
 
     @property
     def result_id(self):
@@ -435,7 +439,7 @@ class QuerySet(object):
         self.query.clear_filters()        
         # if a query has been made to eXist - release result & reset result id
         if self._result_id is not None:
-            self._db.releaseQueryResult(self._result_id)
+            self._release_query_result()
             self._result_id = None
             self._count = None          # clear any count based on this result set
 
@@ -498,6 +502,7 @@ class QuerySet(object):
                 obj = self._init_item(item.data)
                 # make queryTime method available when retrieving a single item
                 setattr(obj, 'queryTime', self.queryTime)
+                setattr(obj, '__del__', self._release_query_result)
                 self._result_cache[i] = obj
 
         return self._result_cache[i]
@@ -546,7 +551,8 @@ class QuerySet(object):
 
     def _runQuery(self):
         """Execute the currently configured query."""
-        logger.debug( "exist query:\n%s"% (self.query.getQuery()) )
+        if self._result_id is not None:
+            self._db.releaseQueryResult(self._result_id)
         self._result_id = self._db.executeQuery(self.query.getQuery())
 
     def getDocument(self, docname):
@@ -599,7 +605,6 @@ def _create_return_class(baseclass, override_fields, xpath_prefix=None,
                 field_type = DateField
             elif name == 'match_count':
                     field_type = IntegerField
-                    logger.debug("FIELD:%s: TYPE:%s" % (name, field_type))
             elif fields is None or isinstance(fields, basestring):
                 field_type = StringField	# handle special cases like fulltext score
             else:
