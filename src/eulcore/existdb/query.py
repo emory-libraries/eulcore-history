@@ -431,6 +431,16 @@ class QuerySet(object):
 
     # exclude?
 
+    def using(self, collection):
+        '''Specify the eXist collection to be queried.
+
+        If you are using an :class:`eulcore.django.existdb.models.XmlModel` to generate queries against an eXist
+        collection other than the one defined in ``settings.EXISTDB_ROOT_COLLECTION``, you should use this function.
+        '''
+        qscopy = self._getCopy()
+        qscopy.query.set_collection(collection)
+        return qscopy
+
     def reset(self):
         """Reset filters and cached results on the QuerySet.
 
@@ -679,7 +689,7 @@ class Xquery(object):
             self.xpath = xpath
 
         # remove leading / from collection name (if any)
-        self.collection = collection.lstrip('/') if collection is not None else None
+        self.set_collection(collection)
         self.namespaces = namespaces
         self.filters = []
         self.or_filters = []
@@ -707,6 +717,13 @@ class Xquery(object):
         
     def __str__(self):
         return self.getQuery()
+
+    def set_collection(self, collection):
+        '''Set or update the collection to be used when constructing the xquery.  Setting to ``None`` will remove
+        any collection filter from the generated XQuery.'''
+        if collection is not None:
+            collection = collection.lstrip('/')
+        self.collection = collection
 
     def getCopy(self):
         xq = Xquery(xpath=self.xpath, collection=self.collection, namespaces=self.namespaces)

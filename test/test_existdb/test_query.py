@@ -529,6 +529,11 @@ class ExistQueryTest__FullText(unittest.TestCase):
         fqs = self.qs.filter(id='one', highlight='one').only('match_count')
         self.assertEqual(fqs[0].match_count, 4, "4 matched words should be found")
 
+    def test_using(self):
+        fqs = self.qs.using('new-collection')
+        # using should update the collection on the xquery object
+        self.assertEqual('new-collection', fqs.query.collection)
+
 
 
 class XqueryTest(unittest.TestCase):
@@ -547,6 +552,25 @@ class XqueryTest(unittest.TestCase):
 
         xq = Xquery(xpath='/root/el', collection='/coll/sub')
         self.assertEquals('collection("/db/coll/sub")/root/el', xq.getQuery())
+
+    def test_set_collection(self):
+        # initialize with no collection
+        xq = Xquery(xpath='/el')
+        xq.set_collection('coll')
+        self.assertEquals('collection("/db/coll")/el', xq.getQuery())
+
+        # initialize with one collection, then switch
+        xq = Xquery(collection='coll1')
+        xq.set_collection('coll2')
+        self.assertEquals('collection("/db/coll2")/node()', xq.getQuery())
+
+        # leading slash is ok too
+        xq.set_collection('/coll3')
+        self.assertEquals('collection("/db/coll3")/node()', xq.getQuery())
+
+        # set to None
+        xq.set_collection(None)
+        self.assertEquals('/node()', xq.getQuery())
 
     def test_sort(self):
         xq = Xquery(collection="mycoll")
