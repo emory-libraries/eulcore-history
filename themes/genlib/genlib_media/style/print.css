@@ -2,10 +2,18 @@
    - Suppress navigation elements including header, footer, and sidebar
    - Adjust the content section of the page to be full width
 */
-div#header, div#global-nav, div#navbar, div#sidebar-left, div#footer { 
+#header, #global-nav, #navbar, #sidebar-left, #footer {
     display:none;
 }
 /* undo content margin that makes space for the sidebar */
-div#content {
+#content {
     margin-left: 0px;
+}
+/* compensate for hard-coded widths that are too large for print layout */
+#page {
+    background: none;
+    width: inherit;
+}
+#main {
+    width: inherit;
 }
