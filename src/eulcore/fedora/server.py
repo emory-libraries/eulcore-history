@@ -162,9 +162,11 @@ class Repository(object):
 
     def find_objects(self, terms=None, type=None, chunksize=None, **kwargs):
         """
-        Find objects in Fedora.  Find query should be generated via keyword args,
-        based on the fields in Fedora documentation.  By default, the query uses
-        a contains (~) search for all search terms.  Calls :meth:`ApiFacade.findObjects`.
+        Find objects in Fedora.  Find query should be generated via keyword
+        args, based on the fields in Fedora documentation.  By default, the
+        query uses a contains (~) search for all search terms.  Calls
+        :meth:`ApiFacade.findObjects`. Results seem to return consistently
+        in ascending PID order.
 
         Example usage - search for all objects where the owner contains 'jdoe'::
         
