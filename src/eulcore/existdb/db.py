@@ -282,8 +282,9 @@ class ExistDB:
         #   This parameter is not documented in the eXist docs at
         #   http://demo.exist-db.org/exist/devguide_xmlrpc.xml
         #   so it's not clear what we can pass there.
+        logger.debug('executeQuery\n%s' % xquery)
         result_id = self.server.executeQuery(xquery, {})
-        logger.debug('executeQuery\n%s\nresult id %d' % (xquery, result_id))
+        logger.debug('result id is %s' % result_id)
         return result_id
 
     @_wrap_xmlrpc_fault
