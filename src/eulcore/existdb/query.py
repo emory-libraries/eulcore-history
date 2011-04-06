@@ -717,6 +717,7 @@ class Xquery(object):
         # optional configuration for fulltext queries
         self.fulltext_options = fulltext_options
         self.ft_query = False   # flag for if the current xquery includes a fulltext query
+        self.highlight = None
         
     def __str__(self):
         return self.getQuery()
@@ -745,6 +746,7 @@ class Xquery(object):
         xq._return_field_count = self._return_field_count
         xq.fulltext_options = self.fulltext_options.copy()
         xq.ft_query = self.ft_query
+        xq.highlight = self.highlight
         return xq
 
     def getQuery(self):
@@ -772,6 +774,16 @@ class Xquery(object):
             xpath_parts.append('[%s]' % (' or '.join(self.or_filters)))
 
         xpath = ''.join(xpath_parts)
+        # add highlighting if requested
+        if self.highlight is not None:
+            # Highlighting results efficiently in eXist is a bit tricky.  We need to run a full-text search so
+            # eXist will enable match highlighting in the result, but we want to return the result even if there are
+            # no matches present. What we're doing here is telling eXist to take the first available version of the
+            # constructed xpath, either one that contains the fulltext search terms (if it exists),
+            # or (as a fallback) the one without them.
+            xpath = '(%(xp)s[ft:query(., %(val)s)]|%(xp)s)' % {'xp': xpath,
+                                                                 'val': _quote_as_string_literal(self.highlight)}
+            
         # requires FLOWR instead of just XQuery  (sort, customized return, etc.)
         if self.order_by or self.return_fields or self.additional_return_fields \
             or self.where_filters or (self.ft_query and self.fulltext_options):
@@ -831,7 +843,8 @@ class Xquery(object):
             else:
                 flowr_order = ''
             flowr_return = self._constructReturn()
-            query = '\n'.join([flowr_pre, flowr_for, flowr_let, flowr_where, flowr_order, flowr_return])
+            query = '\n'.join(part for part in [flowr_pre, flowr_for, flowr_let, flowr_where, flowr_order,
+                                                flowr_return] if part)     # don't generate blank lines in xqueries
         else:
             # if FLOWR is not required, just use plain xpath
             query = xpath
@@ -921,20 +934,32 @@ class Xquery(object):
             filter = ft_query_template % (_xpath, _quote_as_string_literal(value))            
             self.ft_query = True
         if type == 'highlight':
-            filter = ft_query_template % (_xpath, _quote_as_string_literal(value)) + ' or 1'
+            # highlight is a special case; it has to be handled after the initial xpath
+            # is constructed, in getQuery, so just store the value here
+            self.highlight = value
+            # FIXME: should we allow highlight multiple times? should specifying highlight overwrite or append here?
+            filter = None
             self.ft_query = True
+            # Highlighting a specific xpath (not the query node) is currently not supported;
+            # just issue a warning and highlight the whole response for now.
+            if xpath != '.':
+                logger.warn('Highlighting is only supported on the entire return result; xpath of %s was requested' %
+                            xpath + ', but the entire result will be highlighted')
+
         if type == 'in':
             filter = 'contains((%s), %s)' % (','.join(_quote_as_string_literal(v)
                                                     for v in value),
                                              _xpath)
-        if xpath in self.special_fields:
-            # filters on pre-defined fields must occur in 'where' section, after
-            # relevant xquery variable has been defined
-            self.where_filters.append(filter)
-        elif mode == 'OR':
-            self.or_filters.append(filter)
-        else:
-            self.filters.append(filter)
+
+        if filter is not None:
+            if xpath in self.special_fields:
+                # filters on pre-defined fields must occur in 'where' section, after
+                # relevant xquery variable has been defined
+                self.where_filters.append(filter)
+            elif mode == 'OR':
+                self.or_filters.append(filter)
+            else:
+                self.filters.append(filter)
 
 
     def return_only(self, fields, raw=False):

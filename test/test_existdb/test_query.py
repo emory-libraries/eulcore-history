@@ -618,7 +618,7 @@ class XqueryTest(unittest.TestCase):
     def test_filters_highlight(self):
         xq = Xquery(xpath='/el')
         xq.add_filter('.', 'highlight', 'dog star')
-        self.assertEquals('/el[ft:query(., "dog star") or 1]', xq.getQuery())
+        self.assertEquals('(/el[ft:query(., "dog star")]|/el)', xq.getQuery())
 
     def test_filter_escaping(self):
         xq = Xquery(xpath='/el')
@@ -683,7 +683,7 @@ class XqueryTest(unittest.TestCase):
         xq.xq_var = '$n'
         xq.return_also({'fulltext_score':''})
         xq.add_filter('.', 'highlight', 'dog star')
-        self.assert_('/el[ft:query(., "dog star") or 1]' in xq.getQuery())
+        self.assert_('(/el[ft:query(., "dog star")]|/el)' in xq.getQuery())
 
     def test_return_also_raw(self):
         xq = Xquery(xpath='/el')
@@ -706,7 +706,7 @@ class XqueryTest(unittest.TestCase):
         self.assertEqual('subsequence(/el, 1, 4)', xq.getQuery())
         # subsequence with FLWR query
         xq.return_only({'name':'name'})
-        self.assert_('subsequence(\nfor $n in' in xq.getQuery())
+        self.assert_('subsequence(for $n in' in xq.getQuery())
         
         # additive limits
         xq = Xquery(xpath='/el')
