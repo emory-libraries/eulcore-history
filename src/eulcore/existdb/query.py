@@ -468,7 +468,11 @@ class QuerySet(object):
 
         fqs = self.filter(**kwargs)
         if fqs.count() == 1:
-            return fqs[0]
+            obj = fqs[0]
+            if self.model is not None and not self.query._distinct:
+                # when single object object is deleted, release this query set
+                setattr(obj, '__del__', self._release_query_result)
+            return obj
         # NOTE: behaves like django - throws a DoesNotExist or a MultipleObjectsReturned
         elif fqs.count() == 0:
             raise DoesNotExist("no match found with params %s" % kwargs)
@@ -512,7 +516,6 @@ class QuerySet(object):
                 obj = self._init_item(item.data)
                 # make queryTime method available when retrieving a single item
                 setattr(obj, 'queryTime', self.queryTime)
-                setattr(obj, '__del__', self._release_query_result)
                 self._result_cache[i] = obj
 
         return self._result_cache[i]
