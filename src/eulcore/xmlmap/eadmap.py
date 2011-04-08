@@ -58,7 +58,7 @@ class Heading(_EadBase):
     """Generic xml object for headings used under `controlaccess`"""
     source = xmlmap.StringField("@source")
     "source vocabulary for controlled term - `@source`"
-    value  = xmlmap.StringField(".")
+    value  = xmlmap.StringField(".", normalize=True)
     "controlled term text value (content of the heading element)"
 
     def __unicode__(self):

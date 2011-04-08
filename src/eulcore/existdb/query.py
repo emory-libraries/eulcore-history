@@ -1039,6 +1039,9 @@ class Xquery(object):
         elif isinstance(parsed_xpath, ast.AbsolutePath):
             # absolute path like //a - recurse on relative portion
             return self._return_name_from_xpath(parsed_xpath.relative)
+        else:
+            # for types we don't handle yet, don't just return nothing!
+            return 'node'      # generic node name should work for most cases
 
     def clear_filters(self):
         self.filters = []
