@@ -1,3 +1,18 @@
+# file django/forms/captchafield.py
+#
+#   Copyright 2010 Emory University General Library
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
 '''
 Django Form field & widget to make it easy to add reCAPTCHA to a Django form.
 
@@ -31,7 +46,19 @@ http://code.google.com/apis/recaptcha/docs/customization.html
 
 Adapted in part from http://djangosnippets.org/snippets/1653/
 and http://code.google.com/p/recaptcha-django/
+
+
+An example project that uses this widget is the EmoryFindingAids
+feedback form. The form can be viewed on the web at
+http://findingaids.library.emory.edu/content/feedback/ . The relevant code
+can be found in :mod:`findingaids.content.forms`
+
+----
 '''
+
+# NOTE to Developers: recaptcha field & widget are separate from
+# eulcore.django.forms.fields so that using generic eulcore form fields
+# does not require installing python-recaptcha
 
 import json
 from recaptcha.client import captcha
@@ -64,8 +91,8 @@ class ReCaptchaWidget(Widget):
         # if there are any Recaptcha options to specify, include javascript when rendering
         if captcha_opts:
             html_opts = '''<script type="text/javascript">
-            var RecaptchaOptions = %s;
-        </script>''' % json.dumps(captcha_opts)
+                                var RecaptchaOptions = %s;
+                           </script>''' % json.dumps(captcha_opts)
         else:
             html_opts = ''
         return mark_safe(u'%s %s' % (html_opts, captcha.displayhtml(settings.RECAPTCHA_PUBLIC_KEY)))

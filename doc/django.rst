@@ -222,8 +222,10 @@ tag, add the following to your Django settings::
 .. autoclass:: eulcore.django.forms.SubformField
     :members:
 
-Custom fields & widgets
-^^^^^^^^^^^^^^^^^^^^^^^
+:mod:`~eulcore.django.forms.fields` - Custom form fields & widgets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: eulcore.django.forms.fields
 
 .. autoclass:: eulcore.django.forms.fields.W3CDateField
     :members:
@@ -236,8 +238,8 @@ Custom fields & widgets
     :members:
 
 
-reCAPTCHA  for django forms
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+:mod:`~eulcore.django.forms.captchafield` - reCAPTCHA  for django forms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: eulcore.django.forms.captchafield
 
 .. autoclass:: eulcore.django.forms.captchafield.ReCaptchaWidget

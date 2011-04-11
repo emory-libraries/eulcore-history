@@ -13,6 +13,13 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+'''
+Custom generic form fields for use with Django forms.
+
+See also :class:`~eulcore.django.forms.captchafield.ReCaptchaField`
+
+----
+'''
 
 import re
 
