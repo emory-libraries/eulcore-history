@@ -45,7 +45,9 @@ def _use_test_fedora(sender, **kwargs):
     elif getattr(settings, "FEDORA_PIDSPACE", None):
         settings.FEDORA_PIDSPACE = "%s-test" % settings.FEDORA_PIDSPACE
     print "Using Fedora pidspace: %s" % settings.FEDORA_PIDSPACE
-
+    
+    # remove any test objects left over from a previous test run
+    remove_test_objects()
     # run syncrepo to load any content models or fixtures
     call_command('syncrepo')
 
@@ -55,14 +57,7 @@ def _restore_fedora_root(sender, **kwargs):
 
     # if there was a pidspace configured, clean up any test objects
     if _stored_default_fedora_pidspace is not None:
-        repo = Repository()
-        test_objects = repo.find_objects(pid__contains='%s*' % settings.FEDORA_PIDSPACE)
-        count = 0
-        for obj in test_objects:
-            repo.purge_object(obj.pid, "removing test object")
-            count += 1
-        if count:
-            print "Removed %s test object(s) with pidspace %s" % (count, settings.FEDORA_PIDSPACE)
+        remove_test_objects()
         print "Restoring Fedora pidspace: %s" % _stored_default_fedora_pidspace
         settings.FEDORA_PIDSPACE = _stored_default_fedora_pidspace        
     if _stored_default_fedora_root is not None:
@@ -70,6 +65,16 @@ def _restore_fedora_root(sender, **kwargs):
         settings.FEDORA_ROOT = _stored_default_fedora_root
         # re-initialize pooled connection with restored fedora root
         init_pooled_connection()
+
+def remove_test_objects():
+    repo = Repository()
+    test_objects = repo.find_objects(pid__contains='%s*' % settings.FEDORA_PIDSPACE)
+    count = 0
+    for obj in test_objects:
+        repo.purge_object(obj.pid, "removing test object")
+        count += 1
+    if count:
+        print "Removed %s test object(s) with pidspace %s" % (count, settings.FEDORA_PIDSPACE)
 
 
 starting_tests.connect(_use_test_fedora)
