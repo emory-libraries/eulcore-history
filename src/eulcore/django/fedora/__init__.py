@@ -14,6 +14,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import logging
+
 from django.conf import settings
 from django.core.management import call_command
 
@@ -22,6 +24,8 @@ from eulcore.django.fedora.server import Repository, init_pooled_connection
 
 _stored_default_fedora_root = None
 _stored_default_fedora_pidspace = None
+
+logger = logging.getLogger(__name__)
 
 def _use_test_fedora(sender, **kwargs):
     global _stored_default_fedora_root
@@ -67,10 +71,16 @@ def _restore_fedora_root(sender, **kwargs):
         init_pooled_connection()
 
 def remove_test_objects():
+    # remove any leftover test object before or after running tests
+    # NOTE: This method expects to be called only when FEDORA_PIDSPACE has been
+    # switched to a test pidspace
     repo = Repository()
-    test_objects = repo.find_objects(pid__contains='%s*' % settings.FEDORA_PIDSPACE)
+    test_objects = repo.find_objects(pid__contains='%s:*' % settings.FEDORA_PIDSPACE)
     count = 0
     for obj in test_objects:
+        # if objects are unexpectedly not being cleaned up, pid/label may help
+        # to isolate which test is creating the leftover objects
+        logger.info('Purging test object %s - %s' % (obj.pid, obj.label))
         repo.purge_object(obj.pid, "removing test object")
         count += 1
     if count:
