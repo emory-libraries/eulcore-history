@@ -709,7 +709,7 @@ class DigitalObject(object):
         return '<%s %s>' % (self.__class__.__name__, str(self))
 
     def getDefaultPid(self, namespace=None):
-        '''This is the method you should override to determine the logic for the next pid in your project'''
+        '''This is the method you should override to determine the logic for the next pid in your project.'''
         # This function is used by __init__ as a default pid generator if
         # none is specified. If you get the urge to override it, make sure
         # it still works there.
