@@ -244,8 +244,7 @@ class TestNewObject(FedoraTestCase):
 
         self.assertTrue(isinstance(obj.pid, basestring))
         self.append_test_pid(obj.pid)
-        self.assertTrue(obj.pid.startswith(self.pidspace))
-
+        
         fetched = self.repo.get_object(obj.pid, type=MyDigitalObject)
         self.assertEqual(fetched.dc.content.identifier, obj.pid)
 

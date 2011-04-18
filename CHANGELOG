@@ -5,6 +5,13 @@ The following is a summary of changes and improvements to python-eulcore.
 New features in each version should be listed, with any necessary information
 about installation or upgrade notes.
 
+Release ?
+---------
+* Removed call to get_next_pid  from get_object function in Repository class
+  This allows getDefaultPid to be overriden to provide the logic for the next pid in individual projects
+* Renamed _getDefaultPid to getDefaultPid to indicate it is a public function
+* Removed one unit test that is not longer valid since get_next_pid is not called.
+
 Release 0.13
 ------------
 * Minor updates to :mod:`eulcore.existdb`: new method ``using`` to specify

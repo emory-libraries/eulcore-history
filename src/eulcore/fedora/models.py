@@ -671,10 +671,10 @@ class DigitalObject(object):
         # pid = None signals to create a new object, using a default pid
         # generation function.
         if pid is None:
-            # self._getDefaultPid is probably the method defined elsewhere
+            # self.getDefaultPid is probably the method defined elsewhere
             # in this class. Barring clever hanky-panky, it should be
             # reliably callable.
-            pid = self._getDefaultPid
+            pid = self.getDefaultPid
 
         # callable(pid) signals a function to call to obtain a pid if and
         # when one is needed
@@ -708,7 +708,8 @@ class DigitalObject(object):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, str(self))
 
-    def _getDefaultPid(self, namespace=None):
+    def getDefaultPid(self, namespace=None):
+        '''This is the method you should override to determine the logic for the next pid in your project'''
         # This function is used by __init__ as a default pid generator if
         # none is specified. If you get the urge to override it, make sure
         # it still works there.

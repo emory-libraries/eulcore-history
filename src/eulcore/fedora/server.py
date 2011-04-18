@@ -147,7 +147,6 @@ class Repository(object):
         type = type or self.default_object_type
 
         if pid is None:
-            pid = self.get_next_pid
             if create is None:
                 create = True
         else:
