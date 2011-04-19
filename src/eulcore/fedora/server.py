@@ -16,11 +16,11 @@
 
 import csv
 from urllib import urlencode
+import warnings
 
 from eulcore.fedora.rdfns import model as modelns
 from eulcore.fedora.api import HTTP_API_Base, ApiFacade
 from eulcore.fedora.models import DigitalObject
-# FIXME: should risearch be moved to apis?
 from eulcore.fedora.util import AuthorizingServerConnection, parse_rdf, parse_xml_object, RequestFailed
 from eulcore.fedora.xml import SearchResults, NewPids
 
@@ -29,9 +29,6 @@ from eulcore.fedora.xml import SearchResults, NewPids
 class Repository(object):
     "Pythonic interface to a single Fedora Commons repository instance."
 
-    default_pidspace = None
-    """Default namespace to use when requesting new PIDs from Fedora (by default,
-    will use Fedora-configured namespace)"""
     default_object_type = DigitalObject
     "Default type to use for methods that return fedora objects - :class:`DigitalObject`"
 
@@ -71,14 +68,20 @@ class Repository(object):
         Request next available pid or pids from Fedora, optionally in a specified
         namespace.  Calls :meth:`ApiFacade.getNextPID`.
 
+        .. deprecated :: 0.14
+          Mint pids for new objects with
+          :func:`eulcore.fedora.models.DigitalObject.get_default_pid`
+          instead, or call :meth:`ApiFacade.getNextPID` directly.
+
         :param namespace: (optional) get the next pid in the specified pid namespace;
             otherwise, Fedora will return the next pid in the configured default namespace.
         :param count: (optional) get the specified number of pids; by default, returns 1 pid
         :rtype: string or list of strings
         """
+        # this method should no longer be needed - default pid logic moved to DigitalObject
+        warnings.warn("""get_next_pid() method is deprecated; you should mint new pids via DigitalObject or ApiFacade.getNextPID() instead.""",
+                      DeprecationWarning)
         kwargs = {}
-        if namespace is None:
-            namespace = self.default_pidspace
         if namespace:
             kwargs['namespace'] = namespace
         if count:

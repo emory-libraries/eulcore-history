@@ -644,6 +644,12 @@ class DigitalObject(object):
 
     __metaclass__ = DigitalObjectType
 
+    default_pidspace = None
+    """Default namespace to use when generating new PIDs in
+        :meth:`get_default_pid` (by default, calls Fedora getNextPid,
+        which will use Fedora-configured namespace if default_pidspace
+        is not set)."""        
+
     dc = XmlDatastream("DC", "Dublin Core", DublinCore, defaults={
             'control_group': 'X',
             'format': 'http://www.openarchives.org/OAI/2.0/oai_dc/',
@@ -671,10 +677,10 @@ class DigitalObject(object):
         # pid = None signals to create a new object, using a default pid
         # generation function.
         if pid is None:
-            # self.getDefaultPid is probably the method defined elsewhere
+            # self.get_default_pid is probably the method defined elsewhere
             # in this class. Barring clever hanky-panky, it should be
             # reliably callable.
-            pid = self.getDefaultPid
+            pid = self.get_default_pid
 
         # callable(pid) signals a function to call to obtain a pid if and
         # when one is needed
@@ -708,15 +714,21 @@ class DigitalObject(object):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, str(self))
 
-    def getDefaultPid(self, namespace=None):
-        '''This function gets the next pid from fedora.  If a namespace is passed, it is use as the pidnamespace.
-        This is the function you should override to determine the logic for the next pid in your project.'''
+    def get_default_pid(self):
+        '''Get the next default pid when creating and ingesting a new
+        DigitalObject instance without specifying a pid.  By default,
+        calls :meth:`ApiFacade.getNextPID` with the configured class
+        default_pidspace (if specified) as the pid namespace.
+
+        If your project requires custom pid logic (e.g., object pids
+        are based on an external pid generator), you should extend
+        DigitalObject and override this method.'''
         # This function is used by __init__ as a default pid generator if
         # none is specified. If you get the urge to override it, make sure
         # it still works there.
         kwargs = {}
-        if namespace is not None:
-            kwargs['namespace'] = namespace
+        if self.default_pidspace  is not None:
+            kwargs['namespace'] = self.default_pidspace
         data, url = self.api.getNextPID(**kwargs)
         nextpids = parse_xml_object(NewPids, data, url)
         return nextpids.pids[0]
