@@ -89,6 +89,7 @@ class SubformAwareModelFormOptions(ModelFormOptions):
         
         # store maximum number of repeated subforms that should be allowed
         self.max_num = getattr(options, 'max_num', None)
+        self.can_delete = getattr(options, 'can_delete', True)
         
         self.parsed_fields = None
         if isinstance(self.fields, ParsedFieldList):
@@ -161,6 +162,7 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
     subforms = {}
     formsets = {}
     field_order = {}
+    subform_labels = {}
 
     for name, field in model._fields.iteritems():  
         if fieldlist and not name in fieldlist.fields:
@@ -211,9 +213,14 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
         
         elif isinstance(field, xmlmap.fields.NodeField) or \
             isinstance(field, xmlmap.fields.NodeListField):
+            form_label = kwargs['label'] if 'label' in kwargs else fieldname_to_label(name)
+            # store subform label in case we can't set on subform/formset
+            subform_labels[name] = form_label
+            
              # if a subform class was declared, use that class exactly as is
             if name in declared_subforms:
-                subform = declared_subforms[name]
+            	subform = declared_subforms[name]
+
             # otherwise, define a new xmlobject form for the nodefield or
             # nodelistfield class, using any options passed in for fields under this one
             else:              
@@ -221,7 +228,9 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
                     'fields': fieldlist.subfields[name] if fieldlist and name in fieldlist.subfields else None,
                     'exclude': excludelist.subfields[name] if excludelist and name in excludelist.subfields else None,
                     'widgets': widgets[name] if widgets and name in widgets else None,
+                    'label': form_label,
                 }
+
                 # create the subform class
                 subform = xmlobjectform_factory(field.node_class, **subform_opts)
             
@@ -231,8 +240,11 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
             elif isinstance(field, xmlmap.fields.NodeListField):
                 #formset_factory is from django core and we link into it here.
                 formsets[name] = formset_factory(subform, formset=BaseXmlObjectFormSet,
-                    max_num=subform._meta.max_num, can_delete=True)
-                    # for now, setting can_delete to for all xml list fields (should be reasonable)
+                    max_num=subform._meta.max_num, can_delete=subform._meta.can_delete)
+
+                formsets[name].form_label = form_label
+
+
         else:
             # raise exception for unsupported fields
             # currently doesn't handle list fields
@@ -274,7 +286,7 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
             [(field_order[key], formsets[field_order[key]]) for key in sorted(field_order.keys())
                                                 if field_order[key] in formsets ]
         )
-    return ordered_fields, ordered_subforms, ordered_formsets
+    return ordered_fields, ordered_subforms, ordered_formsets, subform_labels
 
 
 def xmlobject_to_dict(instance, fields=None, exclude=None, prefix=''):
@@ -332,10 +344,14 @@ class XmlObjectFormType(type):
         tmp_fields = get_declared_fields(bases, attrs, with_base_fields=False)
         declared_fields = {}
         declared_subforms = {}
+        declared_subform_labels = {}
         # sort declared fields into sub-form overrides and regular fields
         for fname, f in tmp_fields.iteritems():
             if isinstance(f, SubformField):
                 declared_subforms[fname] = f.formclass
+                # if a declared subform fields has a label specified, store it
+                if hasattr(f, 'form_label'):
+                    declared_subform_labels[fname] = f.form_label
             else:
                 declared_fields[fname] = f
 
@@ -345,7 +361,7 @@ class XmlObjectFormType(type):
         opts = new_class._meta =  SubformAwareModelFormOptions(getattr(new_class, 'Meta',  None))
         if opts.model:
             # if a model is defined, get xml fields and any subform classes
-            fields, subforms, formsets = formfields_for_xmlobject(opts.model, options=opts,
+            fields, subforms, formsets, subform_labels = formfields_for_xmlobject(opts.model, options=opts,
                     declared_subforms=declared_subforms)
 
             # Override default model fields with any custom declared ones
@@ -358,6 +374,11 @@ class XmlObjectFormType(type):
             # and for listfields
             new_class.formsets = formsets
 
+            # labels for subforms that couldn't be set by formfields_for_xmlobject
+            # declared subform labels should supercede verbose xmlobject field names
+            subform_labels.update(declared_subform_labels)
+            new_class.subform_labels = subform_labels
+
         else:
             fields = declared_fields
             new_class.subforms = {}
@@ -365,6 +386,7 @@ class XmlObjectFormType(type):
 
         new_class.declared_fields = declared_fields
         new_class.base_fields = fields
+
         return new_class
 
 
@@ -409,11 +431,16 @@ class XmlObjectForm(BaseForm):
     :class:`~eulcore.xmlmap.fields.NodeField` belonging to this Form's
     :class:`~eulcore.xmlmap.XmlObject` model, keyed on field name.  Ordered by
     field creation order or by specified fields."""
+    
+    form_label = None
+    '''Label for this form or subform (set automatically for subforms &
+    formsets, using the same logic that is used for field labels.'''
 
     def __init__(self, data=None, instance=None, prefix=None, initial={}, **kwargs):
         opts = self._meta
         # make a copy of any initial data for local use, since it may get updated with instance data
         local_initial = initial.copy()
+
         if instance is None:
             if opts.model is None:
                 raise ValueError('XmlObjectForm has no XmlObject model class specified')
@@ -461,7 +488,13 @@ class XmlObjectForm(BaseForm):
 
             # instantiate the subform class with field data and model instance
             # - setting prefix based on field name, to distinguish similarly named fields
-            self.subforms[name] = subform(data=data, instance=subinstance, prefix=subprefix)
+            newform = subform(data=data, instance=subinstance, prefix=subprefix)
+            # depending on how the subform was declared, it may not have a label yet
+            if newform.form_label is None:
+                if name in self.subform_labels:
+                    newform.form_label = self.subform_labels[name]
+
+            self.subforms[name] = newform
 
     def _init_formsets(self, data=None, prefix=None):
         self.formsets = {}
@@ -639,7 +672,7 @@ class XmlObjectForm(BaseForm):
 
 
 def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None,
-                            widgets=None, max_num=None):
+                            widgets=None, max_num=None, label=None, can_delete=True):
     """Dynamically generate a new :class:`XmlObjectForm` class using the
     specified :class:`eulcore.xmlmap.XmlObject` class.
     
@@ -655,6 +688,8 @@ def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None,
         attrs['widgets'] = widgets
     if max_num is not None:
         attrs['max_num'] = max_num
+    if can_delete is not None:
+        attrs['can_delete'] = can_delete
         
     # If parent form class already has an inner Meta, the Meta we're
     # creating needs to inherit from the parent's inner meta.
@@ -668,8 +703,10 @@ def xmlobjectform_factory(model, form=XmlObjectForm, fields=None, exclude=None,
 
     # Class attributes for the new form class.
     form_class_attrs = {
-        'Meta': Meta
+        'Meta': Meta,
         # django has a callback formfield here; do we need that?
+        # label for a subform/formset
+        'form_label': label,
     }
 
     return XmlObjectFormType(class_name, (form,), form_class_attrs)
@@ -693,7 +730,7 @@ class BaseXmlObjectFormSet(BaseFormSet):
         return super_construct(i, **defaults)
 
     def update_instance(self):
-        for form in self.deleted_forms:            
+        for form in getattr(self, 'deleted_forms', []):
             # update_instance may be called multiple times - instance can only
             # be removed the first time, so don't consider it an error if it's not present
             if form.instance in self.instances:
@@ -731,8 +768,12 @@ class SubformField(Field):
     In this example, the subform ``part`` on an instance of **MyForm** will be
     created as an instance of **MyFormPart**.
     """
-    def __init__(self, formclass=None, *args, **kwargs):
+    def __init__(self, formclass=None, label=None, can_delete=True, *args, **kwargs):
         if formclass is not None:
             self.formclass = formclass
+        if label is not None:
+            self.form_label = label
+        self.can_delete = can_delete
+        
         # may not need to actually call init since we don't really use this as a field
         super(SubformField, self).__init__(*args, **kwargs)
