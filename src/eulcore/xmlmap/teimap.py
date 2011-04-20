@@ -80,7 +80,9 @@ class TeiFigure(_TeiBase):
     ana         = xmlmap.StringField("@ana")    # FIXME: how to split on spaces? should be a list...
     head        = xmlmap.StringField("tei:head")
     description = xmlmap.StringField("tei:figDesc")
-    entity      = xmlmap.StringField("tei:graphic/@url") #graphic replaces entity in p5. 
+    entity      = xmlmap.StringField("tei:graphic/@url") #graphic replaces entity in p5.
+    floatingText_lg = xmlmap.NodeListField('tei:floatingText//tei:lg', TeiLineGroup) # use this if lines are organized in linegroups
+    floatingText_l = xmlmap.NodeListField('tei:floatingText//tei:head |tei:floatingText//tei:l', TeiLine) #use this if no line groups are present
 
 # currently not mapped... should it be mapped by default? at what level?
 class TeiInterp(_TeiBase):
