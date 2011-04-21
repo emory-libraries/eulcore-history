@@ -27,7 +27,7 @@ from eulcore import xmlmap
 from eulcore.xmlmap.fields import DateField     # not yet supported - testing for errors
 from eulcore.django.forms import XmlObjectForm, xmlobjectform_factory, SubformField
 from eulcore.django.forms.xmlobject import XmlObjectFormType
-from eulcore.django.forms.fields import W3CDateWidget, DynamicSelect
+from eulcore.django.forms.fields import W3CDateWidget, DynamicSelect, DynamicChoiceField
 from eulcore.django.forms import captchafield
 
 
@@ -735,6 +735,33 @@ class DynamicSelectTest(unittest.TestCase):
         self.assert_('alpha' in html, 'render includes "alpha"')
         self.assert_('beta' in html, 'render includes "beta"')
         self.assert_('gamma' in html, 'render includes "gamma"')
+
+class DynamicChoiceFieldTest(unittest.TestCase):
+    def setUp(self):
+        self.field = DynamicChoiceField(choices=self.get_choices)
+        self.choices = []
+
+    def get_choices(self):
+        return self.choices
+
+    def test_choices(self):
+        self.choices = [('1', 'one'),
+                        ('2', 'two'),
+                        ('3', 'three')]
+        self.assertEqual(self.choices, self.field.choices)
+
+    def test_set_choices(self):
+        def other_choices():
+            return [('a', 'ay'), ('b', 'bee'), ('c', 'cee')]
+
+        # should be able to set choices with a new callable
+        self.field.choices = other_choices
+        self.assertEqual(other_choices(), self.field.choices)
+        # updating field choices also updates widget choices
+        self.assertEqual(other_choices(), self.field.widget.choices)
+          
+
+
 
 
 class MockCaptcha:

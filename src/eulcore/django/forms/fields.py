@@ -165,7 +165,9 @@ class DynamicSelect(Select):
 
     def _get_choices(self):
         return self._choices()
-    choices = property(_get_choices)
+    def _set_choices(self, choices):
+        self._choices = choices
+    choices = property(_get_choices, _set_choices)
 
 
 class DynamicChoiceField(ChoiceField):
@@ -193,7 +195,7 @@ class DynamicChoiceField(ChoiceField):
         if widget is None:
             widget = self.widget
         if isinstance(widget, type):
-            widget = widget(choices=choices)
+            widget = widget(choices=self._choices)
 
         # Now call call super.__init__(), but bypass ChoiceField.
         # ChoiceField just sets static choices manually and then calls its
@@ -203,5 +205,9 @@ class DynamicChoiceField(ChoiceField):
         super(ChoiceField, self).__init__(widget=widget, *args, **kwargs)
 
     def _get_choices(self):
-        return self._choices()
-    choices = property(_get_choices)
+    	return self._choices()
+    def _set_choices(self, choices):
+        # if choices is updated, update the widget choice callable also
+        self._choices = choices
+        self.widget._choices = self._choices
+    choices = property(_get_choices, _set_choices)
