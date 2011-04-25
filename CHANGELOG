@@ -10,10 +10,13 @@ Release ?
 
 * Removed call to get_next_pid from get_object function in
   :class:`eulcore.fedora.server.Repository` in order to simplify the
-  logic for overriding default new pid behavior in individual projects.
+  logic for overriding default new pid behavior in individual
+  projects.
+
   * Renamed :class:`eulcore.fedora.models.DigitalObject`
-    _getDefaultPid method to get_default_pid to indicate it can be
-    overridden.
+    ``_getDefaultPid`` method to ``get_default_pid`` to indicate it
+    can be overridden.
+
 * Added a new configurable timeout option to
   :class:`eulcore.existdb.db.ExistDB`.
 * Updated :class:`eulcore.django.existdb.db.ExistDB` to look for

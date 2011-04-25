@@ -19,8 +19,14 @@ Projects that use this module should include the following settings in their
 ``settings.py``::
 
   #Exist DB Settings
-  EXISTDB_SERVER_URL = "http://user:passwd@megaserver.example.com:8042/exist"
+  EXISTDB_SERVER_USER = 'user'
+  EXISTDB_SERVER_PASSWORD = 'user'
+  EXISTDB_SERVER_URL = "http://megaserver.example.com:8042/exist"
   EXISTDB_ROOT_COLLECTION = "/sample_collection"
+
+.. note:
+
+  User and password settings are optional.
 
 To configure a timeout for most eXist connections, specify the desired
 time in seconds as ``EXISTDB_TIMEOUT``; if none is specified, the
@@ -29,7 +35,7 @@ global default timeout will be used.
 .. note::
 
   Any configured ``EXISTDB_TIMEOUT`` will be ignored by the
-  ``existdb_reindex`` management command, since reindexing a large
+  **existdb_reindex** management command, since reindexing a large
   collection could take significantly longer than a normal timeout
   would allow for.
 
