@@ -27,16 +27,24 @@ class ExistDB(db.ExistDB):
     """Connect to an eXist database configured by ``settings.py``.
 
     :param resultType: The class to use for returning :meth:`query` results;
-                       defaults to :class:`eulcore.existdb.QueryResult`.
+      defaults to :class:`eulcore.existdb.QueryResult`.
+                       
+    :param timeout: Connection timeout setting, if any.  If none is
+      specified, this class will look for a ``EXISTDB_TIMEOUT``
+      configuration in django settings.
 
     This class is a simple wrapper for :class:`eulcore.existdb.db.ExistDB`,
     getting the server_url from the Django settings file instead of in an
     argument.
+
     """
 
-    def __init__(self, resultType=None):
+    def __init__(self, resultType=None, timeout=None):
+        if timeout is None:
+            timeout = getattr(settings, 'EXISTDB_TIMEOUT', None)
         db.ExistDB.__init__(self, resultType=resultType,
-                            server_url=settings.EXISTDB_SERVER_URL)
+                            server_url=settings.EXISTDB_SERVER_URL,
+                            timeout=timeout)
 
 
 class ResultPaginator(Paginator):

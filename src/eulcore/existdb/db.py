@@ -25,9 +25,10 @@ an eXist-db_ database and executing XQuery_ queries against it.
 """
 
 from functools import wraps
+import httplib
 import logging
-from socket import error as socket_error
-from urllib import unquote_plus
+import socket
+from urllib import unquote_plus, splittype
 import xmlrpclib
 
 from eulcore import xmlmap
@@ -43,7 +44,7 @@ def _wrap_xmlrpc_fault(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except (socket_error, xmlrpclib.Fault, \
+        except (socket.error, xmlrpclib.Fault, \
             xmlrpclib.ProtocolError, xmlrpclib.ResponseError), e:
                 raise ExistDBException(e)
         # FIXME: could we catch IOerror (connection reset) and try again ?
@@ -53,7 +54,6 @@ def _wrap_xmlrpc_fault(f):
 
 
 class ExistDB:
-
     """Connect to an eXist database, and manipulate and query it.
 
     Construction doesn't initiate server communication, only store
@@ -67,21 +67,37 @@ class ExistDB:
     :param encoding:   The encoding used to communicate with the server;
                        defaults to "UTF-8"
     :param verbose:    When True, print XML-RPC debugging messages to stdout
+    :param timeout: Specify a timeout for xmlrpc connection
+      requests.If not specified, the global default socket timeout
+      value will be used.
 
     """
 
-    def __init__(self, server_url, resultType=None, encoding='UTF-8', verbose=False):
+    def __init__(self, server_url, resultType=None, encoding='UTF-8', verbose=False,
+                 timeout=None):
         # FIXME: Will encoding ever be anything but UTF-8? Does this really
         #   need to be part of our public interface?
 
         self.resultType = resultType or QueryResult
+        datetime_opt = {'use_datetime': True}
+
+        # determine if we need http or https transport
+        # (duplicates some logic in xmlrpclib)
+        type, uri = splittype(server_url)
+        if type not in ("http", "https"):
+            raise IOError, "unsupported XML-RPC protocol"
+        if type == 'https':
+            transport = TimeoutSafeTransport(timeout=timeout, **datetime_opt)
+        else:
+            transport = TimeoutTransport(timeout=timeout, **datetime_opt)
 
         self.server = xmlrpclib.ServerProxy(
                 uri="%s/xmlrpc" % server_url.rstrip('/'),
+                transport=transport,
                 encoding=encoding,
                 verbose=verbose,
                 allow_none=True,
-                use_datetime=True,
+                **datetime_opt
             )
 
     def getDocument(self, name, **kwargs):
@@ -546,7 +562,10 @@ class ExistDBException(Exception):
     def message(self):        
         "Rough conversion of xmlrpc fault string into something human-readable."
         orig_except = self.args[0]
-        if isinstance(orig_except, socket_error):
+        if isinstance(orig_except, socket.timeout):
+            # socket timeout error text is always "timed out"
+            message = 'Request Timed Out'
+        elif isinstance(orig_except, socket.error):
             # socket error is a tuple of errno, error string
             message = 'I/O Error: %s' % orig_except[1]
         elif isinstance(orig_except, xmlrpclib.ProtocolError):
@@ -572,3 +591,44 @@ class ExistDBException(Exception):
 # possible sub- exception types:
 # document not found (getDoc,remove)
 # collection not found 
+
+
+
+# Custom xmlrpclib Transport classes for configurable timeout
+# Adapted from code found here:
+# http://stackoverflow.com/questions/372365/set-timeout-for-xmlrpclib-serverproxy
+
+class TimeoutHTTP(httplib.HTTP):
+    def __init__(self, host='', port=None, strict=None, timeout=None):
+         if port == 0:
+             port = None
+         self._setup(self._connection_class(host, port, strict, timeout))
+
+class TimeoutHTTPS(httplib.HTTPS):
+    def __init__(self, host='', port=None, strict=None, timeout=None):
+         if port == 0:
+             port = None
+         self._setup(self._connection_class(host, port, strict, timeout))
+
+class TimeoutTransport(xmlrpclib.Transport):
+    '''Extend the default :class:`xmlrpclib.Transport` to expose a
+    connection timeout parameter.  Uses :class:`TimeoutHTTP` for http
+    connections.'''
+    _http_connection = TimeoutHTTP
+    def __init__(self, timeout=None, *args, **kwargs):
+        if timeout is None:
+            timeout = socket._GLOBAL_DEFAULT_TIMEOUT
+        xmlrpclib.Transport.__init__(self, *args, **kwargs)
+        self.timeout = timeout
+
+    def make_connection(self, host):
+        host, extra_headers, x509 = self.get_host_info(host)
+        conn = self._http_connection(host, timeout=self.timeout)
+        return conn
+
+class TimeoutSafeTransport(TimeoutTransport):
+    '''Extend class:`TimeoutTransport` but use :class:`TimeoutHTTPS`
+    for the http connections; timeout-enabled equivalent to
+    :class:`xmlrpclib.SafeTransport`.'''
+    _http_connection = TimeoutHTTPS
+

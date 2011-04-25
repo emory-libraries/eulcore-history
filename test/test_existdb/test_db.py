@@ -378,7 +378,9 @@ class ExistDBTest(unittest.TestCase):
     def test_setPermissions(self):
         self.db.setPermissions('/db' + self.COLLECTION + '/hello.xml', 'other=-update')
         perms = self.db.getPermissions('/db' + self.COLLECTION + '/hello.xml')
-        self.assertEqual(492, perms.permissions)   
+        self.assertEqual(492, perms.permissions)
+
+    # can't figure out how to test timeout init param...
 
 if __name__ == '__main__':
     main()

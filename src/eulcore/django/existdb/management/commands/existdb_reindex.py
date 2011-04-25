@@ -29,8 +29,10 @@ class Command(BaseCommand):
             return
 
         collection = settings.EXISTDB_ROOT_COLLECTION      
-            
-        self.db = ExistDB()
+
+        # Explicitly request no timeout (even if one is configured in
+        # django settings), since reindexing could take a while.
+        self.db = ExistDB(timeout=None)
         if not self.db.hasCollection(collection):
             raise CommandError("Collection %s does not exist" % collection)
 

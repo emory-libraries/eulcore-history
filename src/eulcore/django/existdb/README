@@ -22,12 +22,23 @@ Projects that use this module should include the following settings in their
   EXISTDB_SERVER_URL = "http://user:passwd@megaserver.example.com:8042/exist"
   EXISTDB_ROOT_COLLECTION = "/sample_collection"
 
+To configure a timeout for most eXist connections, specify the desired
+time in seconds as ``EXISTDB_TIMEOUT``; if none is specified, the
+global default timeout will be used.
+
+.. note::
+
+  Any configured ``EXISTDB_TIMEOUT`` will be ignored by the
+  ``existdb_reindex`` management command, since reindexing a large
+  collection could take significantly longer than a normal timeout
+  would allow for.
+
 If you are using an eXist index configuration file, you can add another setting
 to specify your configuration file::
 
   EXISTDB_INDEX_CONFIGFILE = os.path.join(BASE_DIR, "exist_index.xconf")
 
-This will allow you to use the existdb_index management command to manage your
+This will allow you to use the ``existdb_index`` management command to manage your
 index configuration file in eXist.
 
 If you wish to specify options for fulltext queries, you can set a dictionary
