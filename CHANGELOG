@@ -7,10 +7,16 @@ about installation or upgrade notes.
 
 Release ?
 ---------
-* Removed call to get_next_pid  from get_object function in Repository class
-  This allows getDefaultPid to be overriden to provide the logic for the next pid in individual projects
-* Renamed _getDefaultPid to getDefaultPid to indicate it is a public function
-* Removed one unit test that is not longer valid since get_next_pid is not called.
+
+* Removed call to get_next_pid from get_object function in
+  :class:`eulcore.fedora.server.Repository` in order to simplify the
+  logic for overriding default new pid behavior in individual projects.
+  * Renamed :class:`eulcore.fedora.models.DigitalObject`
+    _getDefaultPid method to get_default_pid to indicate it can be
+    overridden.
+* Added a new configurable timeout option to
+  :class:`eulcore.existdb.db.ExistDB`.
+
 
 Release 0.13
 ------------
