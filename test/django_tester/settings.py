@@ -2,7 +2,8 @@ from urlparse import urlsplit
 
 # use test database settings from non-django existdb test
 #from test_existdb import settings as exist_settings
-from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_ROOT_COLLECTION, EXISTDB_TEST_COLLECTION
+from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_ROOT_COLLECTION, \
+     EXISTDB_TEST_COLLECTION, EXISTDB_SERVER_USER, EXISTDB_SERVER_PASSWORD
 
 from os import path
 

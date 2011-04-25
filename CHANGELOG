@@ -16,7 +16,10 @@ Release ?
     overridden.
 * Added a new configurable timeout option to
   :class:`eulcore.existdb.db.ExistDB`.
-
+* Updated :class:`eulcore.django.existdb.db.ExistDB` to look for
+  server url, username, and password configurations separately in
+  django settings.  This will allow django to automatically suppress
+  any configured eXist password in debug output.
 
 Release 0.13
 ------------

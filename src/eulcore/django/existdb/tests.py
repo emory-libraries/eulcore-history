@@ -45,13 +45,22 @@ class ExistDBTest(unittest.TestCase):
         fixture = os.path.join(module_path, 'exist_fixtures', 'hello.xml')
         self.db.load(open(fixture), self.COLLECTION + '/hello.xml', True)
 
+        # save exist configurations modified by some tests
+        self._EXISTDB_SERVER_URL = getattr(settings, 'EXISTDB_SERVER_URL', None)
+        self._EXISTDB_SERVER_USER = getattr(settings, 'EXISTDB_SERVER_USER', None)
+        self._EXISTDB_SERVER_PASSWORD = getattr(settings, 'EXISTDB_SERVER_PASSWORD', None)
+
     def tearDown(self):
         self.db.removeCollection(self.COLLECTION)
+        # restore exist settings
+        setattr(settings, 'EXISTDB_SERVER_URL', self._EXISTDB_SERVER_URL)
+        setattr(settings, 'EXISTDB_SERVER_USER', self._EXISTDB_SERVER_USER)
+        setattr(settings, 'EXISTDB_SERVER_PASSWORD', self._EXISTDB_SERVER_PASSWORD)
 
     def test_init(self):
         self.assert_(isinstance(self.db, nondjangoexistdb.db.ExistDB))
         self.assert_(isinstance(self.db, ExistDB))
-        
+
     def test_getDocument(self):
         """Retrieve document loaded via file fixture"""
         xml = self.db.getDocument(self.COLLECTION + "/hello.xml")
@@ -76,6 +85,25 @@ class ExistDBTest(unittest.TestCase):
                 test_db.hasCollection, self.COLLECTION)
         finally:
             settings.EXISTDB_SERVER_URL = server_url
+
+    def test_get_exist_url(self):
+        # test constructing url based on multiple possible configurations
+        user = settings.EXISTDB_SERVER_USER
+        pwd = settings.EXISTDB_SERVER_PASSWORD
+        scheme, sep, host = settings.EXISTDB_SERVER_URL.partition('//')
+
+        # with username & password
+        self.assertEqual(scheme + sep + user + ':' + pwd + '@' + host,
+                         self.db._get_exist_url())
+        
+        # username but no password
+        delattr(settings, 'EXISTDB_SERVER_PASSWORD')
+        self.assertEqual(scheme + sep + user + '@' + host, self.db._get_exist_url())
+
+        # no credentials
+        delattr(settings, 'EXISTDB_SERVER_USER')
+        self.assertEqual(settings.EXISTDB_SERVER_URL, self.db._get_exist_url())
+        
 
 
 class PartingBase(xmlmap.XmlObject):
