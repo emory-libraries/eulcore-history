@@ -15,6 +15,7 @@
 #   limitations under the License.
 
 import socket
+import xmlrpclib
 
 class ExistDBException(Exception):
     """A handy wrapper for all errors returned by the eXist server."""
