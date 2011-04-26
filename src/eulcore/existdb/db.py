@@ -32,6 +32,7 @@ from urllib import unquote_plus, splittype
 import xmlrpclib
 
 from eulcore import xmlmap
+from eulcore.existdb.exceptions import ExistDBException, ExistDBTimeout
 
 __all__ = ['ExistDB', 'QueryResult', 'ExistDBException', 'EXISTDB_NAMESPACE']
 
@@ -44,8 +45,10 @@ def _wrap_xmlrpc_fault(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
+        except socket.timeout as e:
+            raise ExistDBTimeout(e)
         except (socket.error, xmlrpclib.Fault, \
-            xmlrpclib.ProtocolError, xmlrpclib.ResponseError), e:
+            xmlrpclib.ProtocolError, xmlrpclib.ResponseError) as e:
                 raise ExistDBException(e)
         # FIXME: could we catch IOerror (connection reset) and try again ?
         # occasionally getting this error (so far exclusively in unit tests)
@@ -552,45 +555,6 @@ class QueryResult(xmlmap.XmlObject):
         if not self.hits or not self.start or not self.count:
             return False
         return self.hits > (self.start + self.count)
-
-
-class ExistDBException(Exception):
-    """A handy wrapper for all errors returned by the eXist server."""
-
-    rpc_prefix = 'RpcConnection: '
-
-    def message(self):        
-        "Rough conversion of xmlrpc fault string into something human-readable."
-        orig_except = self.args[0]
-        if isinstance(orig_except, socket.timeout):
-            # socket timeout error text is always "timed out"
-            message = 'Request Timed Out'
-        elif isinstance(orig_except, socket.error):
-            # socket error is a tuple of errno, error string
-            message = 'I/O Error: %s' % orig_except[1]
-        elif isinstance(orig_except, xmlrpclib.ProtocolError):
-            message = 'XMLRPC Error at %(url)s: %(code)s %(msg)s' % {
-                    'url': orig_except.url,
-                    'code': orig_except.errcode,
-                    'msg': unquote_plus(orig_except.errmsg)
-            }
-        # xmlrpclib.ResponseError ?
-        elif self.rpc_prefix in str(self):
-            # RpcConnection error generally reports eXist-specific errors
-            preamble, message = str(self).strip("""'<>\"""").split(self.rpc_prefix)
-            # xmldb and xpath calls may have additional error strings:
-            message = message.replace('org.exist.xquery.XPathException: ', '')
-            message = message.replace('XMLDB exception caught: ', '')
-            message = message.replace('[at line 1, column 1]', '')
-        else:
-            # if all else fails, display the exception as a string
-            message = str(original_exception)
-        return message
-
- 
-# possible sub- exception types:
-# document not found (getDoc,remove)
-# collection not found 
 
 
 
