@@ -27,9 +27,9 @@ Create a new Django project and setup :mod:`eulcore.django.fedora`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use ``pip`` to install the eulcore library and its dependencies.  For this tutorial,
-we'll use the latest tagged release of EULcore, 0.11 ::
+we'll use the latest tagged release of EULcore, 0.13.1 ::
 
-    pip install svn+https://svn.library.emory.edu/svn/python-eulcore/tags/release-0.11.0
+    pip install svn+https://svn.library.emory.edu/svn/python-eulcore/tags/release-0.13.1
 
 This command should install EULcore and its Python dependencies; if
 you have difficulty, see :ref:`Dependencies`.
