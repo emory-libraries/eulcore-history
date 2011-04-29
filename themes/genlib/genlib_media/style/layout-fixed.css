@@ -154,6 +154,7 @@ body
     padding-left: 0;
     padding-right: 20px;
     padding-bottom: 55px;
+    min-height: 350px;
 }
 
 #content-outer-bottom
