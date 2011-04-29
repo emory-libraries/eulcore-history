@@ -5,7 +5,7 @@ The following is a summary of changes and improvements to python-eulcore.
 New features in each version should be listed, with any necessary information
 about installation or upgrade notes.
 
-Release ?
+Release 0.14
 ---------
 
 * Removed call to get_next_pid from get_object function in
@@ -23,6 +23,7 @@ Release ?
   server url, username, and password configurations separately in
   django settings.  This will allow django to automatically suppress
   any configured eXist password in debug output.
+* Added --password option and -u/--username to syncrepo managed command
 
 Release 0.13
 ------------

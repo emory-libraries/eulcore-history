@@ -81,6 +81,7 @@ class TeiFigure(_TeiBase):
     head        = xmlmap.StringField("tei:head")
     description = xmlmap.StringField("tei:figDesc")
     entity      = xmlmap.StringField("tei:graphic/@url") #graphic replaces entity in p5.
+    #TODO make floating text more generic - changed made for GreatWar
     floatingText_lg = xmlmap.NodeListField('tei:floatingText//tei:lg', TeiLineGroup) # use this if lines are organized in linegroups
     floatingText_l = xmlmap.NodeListField('tei:floatingText//tei:head |tei:floatingText//tei:l', TeiLine) #use this if no line groups are present
 
