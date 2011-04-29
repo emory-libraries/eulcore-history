@@ -16,6 +16,9 @@
 
 import glob
 import os
+from getpass import getpass
+
+from optparse import make_option
 
 from django.core.management.base import BaseCommand
 from django.db.models import get_apps
@@ -26,13 +29,39 @@ from eulcore.fedora.models import ContentModel
 from eulcore.fedora.util import RequestFailed
 
 class Command(BaseCommand):
+    def get_password_option(option, opt, value, parser):
+        setattr(parser.values, option.dest, getpass())
+
+
     help = """Generate missing Fedora content model objects and load initial objects."""
+
+    option_list = BaseCommand.option_list + (
+        make_option('--username', '-u',
+            dest='username',
+            action='store',
+            help='''Username to connect to fedora'''),
+        make_option('--password',
+            dest='password',
+            action='callback', callback=get_password_option,
+            help='''Prompt for password required when username used'''),
+        )
+        
 
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)
-        self.repo = Repository()
+                
 
     def handle(self, *args, **options):
+
+        repo_args = {}
+        if  options.get('username') is not None: 
+		repo_args['username'] = options.get('username')
+        if options.get('password') is not None: 
+		repo_args['password'] = options.get('password')
+
+        self.repo = Repository(**repo_args)
+
+
         self.verbosity = int(options.get('verbosity', 1))
 
         # FIXME/TODO: add count/summary info for content models objects created ?
