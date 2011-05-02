@@ -139,6 +139,5 @@ try:
     TEST_OUTPUT_DIR='test-results'
     TEST_OUTPUT_VERBOSE = True
     TEST_OUTPUT_DESCRIPTIONS = True
-    print "DEBUG: test runner is ", TEST_RUNNER
 except ImportError:
     pass
