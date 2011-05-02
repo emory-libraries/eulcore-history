@@ -51,8 +51,9 @@ def _execute_tests(test_apps=[], extras=[]):
 
     starting_tests.send(None)
     django_runner = get_runner(settings)
-    # in django 1.2, if xmlrunner is not installed, get_runner returns DjangoTestSuiteRunner    
-    if django_runner == DjangoTestSuiteRunner:
+    # in older versions of django and xmlrunner, get_runner returns a run_tests method
+    # newer versions of django and xmlrunner, get_runner returns a class like DjangoTestSuiteRunner
+    if hasattr(django_runner, 'run_tests'):
         django_runner = django_runner(verbosity=1, interactive=True).run_tests
 
     failures = django_runner(test_labels=test_apps, interactive=True, 
