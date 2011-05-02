@@ -72,6 +72,11 @@ class TeiDiv(_TeiBase):
     quote    = xmlmap.StringListField('tei:quote')
     floatingText = xmlmap.NodeListField('tei:floatingText/tei:body/tei:div', 'self')
 
+class TeiFloatingText(_TeiBase):
+    head = xmlmap.StringField("./tei:body/tei:head")
+    line_group = xmlmap.NodeListField('.//tei:lg', TeiLineGroup)
+    line = xmlmap.NodeListField('.//tei:l', TeiLine)
+
 
 # note: not currently mapped to any of the existing tei objects...  where to add?
 class TeiFigure(_TeiBase):
@@ -81,9 +86,7 @@ class TeiFigure(_TeiBase):
     head        = xmlmap.StringField("tei:head")
     description = xmlmap.StringField("tei:figDesc")
     entity      = xmlmap.StringField("tei:graphic/@url") #graphic replaces entity in p5.
-    #TODO make floating text more generic - changed made for GreatWar
-    floatingText_lg = xmlmap.NodeListField('tei:floatingText//tei:lg', TeiLineGroup) # use this if lines are organized in linegroups
-    floatingText_l = xmlmap.NodeListField('tei:floatingText//tei:head |tei:floatingText//tei:l', TeiLine) #use this if no line groups are present
+    floatingText = xmlmap.NodeListField('tei:floatingText', TeiFloatingText)
 
 # currently not mapped... should it be mapped by default? at what level?
 class TeiInterp(_TeiBase):
