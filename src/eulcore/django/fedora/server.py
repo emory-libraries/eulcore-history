@@ -16,6 +16,7 @@
 
 from django.conf import settings
 from eulcore.fedora import server, util
+from eulcore.django.fedora import cryptutil
 
 _connection = None
 
@@ -39,14 +40,40 @@ class Repository(server.Repository):
     based on Fedora connection parameters in a Django settings file.  If username
     and password are specified, they will override fedora credentials configured
     in Django settings.
+
+    If a request object is passed in and the user is logged in, this
+    class will look for credentials in the session, as set by
+    :meth:`~eulcore.django.fedora.views.login_and_store_credentials_in_session`
+    (see method documentation for more details and potential security
+    risks).
+
+    Order of precedence for credentials:
+        
+        * If a request object is passed in and user credentials are
+          available in the session, that will be used first.
+        * Explicit username and password parameters will be used next. 
+        * If none of these options are available, fedora credentials
+          will be set in django settings will be used.
+
+    
     """
-    def __init__(self, username=None, password=None):
-        if username is None and hasattr(settings, 'FEDORA_USER'):
-            username = settings.FEDORA_USER
-        if password is None and hasattr(settings, 'FEDORA_PASS'):
-            password = settings.FEDORA_PASS
+    def __init__(self, username=None, password=None, request=None):
+        if request is not None and request.user.is_authenticated() and \
+           FEDORA_PASSWORD_SESSION_KEY in request.session:
+                username = request.user.username
+                password = cryptutil.decrypt(request.session[FEDORA_PASSWORD_SESSION_KEY])            
+        else:
+            if username is None and hasattr(settings, 'FEDORA_USER'):
+                username = settings.FEDORA_USER
+                if password is None and hasattr(settings, 'FEDORA_PASS'):
+                    password = settings.FEDORA_PASS
         super(Repository, self).__init__(_connection, username, password)
 
         if hasattr(settings, 'FEDORA_PIDSPACE'):
             self.default_pidspace = settings.FEDORA_PIDSPACE
+
+
+# session key for storing a user password that will be used for Fedora access
+# - used here and in eulcore.django.fedora.views
+FEDORA_PASSWORD_SESSION_KEY = 'eulfedora_password'
 

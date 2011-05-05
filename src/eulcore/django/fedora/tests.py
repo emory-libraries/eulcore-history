@@ -9,7 +9,9 @@ from django.template import Context, Template
 from eulcore.fedora.util import RequestFailed, PermissionDenied
 from eulcore.fedora.models import DigitalObject, Datastream, FileDatastream
 from eulcore.django.fedora.server import Repository
-from eulcore.django.fedora.views import raw_datastream
+from eulcore.django.fedora.views import raw_datastream, \
+     login_and_store_credentials_in_session, FEDORA_PASSWORD_SESSION_KEY
+from eulcore.django.fedora import cryptutil
 
 class MockFedoraResponse(StringIO):
     # The simplest thing that can possibly look like a Fedora response to
@@ -169,3 +171,74 @@ class FedoraViewsTest(unittest.TestCase):
             headers=extra_headers)
         self.assertTrue(response.has_header('Content-Disposition'))
         self.assertEqual(response['Content-Disposition'], extra_headers['Content-Disposition'])
+
+    def test_login_and_store_credentials_in_session(self):
+        # only testing custom logic, which happens on POST
+        # everything else is handled by django.contrib.auth
+        from mock import Mock, patch
+        mockrequest = Mock()
+        mockrequest.method = 'POST'
+
+        def not_logged_in(rqst):
+            rqst.user.is_authenticated.return_value = False
+            
+        def set_logged_in(rqst):
+            rqst.user.is_authenticated.return_value = True
+            rqst.POST.get.return_value = "TEST_PASSWORD"
+        
+        # failed login
+        with patch('eulcore.django.fedora.views.authviews.login',
+                   new=Mock(side_effect=not_logged_in)):
+            mockrequest.session = dict()
+            response = login_and_store_credentials_in_session(mockrequest)
+            self.assert_(FEDORA_PASSWORD_SESSION_KEY not in mockrequest.session,
+                         'user password for fedora should not be stored in session on failed login')
+
+        # successful login
+        with patch('eulcore.django.fedora.views.authviews.login',
+                   new=Mock(side_effect=set_logged_in)):
+            response = login_and_store_credentials_in_session(mockrequest)
+            self.assert_(FEDORA_PASSWORD_SESSION_KEY in mockrequest.session,
+                         'user password for fedora should be stored in session on successful login')
+            # test password stored in the mock request
+            pwd = mockrequest.POST.get()
+            # encrypted password stored in session
+            sessionpwd = mockrequest.session[FEDORA_PASSWORD_SESSION_KEY]  
+            self.assertNotEqual(pwd, sessionpwd,
+                                'password should not be stored in the session without encryption')
+            self.assertEqual(pwd, cryptutil.decrypt(sessionpwd),
+                             'user password stored in session is encrypted')
+
+
+
+class CryptTest(unittest.TestCase):
+    
+    def test_to_blocksize(self):
+        def test_valid_blocksize(text):
+            block = cryptutil .to_blocksize(text)
+            self.assertEqual(0, len(block) % cryptutil.EncryptionAlgorithm.block_size,
+                '''text '%s' has correct block size for encryption algorithm''' % block)
+            self.assert_(text in block, 'block-sized text contains original text')
+
+        # test text of several sizes
+        test_valid_blocksize('text')
+        test_valid_blocksize('texty')
+        test_valid_blocksize('textish')
+        test_valid_blocksize('this is some text')
+        test_valid_blocksize('this would be a really long password')
+        test_valid_blocksize('can you imagine typing this every time you logged in?')
+
+    def test_encrypt_decrypt(self):
+        def test_encrypt_decrypt(text):
+            encrypted = cryptutil.encrypt(text)
+            self.assertNotEqual(text, encrypted,
+                "encrypted text (%s) should not match original (%s)" % (encrypted, text))
+            decrypted = cryptutil.decrypt(encrypted)
+            self.assertEqual(text, decrypted,
+                "decrypted text (%s) should match original encrypted text (%s)" % (decrypted, text))
+
+        test_encrypt_decrypt('text')
+        test_encrypt_decrypt('texty')
+        test_encrypt_decrypt('textier')
+        test_encrypt_decrypt('textiest')
+        test_encrypt_decrypt('longish password-type text')

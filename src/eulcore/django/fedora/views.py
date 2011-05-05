@@ -29,13 +29,14 @@ Using these views (in the simpler cases) should be as easy as::
 
 '''
 
-# TODO: add examples of easy ways to use this
 
-
+from django.conf import settings
+from django.contrib.auth import views as authviews
 from django.http import HttpResponse, Http404
 
 from eulcore.fedora.util import RequestFailed
-from eulcore.django.fedora.server import Repository
+from eulcore.django.fedora.server import Repository, FEDORA_PASSWORD_SESSION_KEY
+from eulcore.django.fedora.cryptutil import encrypt
 
 def raw_datastream(request, pid, dsid, type=None, repo=None, headers={}):
     '''View to display a raw datastream that belongs to a Fedora Object.
@@ -124,3 +125,36 @@ def raw_datastream(request, pid, dsid, type=None, repo=None, headers={}):
 
         # for anything else, re-raise & let Django's default 500 logic handle it
         raise
+
+
+def login_and_store_credentials_in_session(request, *args, **kwargs):
+    '''Custom login view.  Calls the standard Django authentication,
+    but on successful login, stores encrypted user credentials in
+    order to allow accessing the Fedora repository with the
+    credentials of the currently-logged in user (e.g., when the
+    application and Fedora share a common authentication system, such
+    as LDAP).
+
+    In order for :class:`~eulcore.django.fedora.server.Repository` to
+    pick up user credentials, you must pass the request object in (so
+    it will have access to the session).  Example::
+
+    	from eulcore.django.fedora.server import Repository
+
+        def my_view(rqst):
+            repo = Repository(request=rqst)
+    
+
+    Any arguments supported by :meth:`django.contrib.auth.views.login`
+    can be specified and they will be passed along for the standard
+    login functionality.
+
+    **This is not a terribly secure.  Do NOT use this method unless
+    you need the functionality.**
+    
+    '''
+    response = authviews.login(request, *args, **kwargs)
+    if request.method == "POST" and request.user.is_authenticated():
+        # on successful login, encrypt and store user's password to use for fedora access
+        request.session[FEDORA_PASSWORD_SESSION_KEY] = encrypt(request.POST.get('password'))
+    return response
