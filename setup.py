@@ -67,6 +67,6 @@ setup(
         # now: https://github.com/downloads/arskom/rpclib/soaplib-0.8.1.tar
         'python-ldap',
 	'poster',
-        'pycrytpo',
+        'pycrypto',
     ],
 )
