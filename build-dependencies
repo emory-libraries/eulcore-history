@@ -5,3 +5,4 @@ coverage
 django-celery
 recaptcha-client
 poster
+pycrypto
