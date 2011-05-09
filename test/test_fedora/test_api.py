@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from test_fedora.base import FedoraTestCase, load_fixture_data, FEDORA_ROOT_NONSSL,\
-                FEDORA_USER, FEDORA_PASS, FEDORA_PIDSPACE
+                FEDORA_USER, FEDORA_PASSWORD, FEDORA_PIDSPACE
 from eulcore.fedora.api import REST_API, API_A_LITE, API_M_LITE, API_M
 from eulcore.fedora.rdfns import model as modelns
 from eulcore.fedora.util import AuthorizingServerConnection, fedoratime_to_datetime, datetime_to_fedoratime
@@ -48,7 +48,7 @@ Hey, nonny-nonny."""
     def setUp(self):
         super(TestREST_API, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
-        self.opener = AuthorizingServerConnection(FEDORA_ROOT_NONSSL, FEDORA_USER, FEDORA_PASS)
+        self.opener = AuthorizingServerConnection(FEDORA_ROOT_NONSSL, FEDORA_USER, FEDORA_PASSWORD)
         self.rest_api = REST_API(self.opener)
         self.today = datetime.utcnow().date()
 
@@ -484,7 +484,7 @@ class TestAPI_A_LITE(FedoraTestCase):
     def setUp(self):
         super(TestAPI_A_LITE, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
-        self.opener = AuthorizingServerConnection(FEDORA_ROOT_NONSSL, FEDORA_USER, FEDORA_PASS)
+        self.opener = AuthorizingServerConnection(FEDORA_ROOT_NONSSL, FEDORA_USER, FEDORA_PASSWORD)
         self.api_a = API_A_LITE(self.opener)
 
     def testDescribeRepository(self):
@@ -542,7 +542,7 @@ class TestAPI_M(FedoraTestCase):
         super(TestAPI_M, self).setUp()
         self.pid = self.fedora_fixtures_ingested[0]
         self.api_m = API_M(self.opener)
-        self.opener = AuthorizingServerConnection(FEDORA_ROOT_NONSSL, FEDORA_USER, FEDORA_PASS)
+        self.opener = AuthorizingServerConnection(FEDORA_ROOT_NONSSL, FEDORA_USER, FEDORA_PASSWORD)
         self.rest_api = REST_API(self.opener)
         
     def test_addRelationship(self):

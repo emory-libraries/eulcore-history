@@ -138,8 +138,6 @@ For more details on these commands, use ``manage.py <command> help``
 :mod:`~eulcore.django.fedora` -- Django tie-ins for :mod:`eulcore.fedora`
 -------------------------------------------------------------------------
 
-.. include:: ../src/eulcore/django/fedora/README
-
 .. automodule:: eulcore.django.fedora
 
 .. automodule:: eulcore.django.fedora.server

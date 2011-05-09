@@ -14,6 +14,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import warnings
+
 from django.conf import settings
 from eulcore.fedora import server, util
 from eulcore.django.fedora import cryptutil
@@ -65,8 +67,16 @@ class Repository(server.Repository):
         else:
             if username is None and hasattr(settings, 'FEDORA_USER'):
                 username = settings.FEDORA_USER
-                if password is None and hasattr(settings, 'FEDORA_PASS'):
+                # look for FEDORA_PASSWORD first
+                if password is None and hasattr(settings, 'FEDORA_PASSWORD'):
+                    password = settings.FEDORA_PASSWORD
+                # then look for FEDORA_PASS, but warn if it is present
+                elif password is None and hasattr(settings, 'FEDORA_PASS'):
                     password = settings.FEDORA_PASS
+                    # this method should no longer be needed - default pid logic moved to DigitalObject
+                    warnings.warn("""For security reasons, you should use FEDORA_PASSWORD instead of FEDORA_PASS for Fedora credentials in your django settings.  The FEDORA_PASS setting is deprecated.""",
+                      DeprecationWarning)
+
         super(Repository, self).__init__(_connection, username, password)
 
         if hasattr(settings, 'FEDORA_PIDSPACE'):

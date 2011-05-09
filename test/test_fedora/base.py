@@ -10,10 +10,10 @@ from eulcore.fedora.server import Repository
 #FEDORA_ROOT = 'https://dev11.library.emory.edu:8843/fedora/'
 #FEDORA_ROOT_NONSSL = 'http://dev11.library.emory.edu:8480/fedora/'
 # fedora3.4
-FEDORA_ROOT = 'https://dev11.library.emory.edu:8943/fedora/'
-FEDORA_ROOT_NONSSL = 'http://dev11.library.emory.edu:8580/fedora/'
+FEDORA_ROOT = 'https://dev11.library.emory.edu:8743/fedora/'
+FEDORA_ROOT_NONSSL = 'http://dev11.library.emory.edu:8380/fedora/'
 FEDORA_USER = 'fedoraAdmin'
-FEDORA_PASS = 'fedoraAdmin'
+FEDORA_PASSWORD = 'fedoraAdmin'
 FEDORA_PIDSPACE = 'eulcoretest'
 
 FIXTURE_ROOT = os.path.join(os.path.dirname(__file__), 'fixtures')
@@ -33,7 +33,7 @@ class FedoraTestCase(unittest.TestCase):
         self.fedora_fixtures_ingested = []
 
     def setUp(self):
-        self.repo = Repository(FEDORA_ROOT, FEDORA_USER, FEDORA_PASS)
+        self.repo = Repository(FEDORA_ROOT, FEDORA_USER, FEDORA_PASSWORD)
         # NOTE: queries require RI flush=True or test objects will not show up in RI
         self.repo.risearch.RISEARCH_FLUSH_ON_QUERY = True
         self.opener = self.repo.opener

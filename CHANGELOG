@@ -5,8 +5,19 @@ The following is a summary of changes and improvements to python-eulcore.
 New features in each version should be listed, with any necessary information
 about installation or upgrade notes.
 
+
+Release 0.15 (pre)
+------------------
+
+* Updates to Django settings used by :mod:`eulcore.django.fedora`:
+
+  * **FEDORA_PASSWORD** should now be used instead of **FEDORA_PASS**
+    (FEDORA_PASS is deprecated but will continue to work)
+  * **FEDORA_TEST_USER** and **FEDORA_TEST_PASSWORD** are now
+    recognized  for test setup and teardown.
+
 Release 0.14
----------
+------------
 
 * Removed call to get_next_pid from get_object function in
   :class:`eulcore.fedora.server.Repository` in order to simplify the
@@ -35,7 +46,7 @@ Release 0.13
 Release 0.12
 ------------
 * :mod:`eulcore.fedora` improvements for uploading large files using the
-``poster`` module.
+  ``poster`` module.
 * New ajax-appropriate auth decorators in :mod:`eulcore.django.auth`
 * bugfix in :mod:`eulcore.django.forms.xmlobject` for updating formsets with
   no data
