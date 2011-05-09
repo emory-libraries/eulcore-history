@@ -32,3 +32,23 @@ and follow the normal directions.
 **Blue and Gray Theme**
 To use this just extend the genlib/bluegray_site_base.xhtml in your main
 template and follow the normal directions.
+
+
+Themed Django Admin site
+------------------------
+
+There is a template that can be used to display the Django admin site
+inside the genlib theme.  To use it, you should copy the
+genlib/admin_base.html template into your templates directory as
+admin/base.html and update as necessary (at minimum, you should update
+it to extend your local sitebase template, which is expected to extend
+one of the genlib themes).  
+
+There is also a custom admin index template that adds a block for
+extra content to be displayed on the admin index page.
+
+See comments in either these templates for additional details.
+
+Customized admin templates are based on Django 1.2 admin site
+templates.
+
