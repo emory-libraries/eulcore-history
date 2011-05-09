@@ -70,7 +70,9 @@ class TemplateTagTest(unittest.TestCase):
 
 
 class SimpleDigitalObject(DigitalObject):
-    CONTENT_MODELS = ['info:fedora/example:SimpleCModel' ]
+    CONTENT_MODELS = ['info:fedora/%s:SimpleDjangoCModel' % settings.FEDORA_PIDSPACE]
+    # NOTE: distinguish from SimpleCModel in non-django fedora unit tests
+    # and use configured pidspace for automatic clean-up
 
     # extend digital object with datastreams for testing
     text = Datastream("TEXT", "Text datastream", defaults={
