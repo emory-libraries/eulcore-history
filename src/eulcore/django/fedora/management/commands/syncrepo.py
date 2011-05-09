@@ -14,10 +14,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import glob
-import os
 from getpass import getpass
-
+import glob
+import logging
+import os
 from optparse import make_option
 
 from django.core.management.base import BaseCommand
@@ -27,6 +27,8 @@ from eulcore.django.fedora import Repository
 from eulcore.fedora import DigitalObject
 from eulcore.fedora.models import ContentModel
 from eulcore.fedora.util import RequestFailed
+
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     def get_password_option(option, opt, value, parser):
@@ -80,6 +82,21 @@ class Command(BaseCommand):
             # CONTENT_MODELS.
             if self.verbosity > 1:
                 print v
+        except RequestFailed, rf:
+            if hasattr(rf, 'detail'):
+                if 'ObjectExistsException' in rf.detail:
+                    # This shouldn't happen, since ContentModel.for_class
+                    # shouldn't attempt to ingest unless the object doesn't exist.
+                    # In some cases, Fedora seems to report that an object doesn't exist,
+                    # then complain on attempted ingest.
+
+                    full_name = '%s.%s' % (cls.__module__, cls.__name__)
+                    logger.warn('Fedora error (ObjectExistsException) on Content Model ingest for %s' % \
+                                full_name)
+                else:
+                    # if there is a detail message, display that
+                    print "Error ingesting ContentModel for %s: %s" % (cls, rf.detail)
+            
 
     def load_initial_objects(self):
         # look for any .xml files in apps under fixtures/initial_objects
