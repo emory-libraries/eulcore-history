@@ -26,7 +26,8 @@ from django.forms.formsets import BaseFormSet
 from eulcore import xmlmap
 from eulcore.xmlmap.fields import DateField     # not yet supported - testing for errors
 from eulcore.django.forms import XmlObjectForm, xmlobjectform_factory, SubformField
-from eulcore.django.forms.xmlobject import XmlObjectFormType
+from eulcore.django.forms.xmlobject import XmlObjectFormType, BaseXmlObjectListFieldFormSet, \
+     ListFieldForm, IntegerListFieldForm
 from eulcore.django.forms.fields import W3CDateWidget, DynamicSelect, DynamicChoiceField
 from eulcore.django.forms import captchafield
 
@@ -51,6 +52,8 @@ class TestObject(xmlmap.XmlObject):
     children = xmlmap.NodeListField('bar', TestSubobject)
     other_child = xmlmap.NodeField('plugh', OtherTestSubobject)
     my_opt = xmlmap.StringField('opt', choices=['a', 'b', 'c'])
+    text = xmlmap.StringListField('text')
+    numbers = xmlmap.IntegerListField('number')
 
 FIXTURE_TEXT = '''
     <foo id='a'>
@@ -62,6 +65,7 @@ FIXTURE_TEXT = '''
         </bar>
         <boolean>yes</boolean>
         <longtext>here is a bunch of text too long for a text input</longtext>
+        <text>la</text><text>fa</text>
     </foo>
 '''
 class TestForm(XmlObjectForm):
@@ -94,6 +98,13 @@ class XmlObjectFormTest(unittest.TestCase):
         'children-2-val': 5,
         'children-3-id2': 'four',
         'children-3-val': 20,
+        # stringlist formset
+        'text-TOTAL_FORMS': 1,
+        'text-INITIAL_FORMS': 0,
+        'text-0-val': 'foo',
+        # integerlist formset
+        'numbers-TOTAL_FORMS': 0,
+        'numbers-INITIAL_FORMS': 0,
         }
 
     def setUp(self):
@@ -396,12 +407,6 @@ class XmlObjectFormTest(unittest.TestCase):
 
         self.assertRaises(Exception, xmlobjectform_factory, DateObject)
 
-        class ListObject(xmlmap.XmlObject):
-            ROOT_NAME = 'foo'
-            list = xmlmap.StringListField('bar')
-
-        self.assertRaises(Exception, xmlobjectform_factory, ListObject)
-
     def test_subforms(self):
         # nodefields should be created as subforms on the object
         subform = self.new_form.subforms['child']
@@ -478,14 +483,27 @@ class XmlObjectFormTest(unittest.TestCase):
         # nodelistfields should be created as formsets on the object
         formset = self.new_form.formsets['children']
         self.assert_(isinstance(formset, BaseFormSet),
-            'form has a BaseFormSet formset')
+            'nodelist form has a BaseFormSet formset')
         self.assertEqual('TestSubobjectXmlObjectFormFormSet', formset.__class__.__name__)
-
+        # StringListFields should be handled via formset
+        str_formset = self.new_form.formsets['text']
+        self.assert_(isinstance(str_formset, BaseXmlObjectListFieldFormSet),
+            'stringlist formset is an instance of BaseXmlObjectListFieldFormset')
+        # IntegerListFields should be handled via formset
+        int_formset = self.new_form.formsets['numbers']
+        self.assert_(isinstance(int_formset, BaseXmlObjectListFieldFormSet),
+            'integerlist formset is an instance of BaseXmlObjectListFieldFormset')
+    
         # formset label
         self.assertEqual('Children', formset.form_label,
             'formset form_label should be set based on xmlobject field name; ' +
             'excpected Children, got %s' % formset.form_label)
-
+        self.assertEqual('Text', str_formset.form_label,
+            'formset form_label should be set based on xmlobject field name; ' +
+                         'excpected Text, got %s' % str_formset.form_label)
+        self.assertEqual('Numbers', int_formset.form_label,
+            'formset form_label should be set based on xmlobject field name; ' +
+                         'excpected Text, got %s' % int_formset.form_label)
 
         subform = formset.forms[0]
         self.assert_(isinstance(subform, XmlObjectForm),
@@ -493,11 +511,19 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertEqual('TestSubobjectXmlObjectForm', subform.__class__.__name__)
         self.assertEqual('children-0', subform.prefix)
 
+        str_subform = str_formset.forms[0]
+        self.assert_(isinstance(str_subform, ListFieldForm),
+            'stringfield formset forms should be instances of ListFieldForm')
+        
+        int_subform = int_formset.forms[0]
+        self.assert_(isinstance(int_subform, IntegerListFieldForm),
+            'integerfield formset forms shoudl be instances of IntegerListFieldForm')
+
         # subform fields
         self.assert_('val' in subform.base_fields,
             'val field is present in subform fields')
         self.assert_('id2' in subform.base_fields,
-            'id2 field is present in subform fields')
+            'id2 field is present in subform fields')        
 
         # initialize with an instance and verify initial values
         formset = self.update_form.formsets['children']
@@ -514,6 +540,10 @@ class XmlObjectFormTest(unittest.TestCase):
             'rendered formset field has correct initial value')
         self.assert_('value="13"' in str(formset.forms[1]['val']),
             'rendered formset field has correct initial value')
+        # - stringlist field
+        str_formset = self.update_form.formsets['text']
+        self.assertEqual('la', str_formset.forms[0].initial['val'])
+        self.assertEqual('fa', str_formset.forms[1].initial['val'])
 
         # initialize with prefix
         update_form = TestForm(instance=self.testobj, prefix='pre')
@@ -546,18 +576,26 @@ class XmlObjectFormTest(unittest.TestCase):
         self.assertEqual(5, instance.children[2].val)
         self.assertEqual('four', instance.children[3].id2)
         self.assertEqual(20, instance.children[3].val)
+        # stringlistfield
+        str_formset = update_form.formsets['text']
+        self.assertTrue(str_formset.is_valid())
+        self.assertEqual(['foo'], instance.text)        
 
 
     def test_is_valid(self):
         # missing required fields for main form but not subform or formsets
         form = TestForm({'int': 21, 'child-id2': 'two', 'child-val': 2,
-                         'children-TOTAL_FORMS': 5, 'children-INITIAL_FORMS': 2, })
+                         'children-TOTAL_FORMS': 5, 'children-INITIAL_FORMS': 2,
+                         'text-TOTAL_FORMS': 0, 'text-INITIAL_FORMS': 0,
+                         'numbers-TOTAL_FORMS': 0, 'numbers-INITIAL_FORMS': 0 })
         self.assertFalse(form.is_valid(),
             "form is not valid when required top-level fields are missing")
 
         # no subform fields but have formsets
         form = TestForm({'int': 21, 'bool': True, 'id': 'b', 'longtext': 'short',
-                         'children-TOTAL_FORMS': 5, 'children-INITIAL_FORMS': 2, })
+                         'children-TOTAL_FORMS': 5, 'children-INITIAL_FORMS': 2,
+                         'text-TOTAL_FORMS': 0, 'text-INITIAL_FORMS': 0,
+                         'numbers-TOTAL_FORMS': 0, 'numbers-INITIAL_FORMS': 0})
         self.assertFalse(form.is_valid(),
             "form is not valid when required subform fields are missing")
 

@@ -21,7 +21,7 @@ from collections import defaultdict
 from string import capwords
 
 from django.forms import BaseForm, CharField, IntegerField, BooleanField, \
-        ChoiceField, Field
+        ChoiceField, Field, Form
 from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.forms import get_declared_fields
 from django.forms.formsets import formset_factory, BaseFormSet
@@ -244,6 +244,23 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
 
                 formsets[name].form_label = form_label
 
+        elif isinstance(field, xmlmap.fields.StringListField) or \
+	    isinstance(field, xmlmap.fields.IntegerListField):
+            form_label = kwargs['label'] if 'label' in kwargs else fieldname_to_label(name)
+
+            if isinstance(field, xmlmap.fields.IntegerListField):
+            	listform = IntegerListFieldForm
+            else:
+            	listform = ListFieldForm
+
+            # generate a listfield formset
+            formsets[name] = formset_factory(listform, formset=BaseXmlObjectListFieldFormSet)
+            # don't need can_delete: since each form is a single field, empty implies delete
+            # todo: extra, max_num ? widget?
+            formsets[name].form_label = form_label
+
+        # TODO: other list variants
+
 
         else:
             # raise exception for unsupported fields
@@ -251,7 +268,6 @@ def formfields_for_xmlobject(model, fields=None, exclude=None, widgets=None, opt
             raise Exception('XmlObjectForm does not yet support auto form field generation for %s.' \
                             % field.__class__)
            
-        # TODO: list variants (currently not settable in xmlobject)... use formsets ?
 
         if field_type is not None:
             if 'label' not in kwargs:
@@ -540,7 +556,6 @@ class XmlObjectForm(BaseForm):
                 self._update_subinstance(name, subform)
             for formset in self.formsets.itervalues():
                 formset.update_instance()
-
         return self.instance
 
     def _update_subinstance(self, name, subform):
@@ -611,28 +626,39 @@ class XmlObjectForm(BaseForm):
                 help_text_html, errors_on_separate_row))
 
         def _subform_output(subform):
-            return subform._html_output(normal_row, error_row, row_ender, help_text_html, errors_on_separate_row)
+            return subform._html_output(normal_row, error_row, row_ender,
+                                        help_text_html, errors_on_separate_row)
 
         for name, subform in self.subforms.iteritems():
             parts.append(self._html_subform_output(subform, name, _subform_output))
         
         for name, formset in self.formsets.iteritems():
             parts.append(unicode(formset.management_form))
+            # collect the html output for all the forms in the formset
+            subform_parts = list()
             for subform in formset.forms:
-                parts.append(self._html_subform_output(subform, name, _subform_output))
+                subform_parts.append(self._html_subform_output(subform,
+                                      gen_html=_subform_output, suppress_section=True))
+            # then wrap all forms in the section container, so formset label appears once
+            parts.append(self._html_subform_output(name=name, content=u'\n'.join(subform_parts)))
 
         return mark_safe(u'\n'.join(parts))
 
-    def _html_subform_output(self, subform, name, _html_output):
+    def _html_subform_output(self, subform=None, name=None, gen_html=None, content=None,
+                             suppress_section=False):
+        
         # pass the configured html section to subform in case of any sub-subforms
-        subform._html_section = self._html_section
-        subform_html = _html_output(subform)
+        if subform is not None:
+            subform._html_section = self._html_section
+            if gen_html is not None:
+                content = gen_html(subform)
+                
         # if html section is configured, add section label and wrapper for
-        if self._html_section is not None:
+        if self._html_section is not None and not suppress_section:
             return self._html_section % \
-                {'label': fieldname_to_label(name), 'content': subform_html}               
+                {'label': fieldname_to_label(name), 'content': content}               
         else:
-            return subform_html
+            return content
         
 
     # intercept the three standard html output formats to set an appropriate section format
@@ -777,3 +803,53 @@ class SubformField(Field):
         
         # may not need to actually call init since we don't really use this as a field
         super(SubformField, self).__init__(*args, **kwargs)
+
+
+# currently string field specific...
+class ListFieldForm(Form):
+    val = CharField(label='', required=False)
+
+    def __init__(self, instance=None, *args, **kwargs):
+        # populate initial value: convert list instance data to form field data
+        if instance is not None:
+            kwargs['initial'] = {'val': instance }
+        super(ListFieldForm, self).__init__(*args, **kwargs)
+
+    @property
+    def value(self):
+        cleaned_data = self.clean()
+        if 'val' in cleaned_data:
+            return cleaned_data['val']
+
+class IntegerListFieldForm(ListFieldForm):
+    val = IntegerField(label='', required=False)
+
+
+class BaseXmlObjectListFieldFormSet(BaseFormSet):
+    def __init__(self, instances, **kwargs):
+        # store listfield instance
+        self.instance = instances
+        super(BaseXmlObjectListFieldFormSet, self).__init__(**kwargs)
+
+    def initial_form_count(self):
+        # initial form count is based on number of entries in the instance list
+        return len(self.instance)
+
+    def _construct_form(self, i, **kwargs):
+        try:
+            defaults = {'instance': self.instance[i] }
+        except:
+            defaults = {}
+        defaults.update(kwargs)
+            
+        return super(BaseXmlObjectListFieldFormSet, self)._construct_form(i, **defaults)
+
+    def update_instance(self):
+        # construct the complete list of values (one value per form)
+        values = [form.value for form in self.forms if form.value]
+
+        # replace current list contents with new values
+        while len(self.instance):
+            self.instance.pop()
+        self.instance.extend(values)
+
