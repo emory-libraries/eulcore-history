@@ -805,9 +805,11 @@ class SubformField(Field):
         super(SubformField, self).__init__(*args, **kwargs)
 
 
-# currently string field specific...
 class ListFieldForm(Form):
+    'Basic, single-input form to use for non-nodelist xmlmap list field formsets'
     val = CharField(label='', required=False)
+    # suppress field label (should be labeled as a formset only), make not required
+    # - empty field means an item should be removed from the list
 
     def __init__(self, instance=None, *args, **kwargs):
         # populate initial value: convert list instance data to form field data
@@ -817,17 +819,20 @@ class ListFieldForm(Form):
 
     @property
     def value(self):
+        # convenience property to access the value of the one field input
+        # - expects to be used on a bound form
         cleaned_data = self.clean()
         if 'val' in cleaned_data:
             return cleaned_data['val']
 
 class IntegerListFieldForm(ListFieldForm):
+    'Extend :class:`ListFieldForm` and set input field to be an IntegerField'
     val = IntegerField(label='', required=False)
 
-
 class BaseXmlObjectListFieldFormSet(BaseFormSet):
+    'Formset class for non-node-based xmlmap list fields (e.g., string & integer list fields)'
     def __init__(self, instances, **kwargs):
-        # store listfield instance
+        # store listfield instance for initializing forms and updating
         self.instance = instances
         super(BaseXmlObjectListFieldFormSet, self).__init__(**kwargs)
 
@@ -836,6 +841,7 @@ class BaseXmlObjectListFieldFormSet(BaseFormSet):
         return len(self.instance)
 
     def _construct_form(self, i, **kwargs):
+        # initialize forms, passing in the appropriate initial data from the instance list
         try:
             defaults = {'instance': self.instance[i] }
         except:
