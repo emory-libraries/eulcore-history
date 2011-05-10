@@ -570,6 +570,11 @@ class TestNodeList(unittest.TestCase):
         self.obj.int = nums
         self.assertEqual(nums, self.obj.int)
 
+        # - empty list
+        new_empties = ['gone', 'lost']
+        self.obj.empty = new_empties
+        self.assertEqual(new_empties, self.obj.empty)
+
         # - node list
         new_nodelist = [SubList(id='01', parts=['a', 'b']),
                           SubList(id='02', parts=['c', 'd']),
