@@ -115,8 +115,8 @@ class DublinCore(_BaseDublinCore):
             # get all items with rdf:type of rdfs:Clas
             items = self.dcmi_types_graph.subjects(RDF.type, RDFS.Class)
             for item in items:
-                # check that this item is defnied by dcmitype
-                if self.dcmi_types_graph.triples((item, RDFS.isDefinedBy, self.DCMI_TYPE_URI)):
+                # check that this item is defined by dcmitype
+                if (item, RDFS.isDefinedBy, self.DCMI_TYPE_URI) in self.dcmi_types_graph:
                     # add the label to the list
                     self._dcmi_types.append(str(self.dcmi_types_graph.label(subject=item)))
         return self._dcmi_types
