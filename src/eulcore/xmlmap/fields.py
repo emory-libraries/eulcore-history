@@ -652,8 +652,21 @@ class NodeListManager(object):
         return NodeList(xpath, node, context, mapper, xast)
 
     def delete(self, xpath, xast, node, context, mapper):
-        list = self.get(xpath, node, context, mapper, xast)
-        [list.remove(x) for x in list]
+        current_list = self.get(xpath, node, context, mapper, xast)
+        [current_list.remove(x) for x in current_list]
+        
+    def set(self, xpath, xast, node, context, mapper, value):
+        current_list = self.get(xpath, node, context, mapper, xast)
+        # for each value in the new list, set the equivalent value
+        # in the NodeList
+        for i in range(len(value)):
+            current_list[i] = value[i]
+
+        # remove any extra values from end of the current list
+        while len(current_list) > len(value):
+            current_list.pop()
+
+        
 
 
 # finished field classes mixing a manager and a mapper

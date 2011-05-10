@@ -256,6 +256,7 @@ class TestFields(unittest.TestCase):
 
         # check required
         self.assertTrue(obj._fields['vals'].required)
+        
 
     def testIntegerField(self):
         class TestObject(xmlmap.XmlObject):
@@ -547,6 +548,35 @@ class TestNodeList(unittest.TestCase):
             "subfield id attribute matches new node after set")
         self.assertEqual(['leg', 'foot'], self.obj.nodes[0].parts,
             "subfield parts attribute matches new node after set")
+
+        # test setting entire list at once
+        # - string list
+        xyz = ['x', 'y', 'z']
+        self.obj.letters = xyz		# shorter than current list
+        self.assertEqual(xyz, self.obj.letters)
+        abc = ['a', 'b', 'c']
+        self.obj.letters = abc		# equal length to current list
+        self.assertEqual(abc, self.obj.letters)
+
+        abcdef = ['a', 'b', 'c', 'd', 'e', 'f']
+        self.obj.letters = abcdef	# longer than current list
+        self.assertEqual(abcdef, self.obj.letters)
+        # set to empty list
+        self.obj.letters = []
+        self.assertEqual([], self.obj.letters)
+
+        # - integer list
+        nums = [33, 42, 77]
+        self.obj.int = nums
+        self.assertEqual(nums, self.obj.int)
+
+        # - node list
+        new_nodelist = [SubList(id='01', parts=['a', 'b']),
+                          SubList(id='02', parts=['c', 'd']),
+                          SubList(id='03', parts=['m', 'n'])]
+        self.obj.nodes = new_nodelist
+        self.assertEqual(new_nodelist, self.obj.nodes)
+
 
     def test_del(self):
         # first element
