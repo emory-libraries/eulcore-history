@@ -109,5 +109,14 @@ class TestDc(unittest.TestCase):
         invalid_dc = load_xmlobject_from_string(invalid, DublinCore)
         self.assertFalse(invalid_dc.is_valid())
 
+    def test_dcmitypes(self):
+        types = self.dc.dcmi_types
+        self.assert_(isinstance(types, list))
+        # check a few items in the list
+        self.assert_('Collection' in types)
+        self.assert_('Still Image' in types)
+        self.assert_('Event' in types)
+        self.assert_('Text' in types)
+
 if __name__ == '__main__':
     main()

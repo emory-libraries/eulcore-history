@@ -14,6 +14,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from rdflib import Graph as RdfGraph, RDF, RDFS, URIRef
+
 from eulcore import xmlmap
 
 class _BaseDublinCore(xmlmap.XmlObject):
@@ -87,3 +89,35 @@ class DublinCore(_BaseDublinCore):
 
     elements = xmlmap.NodeListField('dc:*', DublinCoreElement)
     'list of all DC elements as instances of :class:`DublinCoreElement`'
+
+    # RDF declaration of the Recommended DCMI types
+    DCMI_TYPES_RDF = 'http://dublincore.org/2010/10/11/dctype.rdf'
+    DCMI_TYPE_URI = URIRef('http://purl.org/dc/dcmitype/')
+
+    _dcmi_types_graph = None
+    @property
+    def dcmi_types_graph(self):
+        'DCMI Types Vocabulary as an :class:`rdflib.Graph`'
+        # only initialize if requested; then save the result
+        if self._dcmi_types_graph is None:
+            self._dcmi_types_graph = RdfGraph()
+            self._dcmi_types_graph.parse(self.DCMI_TYPES_RDF)
+        return self._dcmi_types_graph
+
+    _dcmi_types = None
+    @property
+    def dcmi_types(self):
+        '''DCMI Type Vocabulary (recommended), as documented at
+        http://dublincore.org/documents/dcmi-type-vocabulary/'''
+        if self._dcmi_types is None:
+            # generate a list of DCMI types based on the RDF dctype document
+            self._dcmi_types = []
+            # get all items with rdf:type of rdfs:Clas
+            items = self.dcmi_types_graph.subjects(RDF.type, RDFS.Class)
+            for item in items:
+                # check that this item is defnied by dcmitype
+                if self.dcmi_types_graph.triples((item, RDFS.isDefinedBy, self.DCMI_TYPE_URI)):
+                    # add the label to the list
+                    self._dcmi_types.append(str(self.dcmi_types_graph.label(subject=item)))
+        return self._dcmi_types
+        
