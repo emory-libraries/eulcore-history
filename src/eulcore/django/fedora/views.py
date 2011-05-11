@@ -116,11 +116,12 @@ def raw_datastream(request, pid, dsid, type=None, repo=None, headers={}):
             raise Http404
         
     except RequestFailed as rf:
+        print rf
         # if object is not the speficied type or if either the object
         # or the requested datastream doesn't exist, 404
         if rf.code == 404 or \
             (type is not None and not obj.has_requisite_content_models) or \
-                not obj.exists or not obj.dsid.exists:
+                not getattr(obj, dsid).exists or not obj.exists :
             raise Http404
 
         # for anything else, re-raise & let Django's default 500 logic handle it
