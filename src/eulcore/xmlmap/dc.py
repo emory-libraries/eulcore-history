@@ -43,49 +43,64 @@ class DublinCore(_BaseDublinCore):
     xmlschema = xmlmap.loadSchema(XSD_SCHEMA)
 
     contributor = xmlmap.StringField("dc:contributor", required=False)
-    contributor_list = xmlmap.StringListField("dc:contributor")
+    contributor_list = xmlmap.StringListField("dc:contributor",
+                                              verbose_name='Contributors')
 
     coverage = xmlmap.StringField("dc:coverage", required=False)
-    coverage_list = xmlmap.StringListField("dc:coverage")
+    coverage_list = xmlmap.StringListField("dc:coverage",
+                                           verbose_name='Coverage') #?
 
     creator = xmlmap.StringField("dc:creator", required=False)
-    creator_list = xmlmap.StringListField("dc:creator")
+    creator_list = xmlmap.StringListField("dc:creator",
+                                          verbose_name='Creators')
 
     date = xmlmap.StringField("dc:date", required=False)
-    date_list = xmlmap.StringListField("dc:date")
+    date_list = xmlmap.StringListField("dc:date",
+                                       verbose_name='Dates')
 
     description = xmlmap.StringField("dc:description", required=False)
-    description_list = xmlmap.StringListField("dc:description")
+    description_list = xmlmap.StringListField("dc:description",
+                                              verbose_name='Descriptions')
 
     format = xmlmap.StringField("dc:format", required=False)
-    format_list = xmlmap.StringListField("dc:format")
+    format_list = xmlmap.StringListField("dc:format",
+                                         verbose_name='Formats')
 
     identifier = xmlmap.StringField("dc:identifier", required=False)
-    identifier_list = xmlmap.StringListField("dc:identifier")
+    identifier_list = xmlmap.StringListField("dc:identifier",
+                                             verbose_name='Identifiers')
 
     language = xmlmap.StringField("dc:language", required=False)
-    language_list = xmlmap.StringListField("dc:language")
+    language_list = xmlmap.StringListField("dc:language",
+                                           verbose_name='Languages')
 
     publisher = xmlmap.StringField("dc:publisher", required=False)
-    publisher_list = xmlmap.StringListField("dc:publisher")
+    publisher_list = xmlmap.StringListField("dc:publisher",
+                                            verbose_name='Publishers')
 
     relation = xmlmap.StringField("dc:relation", required=False)
-    relation_list = xmlmap.StringListField("dc:relation")
+    relation_list = xmlmap.StringListField("dc:relation",
+                                           verbose_name='Relations')
 
     rights = xmlmap.StringField("dc:rights", required=False)
-    rights_list = xmlmap.StringListField("dc:rights")
+    rights_list = xmlmap.StringListField("dc:rights",
+                                         verbose_name='Rights')
 
     source = xmlmap.StringField("dc:source", required=False)
-    source_list = xmlmap.StringListField("dc:source")
+    source_list = xmlmap.StringListField("dc:source",
+                                         verbose_name='Sources')
 
     subject = xmlmap.StringField("dc:subject", required=False)
-    subject_list = xmlmap.StringListField("dc:subject")
+    subject_list = xmlmap.StringListField("dc:subject",
+                                          verbose_name='Subjects')
 
     title = xmlmap.StringField("dc:title", required=False)
-    title_list = xmlmap.StringListField("dc:title")
+    title_list = xmlmap.StringListField("dc:title",
+                                        verbose_name='Titles')
 
     type = xmlmap.StringField("dc:type", required=False)
-    type_list = xmlmap.StringListField("dc:type")
+    type_list = xmlmap.StringListField("dc:type",
+                                       verbose_name='Types')
 
     elements = xmlmap.NodeListField('dc:*', DublinCoreElement)
     'list of all DC elements as instances of :class:`DublinCoreElement`'
