@@ -634,8 +634,13 @@ class XmlObjectForm(BaseForm):
         
         for name, formset in self.formsets.iteritems():
             parts.append(unicode(formset.management_form))
+            # use form label if one was set
+            if hasattr(formset, 'form_label'):
+                name = formset.form_label
+
             # collect the html output for all the forms in the formset
             subform_parts = list()
+                
             for subform in formset.forms:
                 subform_parts.append(self._html_subform_output(subform,
                                       gen_html=_subform_output, suppress_section=True))
