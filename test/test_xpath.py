@@ -2,8 +2,8 @@
 
 import unittest
 
-from eulcore import xpath
-from eulcore.xpath import ast, serialize
+from eulxml import xpath
+from eulxml.xpath import ast, serialize
 
 from testcore import main
 

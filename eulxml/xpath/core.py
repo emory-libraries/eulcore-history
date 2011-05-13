@@ -17,24 +17,24 @@
 """Core XPath parsing glue.
 
 This module builds a lexer and parser for XPath expressions for import into
-eulcore.xpath. To understand how this module builds the lexer and parser, it
+eulxml.xpath. To understand how this module builds the lexer and parser, it
 is helpful to understand how the `ply <http://www.dabeaz.com/ply/>`_ module
 works.
 
-Note that most client applications will import these objects from
-eulcore.xpath, not directly from here."""
+Note that most client applications will import htese objects from
+eulxml.xpath, not directly from here."""
 
 import os
 import re
 from ply import lex, yacc
 
-from eulcore.xpath import lexrules
-from eulcore.xpath import parserules
-from eulcore.xpath.ast import serialize
+from eulxml.xpath import lexrules
+from eulxml.xpath import parserules
+from eulxml.xpath.ast import serialize
 
 __all__ = [ 'lexer', 'parser', 'parse', 'serialize' ]
 
-# build the lexer. This will generate a lextab.py in the eulcore.xpath
+# build the lexer. This will generate a lextab.py in the eulxml.xpath
 # directory. Unfortunately, xpath requires some wonky lexing.
 # Per http://www.w3.org/TR/xpath/#exprlex : 
 #  1 If there is a preceding token and the preceding token is not one of @,
@@ -129,7 +129,7 @@ if lexer is None:
 lexer.__class__ = LexerWrapper
 lexer.last = None
 
-# build the parser. This will generate a parsetab.py in the eulcore.xpath
+# build the parser. This will generate a parsetab.py in the eulxml.xpath
 # directory. Unlike lex, though, this just logs a complaint when it fails
 # (contrast lex's explosion). Other than that, it's much less exciting
 # than the lexer wackiness.

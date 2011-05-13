@@ -20,8 +20,8 @@ To understand how this module works, it is valuable to have a strong
 understanding of the `ply <http://www.dabeaz.com/ply/>` module.
 """
 
-from eulcore.xpath import ast
-from eulcore.xpath.lexrules import tokens
+from eulxml.xpath import ast
+from eulxml.xpath.lexrules import tokens
 
 precedence = (
     ('left', 'OR_OP'),
