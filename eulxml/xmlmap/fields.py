@@ -18,7 +18,7 @@ from datetime import datetime
 import logging
 from lxml import etree
 from lxml.builder import ElementMaker
-from eulcore.xpath import ast, parse, serialize
+from eulxml.xpath import ast, parse, serialize
 from types import ListType, FloatType
 
 __all__ = [
@@ -498,10 +498,10 @@ class NodeList(object):
     Supports the methods that Python documentation indicates should be provided
     by Mutable sequences, with the exceptions of reverse and sort; in the
     particular case of :class:`NodeListField`, it is unclear how a list of 
-    :class:`~eulcore.xmlmap.XmlObject` should be sorted, or whether or not such
+    :class:`~eulxml.xmlmap.XmlObject` should be sorted, or whether or not such
     a thing would be useful or meaningful for XML content.
     
-    When a new element is appended to a :class:`~eulcore.xmlmap.fields.NodeList`,
+    When a new element is appended to a :class:`~eulxml.xmlmap.fields.NodeList`,
     it will be added to the XML immediately after the last element in the list.
     In the case of an empty list, the new content will be appended at the end of
     the appropriate XML parent node.  For XML content where element order is important
@@ -706,7 +706,7 @@ class StringListField(Field):
 
     Takes an optional list of choices to restrict possible values.
 
-    Actual return type is :class:`~eulcore.xmlmap.fields.NodeList`, which can be
+    Actual return type is :class:`~eulxml.xmlmap.fields.NodeList`, which can be
     treated like a regular Python list, and includes set and delete functionality.
     """
     def __init__(self, xpath, normalize=False, choices=None, *args, **kwargs):
@@ -737,7 +737,7 @@ class IntegerListField(Field):
     expression evaluates to an empty NodeList, an IntegerListField evaluates to
     an empty list.
 
-    Actual return type is :class:`~eulcore.xmlmap.fields.NodeList`, which can be
+    Actual return type is :class:`~eulxml.xmlmap.fields.NodeList`, which can be
     treated like a regular Python list, and includes set and delete functionality.
     """
 
@@ -791,7 +791,7 @@ class DateListField(Field):
        change. It is not part of any official release. Use it at your own
        risk.
 
-    Actual return type is :class:`~eulcore.xmlmap.fields.NodeList`, which can be
+    Actual return type is :class:`~eulxml.xmlmap.fields.NodeList`, which can be
     treated like a regular Python list, and includes set and delete functionality.
     """
 
@@ -848,7 +848,7 @@ class NodeListField(Field):
     exception, it may be the string ``"self"``, in which case it recursively
     refers to objects of its containing :class:`XmlObject` class.
 
-    Actual return type is :class:`~eulcore.xmlmap.fields.NodeList`, which can be
+    Actual return type is :class:`~eulxml.xmlmap.fields.NodeList`, which can be
     treated like a regular Python list, and includes set and delete functionality.
     """
 
@@ -877,7 +877,7 @@ class ItemField(Field):
 
 class SchemaField(Field):
     """Schema-based field.  At class definition time, a SchemaField will be
-    **replaced** with the appropriate :class:`eulcore.xmlmap.fields.Field` type
+    **replaced** with the appropriate :class:`eulxml.xmlmap.fields.Field` type
     based on the schema type definition.
 
     Takes an xpath (which will be passed on to the real Field init) and a schema
@@ -898,10 +898,10 @@ class SchemaField(Field):
 
     def get_field(self, schema):
         """Get the requested type definition from the schema and return the
-        appropriate :class:`~eulcore.xmlmap.fields.Field`.
+        appropriate :class:`~eulxml.xmlmap.fields.Field`.
 
-        :param schema: instance of :class:`eulcore.xmlmap.core.XsdSchema`
-        :rtype: :class:`eulcore.xmlmap.fields.Field`
+        :param schema: instance of :class:`eulxml.xmlmap.core.XsdSchema`
+        :rtype: :class:`eulxml.xmlmap.fields.Field`
         """
         type = schema.get_type(self.schema_type)
         kwargs = {}

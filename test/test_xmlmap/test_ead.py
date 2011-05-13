@@ -3,9 +3,8 @@
 import unittest
 from os import path
 
-from eulcore.xmlmap  import load_xmlobject_from_file, load_xmlobject_from_string
-#from eulcore.xmlmap.eadmap import *
-from eulcore.xmlmap import eadmap
+from eulxml.xmlmap  import load_xmlobject_from_file, load_xmlobject_from_string
+from eulxml.xmlmap import eadmap
 from testcore import main
 
 class TestEad(unittest.TestCase):

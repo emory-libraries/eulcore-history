@@ -14,7 +14,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from eulcore import xmlmap
+from eulxml import xmlmap
 
 # CERP is described at http://siarchives.si.edu/cerp/ . XML spec available at
 # http://www.records.ncdcr.gov/emailpreservation/mail-account/mail-account_docs.html
@@ -207,7 +207,7 @@ class ChildMessage(_BaseMessage):
     # no additional elements
 
 # Patch-up from above. FIXME: This is necessary because of recursive
-# NodeFields. eulcore.xmlmap.NodeField doesn't currently support these
+# NodeFields. eulxml.xmlmap.NodeField doesn't currently support these
 SingleBody.child_message.node_class = ChildMessage
 
 #

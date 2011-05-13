@@ -2,8 +2,8 @@
 
 import unittest
 
-from eulcore.xmlmap  import load_xmlobject_from_string
-from eulcore.xmlmap.dc import DublinCore
+from eulxml.xmlmap  import load_xmlobject_from_string
+from eulxml.xmlmap.dc import DublinCore
 from testcore import main
 
 class TestDc(unittest.TestCase):

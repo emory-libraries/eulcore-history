@@ -22,7 +22,7 @@ import urllib2
 from lxml import etree
 from lxml.builder import ElementMaker
 
-from eulcore.xmlmap.fields import Field, NodeList
+from eulxml.xmlmap.fields import Field, NodeList
 
 logger = logging.getLogger(__name__)
 
@@ -121,12 +121,12 @@ class XmlObjectType(type):
     time, we just haven't been growing ours long enough to demand all of the
     abstractions built into Django's models. For now, we do three things:
 
-      1. take any :class:`~eulcore.xmlmap.fields.Field` members and convert
+      1. take any :class:`~eulxml.xmlmap.fields.Field` members and convert
          them to descriptors,
       2. store all of these fields and all of the base classes' fields in a
          ``_fields`` dictionary on the class, and
       3. if any local (non-parent) fields look like self-referential
-         :class:`eulcore.xmlmap.NodeField` objects then patch them up
+         :class:`eulxml.xmlmap.NodeField` objects then patch them up
          to refer to the newly-created :class:`XmlObject`.
 
     """
@@ -496,7 +496,7 @@ def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False,
     """Initialize an XmlObject from a string.
 
     If an xmlclass is specified, construct an instance of that class instead
-    of :class:`~eulcore.xmlmap.XmlObject`. It should be a subclass of XmlObject.
+    of :class:`~eulxml.xmlmap.XmlObject`. It should be a subclass of XmlObject.
     The constructor will be passed a single node.
 
     If validation is requested and the specified subclass of :class:`XmlObject`
@@ -505,9 +505,9 @@ def load_xmlobject_from_string(string, xmlclass=XmlObject, validate=False,
     validation, and expect a Doctype declaration in the xml content.
 
     :param string: xml content to be loaded, as a string
-    :param xmlclass: subclass of :class:`~eulcore.xmlmap.XmlObject` to initialize
+    :param xmlclass: subclass of :class:`~eulxml.xmlmap.XmlObject` to initialize
     :param validate: boolean, enable validation; defaults to false
-    :rtype: instance of :class:`~eulcore.xmlmap.XmlObject` requested
+    :rtype: instance of :class:`~eulxml.xmlmap.XmlObject` requested
     """
     parser = _get_xmlparser(xmlclass=xmlclass, validate=validate, resolver=resolver)    
     element = etree.fromstring(string, parser)
@@ -534,7 +534,7 @@ def load_xmlobject_from_file(filename, xmlclass=XmlObject, validate=False,
 
 # Import these for backward compatibility. Should consider deprecating these
 # and asking new code to pull them from descriptor
-from eulcore.xmlmap.fields import *
+from eulxml.xmlmap.fields import *
 
 # XSD schema xmlobjects - used in XmlObjectType to process SchemaFields
 # FIXME: where should these actually go? depends on both XmlObject and fields

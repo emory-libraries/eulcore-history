@@ -3,7 +3,7 @@
 import unittest
 import os
 
-from eulcore.xmlmap import cerp, load_xmlobject_from_file
+from eulxml.xmlmap import cerp, load_xmlobject_from_file
 from testcore import main
 
 class TestCerp(unittest.TestCase):

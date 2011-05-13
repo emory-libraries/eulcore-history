@@ -3,7 +3,7 @@
 import tempfile
 import unittest
 
-import eulcore.xmlmap.core as xmlmap
+import eulxml.xmlmap.core as xmlmap
 from testcore import main
 
 class TestFields(unittest.TestCase):

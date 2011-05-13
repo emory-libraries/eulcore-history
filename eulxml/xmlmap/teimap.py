@@ -14,7 +14,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from eulcore import xmlmap
+from eulxml import xmlmap
 
 # TODO: generic/base tei xml object with common attributes?
 

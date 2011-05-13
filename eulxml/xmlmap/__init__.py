@@ -20,7 +20,7 @@ This package facilitates access to XML data using common Pythonic idioms. XML
 nodes map to Python attributes using XPath expressions.
 
 For developer convenience this package is divided into submodules. Users
-should import the names directly from eulcore.xmlmap. This package exports
+should import the names directly from eulxml.xmlmap. This package exports
 the following names:
  * XmlObject -- a base class for XML-Python mapping objects
  * parseUri and parseString -- parse a URI or string into an xml node with
@@ -37,5 +37,5 @@ the following names:
 """
 
 
-from eulcore.xmlmap.core import *
-from eulcore.xmlmap.fields import *
+from eulxml.xmlmap.core import *
+from eulxml.xmlmap.fields import *

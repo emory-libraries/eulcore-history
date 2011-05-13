@@ -16,7 +16,7 @@
 
 from copy import deepcopy
 
-from eulcore import xmlmap
+from eulxml import xmlmap
 
 # xmlmap objects for various sections of an ead
 # organized from smallest/lowest level to highest level
@@ -148,7 +148,7 @@ class UnitTitle(_EadBase):
     @property
     def short(self):
         '''Short-form of the unit title, excluding any unit date, as an instance
-        of :class:`~eulcore.xmlmap.eadmap.UnitTitle` . Can be used with formatting
+        of :class:`~eulxml.xmlmap.eadmap.UnitTitle` . Can be used with formatting
         anywhere the full form of the unittitle can be used.'''
         # if there is no unitdate to remove, just return the current object
         if not self.unitdate:
@@ -420,7 +420,7 @@ class EadId(_EadBase):
     "text content of the eadid node"
 
 class EncodedArchivalDescription(_EadBase):
-    """:class:`~eulcore.xmlmap.XmlObject` for an Encoded Archival Description
+    """:class:`~eulxml.xmlmap.XmlObject` for an Encoded Archival Description
     (EAD) Finding Aid (Schema-based).  All XPaths use the EAD namespace; this
     class can not be used with non-namespaced, DTD-based EAD.
 

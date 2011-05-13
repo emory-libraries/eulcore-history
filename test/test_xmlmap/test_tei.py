@@ -3,8 +3,8 @@
 import unittest
 from os import path
 
-from eulcore.xmlmap import load_xmlobject_from_file, NodeListField
-from eulcore.xmlmap import teimap
+from eulxml.xmlmap import load_xmlobject_from_file, NodeListField
+from eulxml.xmlmap import teimap
 from testcore import main
 
 class ExtendedTei(teimap.Tei):

@@ -16,7 +16,7 @@
 
 from rdflib import Graph as RdfGraph, RDF, RDFS, URIRef
 
-from eulcore import xmlmap
+from eulxml import xmlmap
 
 class _BaseDublinCore(xmlmap.XmlObject):
     'Base Dublin Core class for common namespace declarations'

@@ -5,7 +5,7 @@ from os import path
 import unittest
 import tempfile
 
-import eulcore.xmlmap.core as xmlmap
+import eulxml.xmlmap.core as xmlmap
 from testcore import main
 
 class TestXsl(unittest.TestCase):
