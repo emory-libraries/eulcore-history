@@ -1,4 +1,4 @@
-# file django/fedora/management/commands/syncrepo.py
+# file eulfedora/management/commands/syncrepo.py
 # 
 #   Copyright 2010 Emory University General Library
 #
@@ -23,10 +23,9 @@ from optparse import make_option
 from django.core.management.base import BaseCommand
 from django.db.models import get_apps
 
-from eulcore.django.fedora import Repository
-from eulcore.fedora import DigitalObject
-from eulcore.fedora.models import ContentModel
-from eulcore.fedora.util import RequestFailed
+from eulfedora.server import Repository
+from eulfedora.models import ContentModel, DigitalObject
+from eulfedora.util import RequestFailed
 
 logger = logging.getLogger(__name__)
 

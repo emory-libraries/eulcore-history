@@ -77,7 +77,8 @@ class Repository(object):
             # if global connection is not set yet, initialize it
             if _connection is None:
                 init_pooled_connection()
-                root = _connection
+            root = _connection
+
             # if username and password are not set, attempt to full from django conf
             if username is None and password is None:
                 try:
@@ -87,9 +88,6 @@ class Repository(object):
                        FEDORA_PASSWORD_SESSION_KEY in request.session:
                         username = request.user.username
                         password = cryptutil.decrypt(request.session[FEDORA_PASSWORD_SESSION_KEY])            
-                    else:
-                        if root is None and hasattr(settings, 'FEDORA_ROOT'):
-                            root = settings.FEDORA_ROOT
 
                     if username is None and hasattr(settings, 'FEDORA_USER'):
                         username = settings.FEDORA_USER
@@ -101,6 +99,9 @@ class Repository(object):
 
                 except ImportError:
                     pass
+                
+        if root is None:
+            raise Exception('Could not determine Fedora root url from django settings or parameter')
         
         self.opener = AuthorizingServerConnection(root, username, password)
         self.api = ApiFacade(self.opener)
