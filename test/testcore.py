@@ -8,7 +8,7 @@ def get_test_runner(runner=unittest.TextTestRunner()):
     # use xmlrunner if available; otherwise, fall back to text runner
     try:
         import xmlrunner
-        testRunner = xmlrunner.XMLTestRunner(output='test-results')
+        runner = xmlrunner.XMLTestRunner(output='test-results')
     except ImportError:
         pass
     return runner
