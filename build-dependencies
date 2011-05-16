@@ -1,4 +1,5 @@
 ply
-unittest-xml-reporting>1.0.3
+lxml
+unittest-xml-reporting
 sphinx
 coverage
