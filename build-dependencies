@@ -3,3 +3,4 @@ sphinx
 coverage
 # include eulxml dependency here for now
 -e svn+https://svn.library.emory.edu/svn/python-eulcore/branches/eulxml#egg=eulxml
+django
