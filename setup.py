@@ -4,7 +4,7 @@ import sys
 
 from setuptools import setup
 
-from eulexistdb import __version__
+from eulfedora import __version__
 
 # fullsplit and packages calculation inspired by django setup.py
 
