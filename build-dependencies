@@ -3,3 +3,4 @@ lxml
 unittest-xml-reporting
 sphinx
 coverage
+rdflib
