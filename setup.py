@@ -4,7 +4,7 @@ import sys
 
 from setuptools import setup
 
-from eulxml import __version__
+from eulexistdb import __version__
 
 # fullsplit and packages calculation inspired by django setup.py
 
@@ -32,7 +32,7 @@ class build_py_with_ply(build_py):
 setup(
     cmdclass={'build_py': build_py_with_ply},
 
-    name='eulxml',
+    name='eulexistdb',
     version=__version__,
     author='Emory University Libraries',
     author_email='libsysdev-l@listserv.cc.emory.edu',
