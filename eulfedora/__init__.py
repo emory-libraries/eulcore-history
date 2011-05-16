@@ -14,13 +14,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# compat: Import everything from eulfedora.server. It used to live in
-# eulfedora, and some links still refer to it there. This is
-# deprecated: Code should be updated to pull those symbols from
-# eulfedora.server.
-
-from eulfedora.server import *
-
 __version_info__ = (0, 1, 'dev')
 
 # Dot-connect all but the last. Last is dash-connected if not None.
