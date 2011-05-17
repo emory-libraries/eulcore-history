@@ -35,8 +35,6 @@ for path, dirs, files in os.walk(themedir):
         data_files.append((path, targetfiles))
 
 setup(
-    cmdclass={'build_py': build_py_with_ply},
-
     name='eulcore',
     version=__version__,
     author='Emory University Libraries',
