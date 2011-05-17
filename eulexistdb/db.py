@@ -79,24 +79,32 @@ class ExistDB:
     """
 
     def __init__(self, server_url=None, resultType=None, encoding='UTF-8', verbose=False,
-                 timeout=None):
+                 **kwargs):
         # FIXME: Will encoding ever be anything but UTF-8? Does this really
         #   need to be part of our public interface?
 
         self.resultType = resultType or QueryResult
         datetime_opt = {'use_datetime': True}
 
+        # distinguish between timeout not set and no timeout, to allow
+        # easily setting a timeout of None and have it override any
+        # configured EXISTDB_TIMEOUT
+        timeout = None
+        if 'timeout' in kwargs:
+            timeout = kwargs['timeout']
+
         # if server url or timeout are not set, attempt to get from django settings
-        if server_url is None or timeout is None:
+        if server_url is None or 'timeout' not in kwargs:
             try:
                 from django.conf import settings
                 if server_url is None:
                     server_url = self._serverurl_from_djangoconf()
                     
-                if timeout is None:
+                if 'timeout' not in kwargs:
                     timeout = getattr(settings, 'EXISTDB_TIMEOUT', None)
             except ImportError:
                 pass
+
             
         # if server url is still not set, we have a problem
         if server_url is None:
