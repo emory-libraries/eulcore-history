@@ -56,9 +56,8 @@ can be found in :mod:`findingaids.content.forms`
 ----
 '''
 
-# NOTE to Developers: recaptcha field & widget are separate from
-# eulcore.django.forms.fields so that using generic eulcore form fields
-# does not require installing python-recaptcha
+# NOTE to Developers: recaptcha field & widget are separate from other
+# form fields because it requires the installation of python-recaptcha
 
 import json
 from recaptcha.client import captcha

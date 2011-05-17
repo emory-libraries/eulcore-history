@@ -1,9 +1,5 @@
-ply
 unittest-xml-reporting>1.0.3
 sphinx
 coverage
 django-celery
-recaptcha-client
-poster
-pycrypto
 mock

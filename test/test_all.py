@@ -12,11 +12,6 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'django_tester.settings'
 
 # add any non-django modules to be tested here
 non_django_test_modules = (
-    'test_binfile',
-    'test_existdb',
-    'test_fedora',
-    'test_xmlmap', 
-    'test_xpath',
     )
 def non_django_tests():
     return tests_from_modules(non_django_test_modules)

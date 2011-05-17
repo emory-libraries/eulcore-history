@@ -1,4 +1,4 @@
-# file django/forms/__init__.py
+# file eullocal/django/forms/__init__.py
 # 
 #   Copyright 2010 Emory University General Library
 #
@@ -13,5 +13,3 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-from eulcore.django.forms.xmlobject import xmlobjectform_factory, XmlObjectForm, SubformField

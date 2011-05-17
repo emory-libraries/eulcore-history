@@ -1,4 +1,4 @@
-# file django/emory_ldap/tests.py
+# file eullocal/django/emory_ldap/tests.py
 # 
 #   Copyright 2010 Emory University General Library
 #
@@ -16,9 +16,9 @@
 
 from django.contrib.auth.models import User
 from django.test import TestCase
-from eulcore.django.emory_ldap.backends import EmoryLDAPBackend
-from eulcore.django.emory_ldap.management.commands import inituser
-from eulcore.django.ldap.tests import MockServer
+from eullocal.django.emory_ldap.backends import EmoryLDAPBackend
+from eullocal.django.emory_ldap.management.commands import inituser
+from eullocal.django.ldap.tests import MockServer
 
 class TestBackend(EmoryLDAPBackend):
     '''An EmoryLDAPBackend that overrides only the bare minimum necessary to mock

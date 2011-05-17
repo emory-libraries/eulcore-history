@@ -1,10 +1,5 @@
 from urlparse import urlsplit
 
-# use test database settings from non-django existdb test
-#from test_existdb import settings as exist_settings
-from test_existdb.test_db import EXISTDB_SERVER_URL, EXISTDB_ROOT_COLLECTION, \
-     EXISTDB_TEST_COLLECTION, EXISTDB_SERVER_USER, EXISTDB_SERVER_PASSWORD
-
 from os import path
 
 # Get the directory of this file for relative dir paths.
@@ -87,16 +82,11 @@ TEMPLATE_DIRS = (
 
 INSTALLED_APPS = (
     # our apps to test:
-    'eulcore.django.auth',
-    'eulcore.django.emory_ldap',
-    'eulcore.django.existdb',
-    'eulcore.django.fedora',
-    'eulcore.django.forms',
-    'eulcore.django.http',
-    'eulcore.django.ldap',
+    'eullocal.django.emory_ldap',
+    'eullocal.django.forms',
+    'eullocal.django.ldap',
     'djcelery',
-    'eulcore.django.taskresult',
-    'eulcore.django.testsetup',
+    'eullocal.django.taskresult',
 
     # needed for test dependencies:
     'django.contrib.admin',
@@ -122,11 +112,6 @@ BROKER_PASSWORD = "guest" #e.g. "password"
 BROKER_VHOST = "/" # e.g. "digitalmasters_vhost"
 CELERY_RESULT_BACKEND = "database" # e.g "amqp"
 
-
-from test_fedora.base import FEDORA_ROOT, FEDORA_USER, FEDORA_PASSWORD, FEDORA_PIDSPACE
-# store fedora fixture dir so fixtures can be shared with django and non-django fedora tests
-from test_fedora import base as test_fedora_base
-FEDORA_FIXTURES_DIR = path.join(path.dirname(path.abspath(test_fedora_base.__file__)), 'fixtures')
 
 try:
     # use xmlrunner if it's installed; default runner otherwise. download

@@ -16,7 +16,7 @@
 
 
 from django.conf.urls.defaults import *
-from eulcore.django.taskresult.models import TaskResult
+from eullocal.django.taskresult.models import TaskResult
 
 def get_recent_tasks():
     # callable to get the latest results at the time when the view is rendered

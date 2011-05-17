@@ -6,8 +6,7 @@ from testcore import tests_from_modules
 
 # django test modules that aren't in apps go here
 non_app_test_modules = (
-    'eulcore.django.non_app_tests',
-    'eulcore.django.fedora.tests',
+    'eullocal.django.non_app_tests',
     )
 def non_app_tests():
     return tests_from_modules(non_app_test_modules)
@@ -46,10 +45,6 @@ def _execute_tests(test_apps=[], extras=[]):
     from django.test.utils import get_runner
     from django.test.simple import DjangoTestSuiteRunner
     
-    from eulcore.django.testsetup import starting_tests, finished_tests
-    import eulcore.django.existdb
-
-    starting_tests.send(None)
     django_runner = get_runner(settings)
     # in older versions of django and xmlrunner, get_runner returns a run_tests method
     # newer versions of django and xmlrunner, get_runner returns a class like DjangoTestSuiteRunner
@@ -58,7 +53,6 @@ def _execute_tests(test_apps=[], extras=[]):
 
     failures = django_runner(test_labels=test_apps, interactive=True, 
                 extra_tests=extras)
-    finished_tests.send(None)
 
     return failures
 

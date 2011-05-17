@@ -15,30 +15,30 @@
 #   limitations under the License.
 
 '''
-:mod:`eulcore.django.taskresult` is a Django app that can be used for tracking
+:mod:`eullocal.django.taskresult` is a Django app that can be used for tracking
 and reporting on the status of django celery tasks.  This assumes an AMQP/RabbitMQ
 backend (which is recommended as the most reliable and best performance), and so
 does ``not`` make use of django-celery database models, which are only available
 when using a database backend.
 
-To make use of :mod:`~eulcore.django.taskresult`, capture the asynchronous result
+To make use of :mod:`~eullocal.django.taskresult`, capture the asynchronous result
 object returned by your celery task and save a TaskResult object, e.g.::
 
-    from eulcore.django.taskresult.models import TaskResult
+    from eullocal.django.taskresult.models import TaskResult
 
     result = my_celery_task(obj.id)
     task = TaskResult(label='what my task does', object_id=obj.id,
             url=obj.get_absolute_url(), task_id=result.task_id)
     task.save()
 
-:mod:`~eulcore.django.taskresult` Makes use of celery start and end signals, so
+:mod:`~eullocal.django.taskresult` Makes use of celery start and end signals, so
 if you want to track task start, end, and duration, be sure to include this module
 in your ``INSTALLED_APPS``.
 
-:mod:`~eulcore.django.taskresult` includes some default views and templates for
+:mod:`~eullocal.django.taskresult` includes some default views and templates for
 convenience.  To use them, include the urls, e.g.::
 
-    url(r'^tasks/', include('eulcore.django.taskresult.urls', namespace='tasks')),
+    url(r'^tasks/', include('eullocal.django.taskresult.urls', namespace='tasks')),
 
 Currently, the only view defined is recently completed tasks, which can be
 linked to from your templates (using the configuration above) with::

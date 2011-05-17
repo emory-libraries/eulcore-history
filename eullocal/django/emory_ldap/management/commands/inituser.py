@@ -1,4 +1,4 @@
-# file django/emory_ldap/management/commands/inituser.py
+# file eullocal/django/emory_ldap/management/commands/inituser.py
 # 
 #   Copyright 2010 Emory University General Library
 #
@@ -20,7 +20,7 @@
 # by 'manage.py help' with help text as to how to execute.
 
 from django.core.management.base import BaseCommand
-from eulcore.django.emory_ldap.backends import EmoryLDAPBackend
+from eullocal.django.emory_ldap.backends import EmoryLDAPBackend
 
 class Command(BaseCommand):
     help = 'Initializes user accounts based on Emory LDAP usernames'

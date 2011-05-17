@@ -17,7 +17,7 @@
 """This module implements basic double-bind LDAP authentication.
 
 To use LDAP authentication in a Django app, include
-:class:`eulcore.django.ldap.backends.LDAPBackend` in your
+:class:`eullocal.django.ldap.backends.LDAPBackend` in your
 ``AUTHENTICATION_BACKENDS`` setting, and add a few additional settings to
 configure it::
 
@@ -34,7 +34,7 @@ those who want to tweak the functionality, several hooks have been
 defined in :class:`LDAPBackend`.
 
 Application developers at Emory University may want to look at the
-:mod:`~eulcore.django.emory_ldap` module, which adds Emory-specific
+:mod:`~eullocal.django.emory_ldap` module, which adds Emory-specific
 features and LDAP attribute mappings. Non-Emory users may want to look at
 that module for examples of how they might tweak the code for their own
 implementations.
@@ -71,7 +71,7 @@ def map_fields(model, source, **kwargs):
                 setattr(model, model_field_name, values[0])
 
 
-# to login via ldap, add 'eulcore.django.ldap.backends.LDAPBackend' to your
+# to login via ldap, add 'eullocal.django.ldap.backends.LDAPBackend' to your
 # AUTHENTICATION_BACKENDS in settings.py.
 class LDAPBackend(object):
     """A Django authentication backend for double-bind LDAP authentication."""

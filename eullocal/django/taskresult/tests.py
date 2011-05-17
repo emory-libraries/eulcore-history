@@ -20,7 +20,7 @@ from celery.signals import task_prerun, task_postrun
 from django.core.urlresolvers import reverse
 from django.test import Client, TestCase
 
-from eulcore.django.taskresult.models import TaskResult
+from eullocal.django.taskresult.models import TaskResult
 
 class TaskResultTestCase(TestCase):
 

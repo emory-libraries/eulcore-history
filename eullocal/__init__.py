@@ -1,4 +1,4 @@
-# file __init__.py
+# file eullocal/__init__.py
 # 
 #   Copyright 2010 Emory University General Library
 #
@@ -14,7 +14,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-__version_info__ = (0, 15, 'pre')
+__version_info__ = (0, 1, 'dev')
 
 # Dot-connect all but the last. Last is dash-connected if not None.
 __version__ = '.'.join([ str(i) for i in __version_info__[:-1] ])

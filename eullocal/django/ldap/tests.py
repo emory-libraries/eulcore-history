@@ -17,7 +17,7 @@
 import ldap
 from django.contrib.auth.models import User
 from django.test import TestCase
-from eulcore.django.ldap.backends import LDAPBackend
+from eullocal.django.ldap.backends import LDAPBackend
 
 class TestBackend(LDAPBackend):
     '''An LDAPBackend that overrides only the bare minimum necessary to mock

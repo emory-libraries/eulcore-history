@@ -23,7 +23,7 @@ import logging
 
 from django.contrib import messages
 from django.test import TestCase
-from eulcore.django import log
+from eullocal.django import log
 
 mock_messages = []
 def mock_add_message(rqst, level, message):

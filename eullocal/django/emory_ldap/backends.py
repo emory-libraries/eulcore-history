@@ -14,8 +14,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from eulcore.django.ldap.backends import LDAPBackend, map_fields
-from eulcore.django.emory_ldap.models import EmoryLDAPUserProfile
+from eullocal.django.ldap.backends import LDAPBackend, map_fields
+from eullocal.django.emory_ldap.models import EmoryLDAPUserProfile
 
 class EmoryLDAPBackend(LDAPBackend):
     def update_user_fields(self, user, extra_fields):

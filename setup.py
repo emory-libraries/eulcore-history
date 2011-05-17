@@ -56,17 +56,12 @@ setup(
         },
     data_files=data_files,
     install_requires=[
-        'ply',
-        'lxml',
         'django',
-        'mimeparse',
-        'rdflib>=3.0',
         'python-dateutil',
         'soaplib==0.8.1',
         # pypi soaplib links are dead as of 20101201. use direct link for
         # now: https://github.com/downloads/arskom/rpclib/soaplib-0.8.1.tar
         'python-ldap',
-	'poster',
-        'pycrypto',
+        'recaptcha-client',	# should this be required? 
     ],
 )

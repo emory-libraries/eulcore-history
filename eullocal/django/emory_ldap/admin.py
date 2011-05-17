@@ -1,4 +1,4 @@
-# file django/emory_ldap/admin.py
+# file eulocal/django/emory_ldap/admin.py
 # 
 #   Copyright 2010 Emory University General Library
 #
@@ -16,7 +16,7 @@
 
 from django.core.urlresolvers import reverse
 from django.contrib import admin
-from eulcore.django.emory_ldap.models import EmoryLDAPUserProfile
+from eullocal.django.emory_ldap.models import EmoryLDAPUserProfile
 
 class EmoryLDAPUserProfileAdmin(admin.ModelAdmin):
     list_display = ('__unicode__', 'full_name', 'edit_user')
@@ -29,7 +29,7 @@ class EmoryLDAPUserProfileAdmin(admin.ModelAdmin):
     def get_urls(self):
         from django.conf.urls.defaults import patterns, url
         base_urls = super(EmoryLDAPUserProfileAdmin, self).get_urls()
-        my_urls = patterns('eulcore.django.emory_ldap.views',
+        my_urls = patterns('eullocal.django.emory_ldap.views',
             url(r'add-username/', 'add_username', name='add_username'),
         )
         return my_urls + base_urls

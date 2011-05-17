@@ -1,8 +1,8 @@
 from django.core.urlresolvers import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import permission_required
-from eulcore.django.emory_ldap.backends import EmoryLDAPBackend
-from eulcore.django.http.responses import HttpResponseSeeOtherRedirect
+from eullocal.django.emory_ldap.backends import EmoryLDAPBackend
+from eullocal.django.http.responses import HttpResponseSeeOtherRedirect
 
 @permission_required('emory_ldap.add_emoryldapuserprofile')
 def add_username(request):
