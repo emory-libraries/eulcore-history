@@ -5,7 +5,7 @@ import sys
 from setuptools import setup
 
 sys.path.append('src')
-from eulcore import __version__
+from eullocal import __version__
 
 # fullsplit and packages calculation inspired by django setup.py
 
@@ -17,15 +17,13 @@ def fullsplit(path):
     result.reverse()
     return result
 
-srcdir = 'src' + os.path.sep
 packages = []
-for path, dirs, files in os.walk(srcdir):
-    if path.startswith(srcdir): # it does
-        path = path[len(srcdir):]
+for path, dirs, files in os.walk(__file__):
     if '.svn' in dirs:
         dirs.remove('.svn')
     if '__init__.py' in files:
         packages.append(path.replace(os.path.sep, '.'))
+
 
 themedir = 'themes' + os.path.sep
 data_files = []
@@ -36,12 +34,6 @@ for path, dirs, files in os.walk(themedir):
         targetfiles = [os.path.join(path, f) for f in files]
         data_files.append((path, targetfiles))
 
-class build_py_with_ply(build_py):
-    def run(self, *args, **kwargs):
-        # importing this forces ply to generate parsetab/lextab
-        import eulcore.xpath.core
-        build_py.run(self, *args, **kwargs)
-
 setup(
     cmdclass={'build_py': build_py_with_ply},
 
@@ -50,10 +42,6 @@ setup(
     author='Emory University Libraries',
     author_email='libsysdev-l@listserv.cc.emory.edu',
     packages=packages,
-    package_dir={'': 'src'},
-    package_data={
-        'eulcore.django.existdb': ['exist_fixtures/*'],
-        },
     data_files=data_files,
     install_requires=[
         'django',
