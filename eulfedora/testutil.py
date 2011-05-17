@@ -21,9 +21,18 @@ Custom test-runner with Fedora environment setup / teardown for all tests.
 To use, configure as test runner in your Django settings::
 
    TEST_RUNNER = 'eulfedora.testutil.FedoraTestSuiteRunner'
-   
-"""
 
+When :mod:`xmlrunner` is available, xmlrunner variants are also
+available.  To use this test runner, configure your test runner as
+follows::
+
+    TEST_RUNNER = 'eulfedora.testutil.FedoraXmlTestSuiteRunner'
+
+The xml variant honors the same django settings that the xmlrunner
+django testrunner does (TEST_OUTPUT_DIR, TEST_OUTPUT_VERBOSE, and
+TEST_OUTPUT_DESCRIPTIONS).
+
+"""
 
 import logging
 
@@ -38,13 +47,25 @@ logger = logging.getLogger(__name__)
 
 
 class FedoraTestResult(unittest.TextTestResult):
+    '''Extend :class:`unittest2.TextTestResult` to take advantage of
+    :meth:`startTestRun` and :meth:`stopTestRun` to do environmental
+    test setup and teardown before and after all tests run.
+    '''
     _stored_default_fedora_root = None
     _stored_default_fedora_pidspace = None
 
     def startTestRun(self):
+        '''Switch Django settings for FEDORA access to test
+        configuration, and load any repository fixtures (such as
+        content models or initial objects).'''
         self._use_test_fedora()
 
     def stopTestRun(self):
+        '''Switch Django settings for FEDORA access out of test
+        configuration and back into normal settings, and remove any
+        leftover objects in with the test pidspace and in the test
+        repository.'''
+        self._use_test_fedora()
         self._restore_fedora_root()
 
     def _use_test_fedora(self):
@@ -111,12 +132,49 @@ class FedoraTestResult(unittest.TextTestResult):
             print "Removed %s test object(s) with pidspace %s" % (count, settings.FEDORA_PIDSPACE)
 
 
-class FedoraTextTestRunner(unittest.TextTestRunner):
-
-    def __init__(self, *args, **kwargs):
-        super(FedoraTextTestRunner, self).__init__(resultclass=FedoraTestResult, *args, **kwargs)
-
 class FedoraTestSuiteRunner(DjangoTestSuiteRunner):
+    '''Extend :class:`django.test.simple.DjangoTestSuiteRunner` to use
+    :class:`FedoraTestResult` as the result class.'''
     
     def run_suite(self, suite, **kwargs):
-        return FedoraTextTestRunner(verbosity=self.verbosity, failfast=self.failfast).run(suite)
+        # call the exact same way that django does, with the addition of our resultclass
+        return unittest.TextTestRunner(resultclass=FedoraTestResult,
+                                       verbosity=self.verbosity, failfast=self.failfast).run(suite)
+
+try:
+    # when xmlrunner is available, define xmltest variants
+
+    import xmlrunner
+    
+    class FedoraXmlTestResult(xmlrunner._XMLTestResult, FedoraTestResult):
+        # xml test result logic with our custom startTestRun/stopTestRun
+        pass
+
+    class FedoraXmlTestRunner(xmlrunner.XMLTestRunner):
+        # XMLTestRunner doesn't currently take a resultclass init option;
+        # extend make_result to override test result class that will be used
+        def _make_result(self):
+            """Create the TestResult object which will be used to store
+            information about the executed tests.
+            """
+            return FedoraXmlTestResult(self.stream, self.descriptions, \
+                                       self.verbosity, self.elapsed_times)
+    
+    class FedoraXmlTestSuiteRunner(DjangoTestSuiteRunner):
+        '''Extend :class:`django.test.simple.DjangoTestSuiteRunner` to use
+        :class:`FedoraTestResult` as the result class.'''
+        # combination of DjangoTestSuiteRunner with xmlrunner django test runner variant
+        
+        def run_suite(self, suite, **kwargs):
+            # pick up settings as expected by django xml test runner
+            settings.DEBUG = False
+            verbose = getattr(settings, 'TEST_OUTPUT_VERBOSE', False)
+            descriptions = getattr(settings, 'TEST_OUTPUT_DESCRIPTIONS', False)
+            output = getattr(settings, 'TEST_OUTPUT_DIR', '.')
+
+            # call roughly the way that xmlrunner does, with our customized test runner
+            return FedoraXmlTestRunner(verbose=verbose, descriptions=descriptions,
+                                       output=output).run(suite)
+
+except ImportError:
+    pass
