@@ -1,0 +1,5 @@
+unittest-xml-reporting>1.0.3
+sphinx
+coverage
+# not needed yet, but probably will be
+#django
