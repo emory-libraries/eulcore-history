@@ -2,7 +2,7 @@
 
 from testcore import main
 
-from mock import Mock, MagicMock
+from mock import Mock
 from os import path
 from unittest import TestCase
 
@@ -16,7 +16,7 @@ from eulcommon.djangoextras.auth import user_passes_test_with_403, \
 
 
 # mock users to simulate a staff user and a superuser
-staff_user = MagicMock(spec=User, name='MockStaffUser')
+staff_user = Mock(spec=User, name='MockStaffUser')
 staff_user.username = 'staff'
 staff_user.is_authenticated.return_value = True
 staff_user.has_perm.return_value = False
@@ -32,7 +32,6 @@ def simple_view(request):
     return HttpResponse("Hello, World")
 
 class PermissionRequired403_Test(TestCase):
-#    fixtures =  ['users']
 
     def setUp(self):
         self.request = HttpRequest()
