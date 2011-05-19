@@ -14,9 +14,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 """
-Custom test-runner with Fedora environment setup / teardown for all tests.
+:mod:`eulfedora.testutil` provides custom test suite runners with
+Fedora environment setup / teardown for all tests.
 
 To use, configure as test runner in your Django settings::
 
@@ -31,6 +31,23 @@ follows::
 The xml variant honors the same django settings that the xmlrunner
 django testrunner does (TEST_OUTPUT_DIR, TEST_OUTPUT_VERBOSE, and
 TEST_OUTPUT_DESCRIPTIONS).
+
+Any :class:`~eulfedora.server.Repository` instances created after the
+test suite starts will automatically connect to the test collection.
+If you have a test pidspace configured, that will be used for the
+default pidspace when creating test objects; if you have a pidspace
+but not a test pidspace, the set to use a pidspace of
+'yourpidspace-test' for the duration of the tests.  Any objects in the
+test pidspace will be removed from the Fedora instance after the tests
+finish.
+
+.. note::
+
+   The test configurations are not switched until after your test code
+   is loaded, so any repository connections should **not** be made at
+   class instantiation time, but in a setup method.
+
+----
 
 """
 

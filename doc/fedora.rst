@@ -91,3 +91,9 @@ tag, add the following to your Django settings::
    TEMPLATE_DEBUG = False
 
 
+:mod:`~eulfedora.testutil` Unittest utilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: eulfedora.testutil
+   :members:
+

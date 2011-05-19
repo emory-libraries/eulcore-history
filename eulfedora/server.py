@@ -14,6 +14,49 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+""":
+
+:class:`eulfedora.server.Repository` has the capability to
+automatically use connection configuration parameters pulled from
+Django settings, when available, but it can also be used without Django.
+
+When you create an instance of :class:`~eulfedora.server.Repository`,
+if you do not specify connection parameters, it will attempt to
+initialize the repository connection based on Django settings, using
+the configuration names documented below.
+
+If you are writing unit tests that use :mod:`eulfedora`, you may want
+to take advantage of
+:class:`eulfedora.testutil.FedoraTestSuiteRunner`, which has logic to
+set up and switch configurations between a development fedora
+repository and a test repository.  
+
+Projects that use this module should include the following settings in their
+``settings.py``::
+
+    # Fedora Repository settings
+    FEDORA_ROOT = 'http://fedora.host.name:8080/fedora/'
+    FEDORA_USER = 'user'
+    FEDORA_PASSWORD = 'password'
+    FEDORA_PIDSPACE = 'changeme'
+    FEDORA_TEST_ROOT = 'http://fedora.host.name:8180/fedora/'
+    FEDORA_TEST_PIDSPACE = 'testme'
+
+If username and password are not specified, the Repository instance
+will be initialized without credentials and access Fedora as an
+anonymous user.  If pidspace is not specified, the Repository will use
+the default pidspace for the configured Fedora instance.
+
+Projects that need unit test setup and clean-up tasks (syncrepo and
+test object removal) to access Fedora with different credentials than
+the configured Fedora credentials should use the following settings::
+
+    FEDORA_TEST_USER = 'testuser'
+    FEDORA_TEST_PASSWORD = 'testpassword'
+
+"""
+
+
 import csv
 from urllib import urlencode
 import logging
@@ -53,6 +96,30 @@ def init_pooled_connection(fedora_root=None):
 
 class Repository(object):
     "Pythonic interface to a single Fedora Commons repository instance."
+    
+    """Connect to a Fedora Repository based on configuration in ``settings.py``.
+
+    This class is a simple wrapper to initialize :class:`eulcore.fedora.server.Repository`,
+    based on Fedora connection parameters in a Django settings file.  If username
+    and password are specified, they will override fedora credentials configured
+    in Django settings.
+
+    If a request object is passed in and the user is logged in, this
+    class will look for credentials in the session, as set by
+    :meth:`~eulcore.django.fedora.views.login_and_store_credentials_in_session`
+    (see method documentation for more details and potential security
+    risks).
+
+    Order of precedence for credentials:
+        
+        * If a request object is passed in and user credentials are
+          available in the session, that will be used first.
+        * Explicit username and password parameters will be used next. 
+        * If none of these options are available, fedora credentials
+          will be set in django settings will be used.
+
+    
+    """
 
     default_object_type = DigitalObject
     "Default type to use for methods that return fedora objects - :class:`DigitalObject`"
