@@ -1,6 +1,6 @@
 # eulcore documentation build configuration file
 
-import eulxml
+import eulcore
 
 extensions = ['sphinx.ext.autodoc']
 
@@ -9,20 +9,20 @@ exclude_trees = ['build']
 source_suffix = '.rst'
 master_doc = 'index'
 
-project = 'eulxml'
-copyright = '2011, Emory University Libraries'
-version = '%d.%d' % eulxml.__version_info__[:2]
-release = eulxml.__version__
-#modindex_common_prefix = ['eulxml.', 'eulxml.django.']
-modindex_common_prefix = ['eulxml.']
+project = 'EULcore'
+copyright = '2010, Emory University Libraries'
+version = '%d.%d' % eulcore.__version_info__[:2]
+release = eulcore.__version__
+#modindex_common_prefix = ['eulcore.', 'eulcore.django.']
+modindex_common_prefix = ['eulcore.']
 
 pygments_style = 'sphinx'
 
 html_style = 'default.css'
 #html_static_path = ['static']
-htmlhelp_basename = 'eulxmldoc'
+htmlhelp_basename = 'eulcoredoc'
 
 latex_documents = [
-  ('index', 'eulxml.tex', 'EULxml Documentation',
+  ('index', 'eulcore.tex', 'EULcore Documentation',
    'Emory University Libraries', 'manual'),
 ]

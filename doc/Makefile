@@ -1,11 +1,10 @@
-# Makefile for EULxml Sphinx-based documentation
+# Makefile for EULcore Sphinx-based documentation
 #
 
-export PYTHONPATH=.:..
-# FIXME: do we still need this?
+export PYTHONPATH=.:../src
 # sphinx needs django settings while loading eulcore.django.* to introspect
 # those modules for autodocs
-#export DJANGO_SETTINGS_MODULE=doc_djangosettings
+export DJANGO_SETTINGS_MODULE=doc_djangosettings
 
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build

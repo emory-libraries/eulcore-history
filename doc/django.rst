@@ -60,7 +60,7 @@ Applications that want to use full Emory LDAP support should:
 :mod:`~eulcore.django.existdb` -- Django tie-ins for :mod:`eulcore.existdb`
 ---------------------------------------------------------------------------
 
-.. .. include:: ../src/eulcore/django/existdb/README
+.. include:: ../src/eulcore/django/existdb/README
 
 .. automodule:: eulcore.django.existdb
 
