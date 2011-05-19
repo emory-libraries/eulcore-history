@@ -1,19 +1,19 @@
-:mod:`eulcore.fedora.models` - Fedora models
-============================================
+:mod:`eulfedora.models` - Fedora models
+=======================================
 
-.. module:: eulcore.fedora.models
+.. module:: eulfedora.models
 
 
 DigitalObject
 -------------
 
-.. autoclass:: eulcore.fedora.models.DigitalObject
+.. autoclass:: eulfedora.models.DigitalObject
     :members:
 
 Custom Exception
 ^^^^^^^^^^^^^^^^
 
-.. autoclass:: eulcore.fedora.models.DigitalObjectSaveFailure
+.. autoclass:: eulfedora.models.DigitalObjectSaveFailure
     :members:
 
 Datastream
@@ -22,24 +22,24 @@ Datastream
 Datastream Descriptors
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: eulcore.fedora.models.Datastream
+.. autoclass:: eulfedora.models.Datastream
     :members:
 
-.. autoclass:: eulcore.fedora.models.XmlDatastream
+.. autoclass:: eulfedora.models.XmlDatastream
     :members:
 
-.. autoclass:: eulcore.fedora.models.RdfDatastream
+.. autoclass:: eulfedora.models.RdfDatastream
     :members:
 
 Datastream Objects
 ^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: eulcore.fedora.models.DatastreamObject
+.. autoclass:: eulfedora.models.DatastreamObject
     :members:
 
-.. autoclass:: eulcore.fedora.models.XmlDatastreamObject
+.. autoclass:: eulfedora.models.XmlDatastreamObject
     :members:
 
-.. autoclass:: eulcore.fedora.models.RdfDatastreamObject
+.. autoclass:: eulfedora.models.RdfDatastreamObject
     :members:
 

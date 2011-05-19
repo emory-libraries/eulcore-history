@@ -1,8 +1,8 @@
-:mod:`eulcore.fedora.xml` - Fedora XML objects (for REST API returns)
-=====================================================================
+:mod:`eulfedora.xml` - Fedora XML objects (for REST API returns)
+================================================================
 
-Currently, this module consists of :class:`~eulcore.xmlmap.XmlObject` wrappers
+Currently, this module consists of :class:`~eulxml.xmlmap.XmlObject` wrappers
 for the XML returned by the REST API, to simplify dealing with results.
 
-.. automodule:: eulcore.fedora.xml
+.. automodule:: eulfedora.xml
     :members:
