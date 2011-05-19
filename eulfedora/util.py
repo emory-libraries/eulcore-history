@@ -240,6 +240,8 @@ class RelativeServerConnection(HttpServerConnection):
         response = self.request(method, abs_url, data, headers)
         return response.read(), abs_url
 
+    def __repr__(self):
+        return '<%s %s >' % (self.__class__.__name__, self.base_url)
 
 class AuthorizingServerConnection(object):
     def __init__(self, base, username=None, password=None):

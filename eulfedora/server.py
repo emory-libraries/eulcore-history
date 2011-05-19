@@ -16,6 +16,7 @@
 
 import csv
 from urllib import urlencode
+import logging
 import warnings
 
 from eulfedora.rdfns import model as modelns
@@ -26,6 +27,7 @@ from eulfedora.util import AuthorizingServerConnection, \
 from eulfedora.xml import SearchResults, NewPids
 from eulfedora import cryptutil
 
+logger = logging.getLogger(__name__)
 
 _connection = None
 
@@ -102,7 +104,8 @@ class Repository(object):
                 
         if root is None:
             raise Exception('Could not determine Fedora root url from django settings or parameter')
-        
+
+        logger.debug("Connecting to fedora at %s as %s" % (root, username))
         self.opener = AuthorizingServerConnection(root, username, password)
         self.api = ApiFacade(self.opener)
         self.fedora_root = self.opener.base_url

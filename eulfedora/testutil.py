@@ -58,6 +58,7 @@ class FedoraTestResult(unittest.TextTestResult):
         '''Switch Django settings for FEDORA access to test
         configuration, and load any repository fixtures (such as
         content models or initial objects).'''
+        super(FedoraTestResult, self).startTestRun()
         self._use_test_fedora()
 
     def stopTestRun(self):
@@ -65,8 +66,8 @@ class FedoraTestResult(unittest.TextTestResult):
         configuration and back into normal settings, and remove any
         leftover objects in with the test pidspace and in the test
         repository.'''
-        self._use_test_fedora()
         self._restore_fedora_root()
+        super(FedoraTestResult, self).stopTestRun()
 
     def _use_test_fedora(self):
         self._stored_default_fedora_root = getattr(settings, "FEDORA_ROOT", None)
@@ -98,18 +99,18 @@ class FedoraTestResult(unittest.TextTestResult):
 
     def _restore_fedora_root(self):
         # if there was a pidspace configured, clean up any test objects
-        msg = ''
+        msgs = []
         if self._stored_default_fedora_pidspace is not None:
             self.remove_test_objects()
-            msg += "Restoring Fedora pidspace: %s" % self._stored_default_fedora_pidspace
+            msgs.append("Restoring Fedora pidspace: %s" % self._stored_default_fedora_pidspace)
             settings.FEDORA_PIDSPACE = self._stored_default_fedora_pidspace        
         if self._stored_default_fedora_root is not None:
-            msg += "Restoring Fedora root: %s" % self._stored_default_fedora_root
+            msgs.append("Restoring Fedora root: %s" % self._stored_default_fedora_root)
             settings.FEDORA_ROOT = self._stored_default_fedora_root
             # re-initialize pooled connection with restored fedora root
             init_pooled_connection()
-        if msg:
-            print '\n', msg
+        if msgs:
+            print '\n', '\n'.join(msgs)
 
     def remove_test_objects(self):
         # remove any leftover test object before or after running tests
@@ -148,8 +149,17 @@ try:
     
     class FedoraXmlTestResult(xmlrunner._XMLTestResult, FedoraTestResult):
         # xml test result logic with our custom startTestRun/stopTestRun
-        pass
+        def __init__(self, **kwargs):
+            # sort out kwargs for the respective init methods;
+            # need to call both so everything is set up properly
+            testrunner_args = dict((key, val) for key, val in kwargs.iteritems()
+                                   if key in ['stream', 'descriptions', 'verbosity'])
+            FedoraTestResult.__init__(self, **testrunner_args)
 
+            xmlargs = dict((key, val) for key, val in kwargs.iteritems() if
+                           key in ['stream', 'descriptions', 'verbosity', 'elapsed_times'])
+            xmlrunner._XMLTestResult.__init__(self, **xmlargs)
+            
     class FedoraXmlTestRunner(xmlrunner.XMLTestRunner):
         # XMLTestRunner doesn't currently take a resultclass init option;
         # extend make_result to override test result class that will be used
@@ -157,8 +167,8 @@ try:
             """Create the TestResult object which will be used to store
             information about the executed tests.
             """
-            return FedoraXmlTestResult(self.stream, self.descriptions, \
-                                       self.verbosity, self.elapsed_times)
+            return FedoraXmlTestResult(stream=self.stream, descriptions=self.descriptions, \
+                                       verbosity=self.verbosity, elapsed_times=self.elapsed_times)
     
     class FedoraXmlTestSuiteRunner(DjangoTestSuiteRunner):
         '''Extend :class:`django.test.simple.DjangoTestSuiteRunner` to use
