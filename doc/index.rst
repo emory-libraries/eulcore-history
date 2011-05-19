@@ -1,4 +1,4 @@
-EULcore |release|
+EULxml |release|
 =================
 
 EULxml is one of a a collection of reusable Python_ components from
