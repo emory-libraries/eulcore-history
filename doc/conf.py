@@ -2,7 +2,7 @@
 
 import eulfedora
 
-extensions = ['sphinx.ext.autodoc']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx']
 
 #templates_path = ['templates']
 exclude_trees = ['build']
@@ -26,7 +26,7 @@ latex_documents = [
    'Emory University Libraries', 'manual'),
 ]
 
-# configuration for intersphinx: refer to the Python standard library, eulcore, django
+# configuration for intersphinx: refer to the Python standard library, eulxml, django
 intersphinx_mapping = {
     'http://docs.python.org/': None,
     'http://waterhouse.library.emory.edu:8080/hudson/job/eulxml/javadoc/': None,
