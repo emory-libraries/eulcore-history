@@ -1,7 +1,7 @@
-:mod:`eulcore.xmlmap.cerp` - Collaborative Electronic Records Project
+:mod:`eulxml.xmlmap.cerp` - Collaborative Electronic Records Project
 =====================================================================
 
-.. module:: eulcore.xmlmap.cerp
+.. module:: eulxml.xmlmap.cerp
 
 General Information
 -------------------

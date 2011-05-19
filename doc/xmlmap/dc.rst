@@ -1,7 +1,7 @@
-:mod:`eulcore.xmlmap.dc` - Dublin Core
+:mod:`eulxml.xmlmap.dc` - Dublin Core
 ======================================
 
-.. module:: eulcore.xmlmap.dc
+.. module:: eulxml.xmlmap.dc
 
 General Information
 -------------------
@@ -13,12 +13,12 @@ Dublin Core
 -----------
 
 All elements in Dublin Core are optional and can be repeated, so each field has
-been mapped as a single element (:class:`eulcore.xmlmap.StringField`) and as a list
-(:class:`eulcore.xmlmap.StringListField`), named according to the DC element.
+been mapped as a single element (:class:`eulxml.xmlmap.StringField`) and as a list
+(:class:`eulxml.xmlmap.StringListField`), named according to the DC element.
 
 Because the DC elements are thoroughly and clearly documented at http://dublincore.org,
 element descriptions have not been repeated here.
 
-  .. autoclass:: eulcore.xmlmap.dc.DublinCore([node[, context]])
+  .. autoclass:: eulxml.xmlmap.dc.DublinCore([node[, context]])
     :members:
     :undoc-members:
