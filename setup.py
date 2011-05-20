@@ -24,7 +24,7 @@ for path, dirs, files in os.walk(__file__):
         packages.append(path.replace(os.path.sep, '.'))
 
 setup(
-    name='eulexistdb',
+    name='eulcommon',
     version=__version__,
     author='Emory University Libraries',
     author_email='libsysdev-l@listserv.cc.emory.edu',
