@@ -5,6 +5,17 @@ The following is a summary of changes and improvements to python-eulcore.
 New features in each version should be listed, with any necessary information
 about installation or upgrade notes.
 
+Eulcore Breakup 
+---------------
+
+* :mod:`eulcore` split up into component parts for better sharability
+  and re-use:
+
+  * :mod:`eulxml`
+  * :mod:`eulfedora` 
+  * :mod:`eulexistdb` 
+  * :mod:`eulcommon` 
+  * :mod:`eullocal`  
 
 Release 0.15 (pre)
 ------------------
