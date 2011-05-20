@@ -1,6 +1,6 @@
 # file eulexistdb/query.py
 # 
-#   Copyright 2010 Emory University General Library
+#   Copyright 2010,2011 Emory University Libraries
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,10 +14,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-#How TO Add A Special Field To The QuerySet:
-# 1. Near the top of the class Xquery, add the field name to the special_fields list variable
-# 2. In the getQuery function in the section "define any special fields that have been requested" add an elif case for your field
-# 3. It is possible that you will need to add an elif case in the _create_return_class function to return the correct type
+# Developer Note: how to add a new "special field" to the queryset:
+# 1. Near the top of the class Xquery, add the field name to the
+#    special_fields list variable
+# 2. In the getQuery function in the section "define any special
+#    fields that have been requested" add an elif case for your field
+# 3. It is possible that you will need to add an elif case in the
+#    _create_return_class function to return the correct type
 # 4. Make sure the the correct fieldType is imported
 
 """Provide a prettier, more Pythonic approach to eXist-db access.
