@@ -50,6 +50,8 @@ For more details on these commands, use ``manage.py <command> help``
 :mod:`~eulfedora` Template tags
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. module:: eulfedora.templatetags
+
 :mod:`eulfedora` adds custom `template tags
 <http://docs.djangoproject.com/en/1.2/topics/templates/#custom-tag-and-filter-libraries>`_
 for use in templates.
