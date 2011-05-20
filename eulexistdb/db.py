@@ -72,15 +72,13 @@ of options like this::
   Full-text query options are only available in very recent versions of eXist.
 
 
-.. TODO: uncomment/update after writing test runner code
-
-.. todo::
-
-  If you are writing unit tests against code that uses
-  :mod:`eulexistdb`, you may want to take advantage of
-  :class:`eulexistdb.testutil.ExistDBTestSuiteRunner`, which has logic
-  to set up and switch configurations between a development eXist
-  configuration and a test one.
+If you are writing unit tests against code that uses
+:mod:`eulexistdb`, you may want to take advantage of
+:class:`eulexistdb.testutil.TestCase` for loading fixture data to a
+test eXist-db collection, and
+:class:`eulexistdb.testutil.ExistDBTestSuiteRunner`, which has logic
+to set up and switch configurations between a development and test
+collections in eXist.
 
 ----
 

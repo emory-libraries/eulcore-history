@@ -13,13 +13,49 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+"""
+:mod:`eulexistdb.testutil` provides utilities for writing and running
+tests against code that makes use of :mod:`eulexistdb`.  This module
+includes a customization of :class:`django.test.TestCase` with
+eXist-db fixture handling, and custom test suite runners with Fedora
+environment setup / teardown for all tests.
 
-import re
+To use, configure as test runner in your Django settings::
+
+   TEST_RUNNER = 'eulexistdb.testutil.ExistDBTestSuiteRunner'
+
+When :mod:`xmlrunner` is available, xmlrunner variants are also
+available.  To use this test runner, configure your test runner as
+follows::
+
+    TEST_RUNNER = 'eulexistdb.testutil.ExistDBXmlTestSuiteRunner'
+
+The xml variant honors the same django settings that the xmlrunner
+django testrunner does (TEST_OUTPUT_DIR, TEST_OUTPUT_VERBOSE, and
+TEST_OUTPUT_DESCRIPTIONS).
+
+Any :class:`~eulexistdb.db.ExistDB` instances created after the test
+suite starts will automatically connect to the test collection. 
+
+----
+
+"""
+
+
 from glob import glob
+import logging
 from os import path
+import re
+import unittest2 as unittest
+
 from django.test import TestCase as DjangoTestCase
+from django.test.simple import DjangoTestSuiteRunner
 from django.conf import settings
+
 from eulexistdb.db import ExistDB, ExistDBException
+
+logger = logging.getLogger(__name__)
+
 
 class TestCase(DjangoTestCase):
     """Customization of :class:`django.test.TestCase`
@@ -93,3 +129,112 @@ class TestCase(DjangoTestCase):
         except ExistDBException:
             # any way to determine if error ever needs to be reported?
             pass
+
+
+
+class ExistDBTestResult(unittest.TextTestResult):
+    '''Extend :class:`unittest2.TextTestResult` to take advantage of
+    :meth:`~unittest2.TestResult.startTestRun` and
+    :meth:`~unittest2.TestResult.stopTestRun` to do environmental test
+    setup and teardown before and after all tests run.
+    '''
+    _stored_default_collection = None
+
+    def startTestRun(self):
+        '''Switch Django settings for EXIST access to test
+        configuration, and load any repository fixtures (such as
+        content models or initial objects).'''
+        super(ExistDBTestResult, self).startTestRun()
+        self._use_test_collection()
+
+    def stopTestRun(self):
+        '''Switch Django settings for EXIST access out of test
+        configuration and back into normal settings, and do any 
+        necessary clean up.'''
+        self._restore_root_collection()
+        super(ExistDBTestResult, self).stopTestRun()
+
+    def _use_test_collection(self):    
+        self._stored_default_collection = getattr(settings, "EXISTDB_ROOT_COLLECTION", None)
+
+        if getattr(settings, "EXISTDB_TEST_COLLECTION", None):
+            settings.EXISTDB_ROOT_COLLECTION = settings.EXISTDB_TEST_COLLECTION
+        else:
+            settings.EXISTDB_ROOT_COLLECTION = getattr(settings, "EXISTDB_ROOT_COLLECTION", "/default") + "_test"
+
+        print "Creating eXist Test Collection: %s" % settings.EXISTDB_ROOT_COLLECTION
+        # now that existdb root collection has been set to test collection, init db connection
+        db = ExistDB()
+        # create test collection (don't complain if collection already exists)
+        db.createCollection(settings.EXISTDB_ROOT_COLLECTION, True)
+
+    def _restore_root_collection(self):
+        # if use_test_collection didn't run, don't change anything
+        if self._stored_default_collection is not None:
+            print "Removing eXist Test Collection: %s" % settings.EXISTDB_ROOT_COLLECTION
+            # before restoring existdb non-test root collection, init db connection
+            db = ExistDB()
+            try:            
+                # remove test collection
+                db.removeCollection(settings.EXISTDB_ROOT_COLLECTION)
+            except ExistDBException, e:
+                print "Error removing collection ", settings.EXISTDB_ROOT_COLLECTION, ': ', e
+
+            print "Restoring eXist Root Collection: %s" % self._stored_default_collection
+            settings.EXISTDB_ROOT_COLLECTION = self._stored_default_collection
+
+class ExistDBTestSuiteRunner(DjangoTestSuiteRunner):
+    '''Extend :class:`~django.test.simple.DjangoTestSuiteRunner` to use
+    :class:`ExistDBTestResult` as the result class.'''
+    
+    def run_suite(self, suite, **kwargs):
+        # call the exact same way that django does, with the addition of our resultclass
+        return unittest.TextTestRunner(resultclass=ExistDBTestResult,
+                                       verbosity=self.verbosity, failfast=self.failfast).run(suite)
+
+try:
+    # when xmlrunner is available, define xmltest variants
+
+    import xmlrunner
+    
+    class ExistDBXmlTestResult(xmlrunner._XMLTestResult, ExistDBTestResult):
+        # xml test result logic with our custom startTestRun/stopTestRun
+        def __init__(self, **kwargs):
+            # sort out kwargs for the respective init methods;
+            # need to call both so everything is set up properly
+            testrunner_args = dict((key, val) for key, val in kwargs.iteritems()
+                                   if key in ['stream', 'descriptions', 'verbosity'])
+            ExistDBTestResult.__init__(self, **testrunner_args)
+
+            xmlargs = dict((key, val) for key, val in kwargs.iteritems() if
+                           key in ['stream', 'descriptions', 'verbosity', 'elapsed_times'])
+            xmlrunner._XMLTestResult.__init__(self, **xmlargs)
+            
+    class ExistDBXmlTestRunner(xmlrunner.XMLTestRunner):
+        # XMLTestRunner doesn't currently take a resultclass init option;
+        # extend make_result to override test result class that will be used
+        def _make_result(self):
+            """Create the TestResult object which will be used to store
+            information about the executed tests.
+            """
+            return ExistDBXmlTestResult(stream=self.stream, descriptions=self.descriptions, \
+                                       verbosity=self.verbosity, elapsed_times=self.elapsed_times)
+    
+    class ExistDBXmlTestSuiteRunner(DjangoTestSuiteRunner):
+        '''Extend :class:`~django.test.simple.DjangoTestSuiteRunner` to use
+        :class:`FedoraTestResult` as the result class.'''
+        # combination of DjangoTestSuiteRunner with xmlrunner django test runner variant
+        
+        def run_suite(self, suite, **kwargs):
+            # pick up settings as expected by django xml test runner
+            settings.DEBUG = False
+            verbose = getattr(settings, 'TEST_OUTPUT_VERBOSE', False)
+            descriptions = getattr(settings, 'TEST_OUTPUT_DESCRIPTIONS', False)
+            output = getattr(settings, 'TEST_OUTPUT_DIR', '.')
+
+            # call roughly the way that xmlrunner does, with our customized test runner
+            return ExistDBXmlTestRunner(verbose=verbose, descriptions=descriptions,
+                                       output=output).run(suite)
+
+except ImportError:
+    pass

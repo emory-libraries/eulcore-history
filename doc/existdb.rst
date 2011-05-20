@@ -111,7 +111,7 @@ Custom Template Tags
     :members:
 
 :mod:`~eulexistdb` Management commands
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following management command will be available when you include
 :mod:`eulexistdb` in your django ``INSTALLED_APPS`` and rely on the
@@ -123,3 +123,8 @@ For more details on these commands, use ``manage.py <command> help``
    configuration for a collection index; reindex the configured
    collection based on that index configuration
 
+:mod:`~eulexistdb.testutil` Unit Test utilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: eulexistdb.testutil
+    :members:
