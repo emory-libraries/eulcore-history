@@ -1,6 +1,6 @@
-# file django/http/__init__.py
+# file eulcommon/djangoextras/http/__init__.py
 # 
-#   Copyright 2010 Emory University General Library
+#   Copyright 2010,2011 Emory University Libraries
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
