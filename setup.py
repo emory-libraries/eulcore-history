@@ -4,7 +4,6 @@ import sys
 
 from setuptools import setup
 
-sys.path.append('src')
 from eullocal import __version__
 
 # fullsplit and packages calculation inspired by django setup.py
@@ -35,7 +34,7 @@ for path, dirs, files in os.walk(themedir):
         data_files.append((path, targetfiles))
 
 setup(
-    name='eulcore',
+    name='eullocal',
     version=__version__,
     author='Emory University Libraries',
     author_email='libsysdev-l@listserv.cc.emory.edu',
