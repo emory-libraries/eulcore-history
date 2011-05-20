@@ -22,6 +22,68 @@ an eXist-db_ database and executing XQuery_ queries against it.
 .. _XQuery: http://www.w3.org/TR/xquery/
 .. _eXist-db: http://exist.sourceforge.net/
 
+When used with Django, :class:`~eulexistdb.db.ExistDB` can pull
+configuration settings directly from Django settings.  If you create
+an instance of :class:`~eulexistdb.db.ExistDB` without specifying a
+server url, it will attempt to configure an eXist database based on
+Django settings, using the configuration names documented below.
+
+
+
+Projects that use this module should include the following settings in their
+``settings.py``::
+
+  #Exist DB Settings
+  EXISTDB_SERVER_USER = 'user'
+  EXISTDB_SERVER_PASSWORD = 'password'
+  EXISTDB_SERVER_URL = "http://megaserver.example.com:8042/exist"
+  EXISTDB_ROOT_COLLECTION = "/sample_collection"
+
+.. note:
+
+  User and password settings are optional.
+
+To configure a timeout for most eXist connections, specify the desired
+time in seconds as ``EXISTDB_TIMEOUT``; if none is specified, the
+global default socket timeout will be used.
+
+.. note::
+
+  Any configured ``EXISTDB_TIMEOUT`` will be ignored by the
+  **existdb** management command, since reindexing a large collection
+  could take significantly longer than a normal timeout would allow
+  for.
+
+If you are using an eXist index configuration file, you can add another setting
+to specify your configuration file::
+
+  EXISTDB_INDEX_CONFIGFILE = "/path/to/my/exist_index.xconf"
+
+This will allow you to use the ``existdb`` management command to
+manage your index configuration file in eXist.
+
+If you wish to specify options for fulltext queries, you can set a dictionary
+of options like this::
+
+    EXISTDB_FULLTEXT_OPTIONS = {'default-operator': 'and'}
+
+.. note::
+
+  Full-text query options are only available in very recent versions of eXist.
+
+
+.. TODO: uncomment/update after writing test runner code
+
+.. todo::
+
+  If you are writing unit tests against code that uses
+  :mod:`eulexistdb`, you may want to take advantage of
+  :class:`eulexistdb.testutil.ExistDBTestSuiteRunner`, which has logic
+  to set up and switch configurations between a development eXist
+  configuration and a test one.
+
+----
+
 """
 
 from functools import wraps

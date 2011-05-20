@@ -23,9 +23,6 @@ It contains the following modules:
  * :mod:`eulexistdb.query` -- Query :class:`~eulxml.xmlmap.XmlObject`
    models from eXist with semantics like a Django_ QuerySet
 
-Django_ users may also be interested in the related package 
-:mod:`eulcore.django.existdb`.
-
 .. _eXist-db: http://exist.sourceforge.net/
 .. _Django: http://www.djangoproject.com/
 

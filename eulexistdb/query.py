@@ -366,7 +366,7 @@ class QuerySet(object):
         than the one configured in your model. See :meth:`Xquery.return_only`
         for details on specifying xpaths in raw mode.
 
-        :param **fields: field name and xpath in keyword-args notation. If
+        :param fields: field name and xpath in keyword-args notation. If
             **field** is the name of a field on the associated model, the result
             of the raw xpath should be accessible on the return object as the
             normal property.
@@ -374,8 +374,10 @@ class QuerySet(object):
 
         Can be combined with :meth:`also`.
 
-        Example use::
+        Example usage::
+        
             qs.also_raw(field_matches='count(util:expand(%(xq_var)s//field)//exist:match)')
+            
         '''
         return self._raw_field(also=True, **fields)
 
