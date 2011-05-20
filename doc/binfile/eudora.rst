@@ -1,5 +1,5 @@
-:mod:`eulcore.binfile.eudora` -- Eudora email index files
-=========================================================
+:mod:`eulcommon.binfile.eudora` -- Eudora email index files
+===========================================================
 
-.. automodule:: eulcore.binfile.eudora
+.. automodule:: eulcommon.binfile.eudora
    :members:

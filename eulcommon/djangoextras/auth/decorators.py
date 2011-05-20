@@ -70,7 +70,7 @@ def user_passes_test_with_ajax(test_func, login_url=None, redirect_field_name=RE
     Returns special response to ajax calls instead of blindly redirecting.
 
     To use with class methods instead of functions, use :meth:`django.utils.decorators.method_decorator`.  See
-    `http://docs.djangoproject.com/en/dev/releases/1.2/#user-passes-test-login-required-and-permission-required`_ .
+    http://docs.djangoproject.com/en/dev/releases/1.2/#user-passes-test-login-required-and-permission-required
     """
     if not login_url:
         from django.conf import settings

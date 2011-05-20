@@ -1,11 +1,11 @@
 :mod:`eulcore.binfile` -- Map binary data to Python objects
 ===========================================================
 
-.. automodule:: eulcore.binfile.core
+.. automodule:: eulcommon.binfile.core
 .. pull in core's __doc__, even though we're treating the symbols as if
-   they're in eulcore.binfile
+   they're in eulcommon.binfile
 
-.. module:: eulcore.binfile
+.. module:: eulcommon.binfile
 
 :class:`BinaryStructure` Subclasses
 -----------------------------------
@@ -38,7 +38,7 @@ third byte.
 
 This structure might be represented as::
 
-   from eulcore.binfile import *
+   from eulcommon.binfile import *
    class MyObject(BinaryStructure):
        mybytes = ByteField(0, 2)
        myint = IntegerField(0, 2)

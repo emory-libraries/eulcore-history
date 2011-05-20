@@ -31,11 +31,11 @@ def content_negotiation(formats, default_type='text/html'):
     Example usage::
 
         def rdf_view(request, arg):
-            return RDF_RESONSE
+            return RDF_RESPONSE
 
         @content_negotiation({'application/rdf+xml': rdf_view})
         def html_view(request, arg):
-            return HTML_RESONSE
+            return HTML_RESPONSE
 
     The above example would return the rdf_view on a request type of
     ``application/rdf+xml`` and the normal view for anything else.
