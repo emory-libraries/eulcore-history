@@ -30,5 +30,5 @@ latex_documents = [
 # configuration for intersphinx: refer to the Python standard library, django
 intersphinx_mapping = {
     'http://docs.python.org/': None,
-    'http://docs.djangoproject.com/en/1.3/ref/': 'http://docs.djangoproject.com/en/dev/_objects/',
+    'http://docs.djangoproject.com/en/1.3/': 'http://docs.djangoproject.com/en/dev/_objects/',
 }
