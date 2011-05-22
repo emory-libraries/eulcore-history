@@ -6,9 +6,13 @@ import logging.config
 
 from testcore import tests_from_modules, get_test_runner
 
+# any tests that reference django need this set before loading
+os.environ['DJANGO_SETTINGS_MODULE'] = 'testsettings'
+
 test_modules = (
     'test_xmlmap', 
     'test_xpath',
+    'test_forms',
     )
 
 if __name__ == '__main__':
