@@ -23,6 +23,28 @@ from eulfedora.api import HTTP_API_Base, ApiFacade
 from eulfedora.models import DigitalObject
 from eulfedora.util import AuthorizingServerConnection, parse_rdf, parse_xml_object, RequestFailed
 from eulfedora.xml import SearchResults, NewPids
+from eulfedora import cryptutil
+
+
+_connection = None
+
+def init_pooled_connection(fedora_root=None):
+    '''Initialize pooled connection for use with :class:`Repository`.
+
+    :param fedora_root: base fedora url to use for connection.  If not specified,
+        uses FEDORA_ROOT from django settings
+    '''
+    global _connection
+    if fedora_root is None:
+        try:
+            from djang.conf import settings
+            fedora_root = settings.FEDORA_ROOT
+        except ImportError:
+            raise Exception('Cannot initialize a Fedora connection without specifying ' +
+                            'Fedora root url directly or in Django settings as FEDORA_ROOT')
+    _connection = util.RelativeServerConnection(fedora_root)
+
+
 
 # a repository object, basically a handy facade for easy api access
 
@@ -47,7 +69,38 @@ class Repository(object):
     "human-readable aliases for oddly-named fedora search fields"
     
     
-    def __init__(self, root, username=None, password=None):
+    def __init__(self, root=None, username=None, password=None, request=None):
+        global _connection
+        # when initialized via django, settings should be pulled from django conf
+        if root is None:
+            # if global connection is not set yet, initialize it
+            if _connection is None:
+                init_pooled_connection()
+                root = _connection
+            # if username and password are not set, attempt to full from django conf
+            if username is None and password is None:
+                try:
+                    from django.conf import settings
+                    
+                    if request is not None and request.user.is_authenticated() and \
+                       FEDORA_PASSWORD_SESSION_KEY in request.session:
+                        username = request.user.username
+                        password = cryptutil.decrypt(request.session[FEDORA_PASSWORD_SESSION_KEY])            
+                    else:
+                        if root is None and hasattr(settings, 'FEDORA_ROOT'):
+                            root = settings.FEDORA_ROOT
+
+                    if username is None and hasattr(settings, 'FEDORA_USER'):
+                        username = settings.FEDORA_USER
+                        if password is None and hasattr(settings, 'FEDORA_PASSWORD'):
+                            password = settings.FEDORA_PASSWORD
+
+                    if hasattr(settings, 'FEDORA_PIDSPACE'):
+                        self.default_pidspace = settings.FEDORA_PIDSPACE
+
+                except ImportError:
+                    pass
+        
         self.opener = AuthorizingServerConnection(root, username, password)
         self.api = ApiFacade(self.opener)
         self.fedora_root = self.opener.base_url
@@ -237,20 +290,12 @@ class Repository(object):
                 break
 
 
-# make it easy to access a DigitalObject as other types if it has the
-# appropriate cmodel info.
-# currently unused - not officially released
-class ObjectTypeDescriptor(object):
-    def __init__(self, model, objtype):
-        self.model = model
-        self.objtype = objtype
+# session key for storing a user password that will be used for Fedora access
+# - used here and in eulcore.django.fedora.views
+FEDORA_PASSWORD_SESSION_KEY = 'eulfedora_password'
 
-    def __get__(self, obj, objtype):
-        try:
-            if obj.has_model(self.model):
-                return self.objtype(self.api, obj.pid)
-        except:
-            return None
+
+
 
 class UnrecognizedQueryLanguage(EnvironmentError):
     pass
@@ -383,3 +428,5 @@ class ResourceIndex(HTTP_API_Base):
         :rtype: list of dictionary
         """
         return self.find_statements(query, language='sparql', type='tuples', flush=flush)
+
+

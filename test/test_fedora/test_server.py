@@ -11,6 +11,9 @@ from testcore import main
 
 class TestBasicFedoraFunctionality(FedoraTestCase):
     pidspace = FEDORA_PIDSPACE	# will be used for any objects ingested with ingestFixture
+
+    # TODO: test Repository initialization with and without django settings
+    
     def test_get_next_pid(self):
         pid = self.repo.get_next_pid()
         self.assertTrue(pid)
