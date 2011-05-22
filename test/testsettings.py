@@ -1,5 +1,14 @@
 # django settings file
 
-# eulxml.forms code relies on django code, which can't be imported
-# without a settings file configured, even though we don't actually
-# rely on any of those settings.
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'eulcommon-test.db'
+    }
+}
+
+
+# suppress normal template context processing
+# for tests that render templates
+TEMPLATE_CONTEXT_PROCESSORS = []
+

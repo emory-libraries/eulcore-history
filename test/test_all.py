@@ -4,7 +4,7 @@ import os
 import unittest
 import logging.config
 
-from testcore import tests_from_modules, get_test_runner
+from testcore import tests_from_modules, get_testsuite_runner
 
 test_modules = (
     'test_binfile',
@@ -23,5 +23,6 @@ if __name__ == '__main__':
         (unittest.TestLoader().loadTestsFromName(mod) for mod in test_modules)
     )
     
-    test_runner = get_test_runner()
-    test_runner.run(alltests)
+    test_runner = get_testsuite_runner()
+    # djangoextras code aren't django apps per-se, so just run them as extra tests
+    test_runner.run_tests([], extra_tests=alltests)
