@@ -21,7 +21,8 @@ import warnings
 from eulfedora.rdfns import model as modelns
 from eulfedora.api import HTTP_API_Base, ApiFacade
 from eulfedora.models import DigitalObject
-from eulfedora.util import AuthorizingServerConnection, parse_rdf, parse_xml_object, RequestFailed
+from eulfedora.util import AuthorizingServerConnection, \
+     RelativeServerConnection, parse_rdf, parse_xml_object, RequestFailed
 from eulfedora.xml import SearchResults, NewPids
 from eulfedora import cryptutil
 
@@ -37,12 +38,12 @@ def init_pooled_connection(fedora_root=None):
     global _connection
     if fedora_root is None:
         try:
-            from djang.conf import settings
+            from django.conf import settings
             fedora_root = settings.FEDORA_ROOT
         except ImportError:
             raise Exception('Cannot initialize a Fedora connection without specifying ' +
                             'Fedora root url directly or in Django settings as FEDORA_ROOT')
-    _connection = util.RelativeServerConnection(fedora_root)
+    _connection = RelativeServerConnection(fedora_root)
 
 
 

@@ -1,0 +1,7 @@
+# connection parameters for a test fedora instance
+FEDORA_ROOT = 'https://localhost:8443/fedora/'
+FEDORA_ROOT_NONSSL = 'http://localhost:8080/fedora/'
+# should be a user with permission to create and purge test objects
+FEDORA_USER = 'fedoraAdmin'
+FEDORA_PASSWORD = 'fedoraAdmin'
+FEDORA_PIDSPACE = 'eulfedora-test'

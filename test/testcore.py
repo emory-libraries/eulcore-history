@@ -1,5 +1,10 @@
 import unittest
 
+import os
+# must be set before importing anything from django
+os.environ['DJANGO_SETTINGS_MODULE'] = 'testsettings'
+
+
 def tests_from_modules(modnames):
     return [ unittest.findTestCases(__import__(modname, fromlist=['*']))
              for modname in modnames ]

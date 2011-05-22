@@ -4,17 +4,8 @@ from eulxml import xmlmap
 from eulfedora.api import ApiFacade
 from eulfedora.server import Repository
 
-#FEDORA_ROOT = 'https://dev11.library.emory.edu:8643/fedora/'
-#FEDORA_ROOT_NONSSL = 'http://dev11.library.emory.edu:8280/fedora/'
-# fedora3.3
-#FEDORA_ROOT = 'https://dev11.library.emory.edu:8843/fedora/'
-#FEDORA_ROOT_NONSSL = 'http://dev11.library.emory.edu:8480/fedora/'
-# fedora3.4
-FEDORA_ROOT = 'https://dev11.library.emory.edu:8743/fedora/'
-FEDORA_ROOT_NONSSL = 'http://dev11.library.emory.edu:8380/fedora/'
-FEDORA_USER = 'fedoraAdmin'
-FEDORA_PASSWORD = 'fedoraAdmin'
-FEDORA_PIDSPACE = 'eulcoretest'
+from localsettings import FEDORA_ROOT, FEDORA_ROOT_NONSSL, \
+     FEDORA_USER, FEDORA_PASSWORD, FEDORA_PIDSPACE
 
 FIXTURE_ROOT = os.path.join(os.path.dirname(__file__), 'fixtures')
 def fixture_path(fname):
@@ -31,6 +22,7 @@ class FedoraTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         unittest.TestCase.__init__(self, *args, **kwargs)
         self.fedora_fixtures_ingested = []
+        self.pidspace = FEDORA_PIDSPACE
 
     def setUp(self):
         self.repo = Repository(FEDORA_ROOT, FEDORA_USER, FEDORA_PASSWORD)
