@@ -433,7 +433,7 @@ class XmlObjectForm(BaseForm):
     you may wish to extend :meth:`eulxml.xmlmap.XmlObject.is_empty` to correctly
     identify when your NodeField elements should be considered empty (if the
     default definition is not accurate or appropriate).  Empty elements will not
-    be added to the :class:``eulxml.xmlmap.XmlObject` instance returned by
+    be added to the :class:`eulxml.xmlmap.XmlObject` instance returned by
     :meth:`update_instance`.
     """
 

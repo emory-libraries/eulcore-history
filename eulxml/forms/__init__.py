@@ -14,4 +14,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+'''While installing :mod:`eulxml` does not require Django,
+:mod:`eulxml.forms` can only be used with Django.'''
+
+
 from eulxml.forms.xmlobject import xmlobjectform_factory, XmlObjectForm, SubformField
