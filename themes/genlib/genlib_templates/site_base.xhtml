@@ -1,0 +1,370 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
+{% load eulcore_tags %}
+{% comment %}
+IMPORTANT!!  In order to load the media URL properly you MUST provide the request
+context to the templates in your view return.  This is required so MEDIA_URL can
+be loaded from the template context processor.
+
+
+This is an adaptation of the Emory General Library Drupal theme provided by
+sharpdot for use in the library.  A considerable amount of cleanup went into it
+to make it more friendly for diverse sites.
+
+The current version supports a two column layout with left side bar and main
+content panel.
+
+See the individual blocks for overriding and structure.
+{% endcomment %}    
+    {% comment %}
+        This is an adaptation of the Emory General Library Drupal theme provided by
+        sharpdot for use in the library.  A considerable amount of cleanup went into it
+        to make it more friendly for diverse sites.
+
+        The current version supports a two column layout with left side bar and main
+        content panel.
+
+        See the individual blocks for overriding and structure.
+    {% endcomment %}
+    
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+
+  <title>
+    {% block page-title %}Emory Libraries {% block page-subtitle %} - Home{% endblock %}{% endblock %}
+  </title>
+
+  {% block page-head %}
+    {% comment %}Put Extra Header information here.  Use block.super to keep the icon.{% endcomment %}
+  	<link rel="shortcut icon" href="{{ MEDIA_URL }}/genlib_media/favicon.ico" type="image/x-icon" />
+  {% endblock %}
+
+  {% block alternate-links %}
+  {% comment %}
+      Allows developers to provide alternate link values in views.  Just return an
+      iterable of dict values {'type': the-type, 'title': the-title, 'url': the-url}
+      and it should build those alt links automatically.
+  {% endcomment %}
+  {% if alt_links %}
+      {% for link in alt_links %}
+      <link rel="alternate" type="{{ link.type }}" title="{{ link.title }}" href="{{ link.href }}"/>
+      {% endfor %}
+  {% endif %}
+  {% endblock %}
+
+  {% block style %}
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/html-elements.css" />
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/libraryglobal.css" />
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/layout-fixed.css" />
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/tabbedpanels.css" />
+    <link rel="stylesheet" type="text/css" media="print" href="{{ MEDIA_URL }}/genlib_media/style/print.css" />
+  {% endblock %}
+
+
+{% block scripts %}
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.1/jquery.min.js"></script>
+    {% block searchbox_scripts %}
+        <script type="text/javascript" src="{{ MEDIA_URL }}/genlib_media/js/plugins/jquery.scrollTo.js"></script>
+        <script type="text/javascript">
+        $(document).ready(function() {
+            // The following code is for jquery tabbed panels in the header.
+            // Taken from http://www.queness.com/post/274/jquery-sliding-tab-menu-for-sidebar-tutorial
+
+            //Get the height of the first item
+            $('#mask').css({'height':$('#panel-1').height()});
+
+            //Calculate the total width - sum of all sub-panels width
+            //Width is generated according to the width of #mask * total of sub-panels
+            $('#panel').width(parseInt($('#mask').width() * $('#panel div').length));
+
+            //Set the sub-panel width according to the #mask width (width of #mask and sub-panel must be same)
+            $('#panel div').width($('#mask').width());
+
+            //Get all the links with rel as panel
+            $('a[rel=panel]').click(function () {
+
+                    //Get the height of the sub-panel
+                    var panelheight = $($(this).attr('href')).height();
+
+                    //Set class for the selected item
+                    $('a[rel=panel]').removeClass('selected');
+                    $(this).addClass('selected');
+
+                    //Resize the height
+                    $('#mask').animate({'height':panelheight},{queue:false, duration:500});
+
+                    //Scroll to the correct panel, the panel id is grabbed from the href attribute of the anchor
+                    $('#mask').scrollTo($(this).attr('href'), 800);
+
+                    //Discard the link default behavior
+                    return false;
+            });
+
+        });
+        </script>
+    {% endblock %}
+
+    {% block utilitynav_scripts %}
+        <script type="text/javascript">
+            $(document).ready(function () {   
+                $('#utilityNav li.topLevel').hover(
+                    function () {  
+                        //show its submenu  
+                        $('div.flyOut', this).slideDown(100);
+                    },   
+                    function () {  
+                        //hide its submenu  
+                        $('div.flyOut', this).slideUp(100);
+                    }  
+                );  
+            });
+        </script>
+    {% endblock %}
+
+{% endblock %}
+</head>
+
+<body class="{% block body-class %}{%endblock%}">
+<div id="global-nav">
+    <ul class="links">
+        <li class="menu-1029 first"><a href="http://web.library.emory.edu/" title="">University Library</a></li>
+        <li class="menu-1030"><a href="http://business.library.emory.edu/" title="">Business</a></li>
+        <li class="menu-1031"><a href="http://health.library.emory.edu/" title="">Health Sciences</a></li>
+        <li class="menu-1032"><a href="http://www.law.emory.edu/library/" title="">Law</a></li>
+        <li class="menu-1033"><a href="http://marbl.library.emory.edu/" title="">MARBL</a></li>
+        <li class="menu-1034"><a href="http://oxford.emory.edu/Library/" title="">Oxford College</a></li>
+        <li class="menu-1035"><a href="http://www.pitts.emory.edu/" title="">Theology</a></li>
+        <li class="menu-1036 last"><a href="http://www.emory.edu/" title="">Emory Home</a></li>
+    </ul>
+</div>
+
+
+  <div id="page"><div id="page-inner">
+
+    <a name="top" id="navigation-top"></a>
+
+    {% comment %}Skip-To links are for accessabilty by screenreaders and such.  {% endcomment %}
+    <div id="skip-to">
+        <a href="#navigation">Skip to Navigation</a>
+        <a href="#content">Skip to Content</a>
+    </div>
+
+    <div id="header">
+    	<div id="header-inner" class="clear-block">
+            <div id="logo-title">
+                <div id="logo">
+                    <a href="{% url site-index %}" title="Home" rel="home"><img src="{{ MEDIA_URL }}/genlib_media/images/emorylibbluelogo.png" alt="Home" id="logo-image" /></a>
+                </div>
+
+                <div id="site-name">
+                    <a href="{% url site-index %}" title="Home" rel="home">
+                    {% block site-name %}{% endblock %}
+                    </a>
+                </div>
+
+                <div id="site-slogan">{% block site-slogan %}{% endblock %}</div>
+        	</div> <!-- /#logo-title -->
+
+                <div id="header-blocks">
+                    {% block headerblocks %}
+                        {% block utilitynav %}
+                            {% include "genlib_templates/snippets/utilitynav.xhtml" %}
+                        {% endblock %}
+                        {% block searchbox %}
+                            {% include "genlib_templates/snippets/header-blocks.xhtml" %}
+                        {% endblock %}
+                    {% endblock %}
+                </div>
+                
+
+		</div> <!-- /#header-inner -->
+	</div> <!-- /#header -->
+
+    <div id="main">
+    	<div id="main-inner" class="clear-block">
+
+            <div id="navbar">
+                <div id="navbar-inner">
+                    <a name="to-navigation" id="navigation"></a>
+                    <div id="primary">
+                        {% block navbar %}
+                          <ul>
+                              {% comment %}
+                              The activebase template tag here is a custom tag
+                              created in dwrangler/tracback.  Since template tags have to live in an app and
+                              templates are decoupled from apps I'm not quiet sure how to handle this.
+                              In the future we'll probably create a django app stub to install as part of
+                              eulcore to load things like this.  For now however.  Modify that tag as
+                              or copy the code into your own app as needed.
+                              {% endcomment %}
+                                <li><a href="{% url site-index %}" class="first {% if request %}{% activebase request '^/$' %}{% endif %}">Home</a></li>
+                                {# extend just navbar-items to use Home and Admin navbar links as-is #}
+                                {% block navbar-items %}{% endblock %}
+                            {% if user.is_staff %}
+                                <li><a href="{% block admin-url %}{% url admin:index %}{% endblock %}">Admin</a></li>
+                            {% endif %}
+                          </ul>
+                          {% endblock %}
+                        {% comment %}
+                        Uncomment below if you want the default theme navbar and
+                        set links as needed.
+                        <!--
+                        <ul>
+                            <li><a href="" class="first">Home</a></li>
+                            <li><a href="">Libraries</a></li>
+                            <li><a href="">Conduct Research</a></li>
+                            <li><a href="">Services</a></li>
+                            <li><a href="">Innovations</a></li>
+                            <li><a href="">News &amp; Events</a></li>
+                            <li><a href="">About</a></li>
+                        </ul>
+                         -->
+                        {% endcomment %}
+                    </div> <!-- /#primary -->
+                </div> <!-- /#navbar-inner -->
+            </div> <!-- /#navbar -->
+
+            <div id="sidebar-left">
+                <div id="sidebar-left-inner" class="region region-left">
+                  {% block sidebar-left %}{% endblock %}
+                </div> <!-- /#sidebar-left-inner -->
+             </div> <!-- /#sidebar-left -->
+
+             <div id="content">
+                <div id="content-inner">
+                    <a name="content"></a>
+
+                    {% block message %}{% endblock %}
+
+                    <div id="content-header">
+                        {% comment %}
+                        As with page-title and subtitle, these nested blocks
+                        allow templates to insert a title easily with content-title
+                        or override the whole thing via content-header.
+                        {% endcomment %}
+                        {% block content-header  %}
+                            <h1 class="title">{% block content-title %}{% endblock %}</h1>
+                        {% endblock %}
+                    </div> <!-- /#content-header -->
+
+                    <div id="content-area">
+                                    {% block sidebar-right %}
+                                    {% endblock %}
+
+                        {% block content-body %}
+                        {% endblock %}
+                    </div>
+
+
+                    <div id="content-bottom" class="region region-content_bottom">
+                        {% block content-bottom %}{% endblock %}
+                    </div> <!-- /#content-bottom -->
+
+                </div> <!-- /#content-inner -->
+                <div id='content-outer-bottom'>
+                    {% block content-outer-bottom %}{%endblock%}
+                </div>
+            </div> <!-- /#content -->
+
+        </div> <!-- /#main-inner -->
+    </div> <!-- /#main -->
+
+
+<div id="footer"><div class="region region-footer" id="footer-inner">
+<div><div class="block-inner">
+  <div class="content">
+      {% comment %}
+      share-bar is for sharing and social networking links.  This is pretty much
+      exactly the code from the origninal template so it's going to be pretty
+      sloppy. Fair warning.  I wouldn't change any of it if I were you.
+      I have tried to format it so it's more reasonable to read though.
+      {% endcomment %}
+      {% block share-bar %}
+    <div id="share-bar">
+
+	<div id="blog">
+		<p><a href="/blog">View<br />
+		Blog</a></p>
+	</div>
+
+	<div id="share">
+		<h3>Share:</h3>
+		<div class="links">
+			<ul>
+				<li class="facebook"><a onclick="return addthis_sendto('facebook');" href="#" name="fb_share" id="facebook-share-link">Facebook</a></li>
+				<li class="digg"><a onclick="return addthis_sendto('digg');" href="#">Digg</a></li>
+				<li class="more">
+					<!-- AddThis Button BEGIN -->
+					<div class="addthis_toolbox addthis_default_style">
+						<a class="addthis_button" href="http://www.addthis.com/bookmark.php?v=250&amp;pub=xa-4b1fc3a15ae6466e">More</a>
+					<div class="atclear"></div></div>
+					<script src="http://s7.addthis.com/js/250/addthis_widget.js#pub=xa-4b1fc3a15ae6466e" type="text/javascript"></script>
+					<!-- AddThis Button END -->
+				</li>
+				<li class="delicious"><a onclick="return addthis_sendto('delicious');" href="#">Delicious</a></li>
+				<li class="reddit"><a onclick="return addthis_sendto('reddit');" href="#">Reddit</a></li>
+				<li class="email-to-friend"><a onclick="return addthis_sendto('email');" href="#">email to friend</a></li>
+			</ul>
+		</div>
+	</div>
+
+	<div id="community">
+		<ul>
+			<li class="facebook">
+				<a target="_blank" href="http://www.facebook.com/pages/Atlanta-GA/Emory-University-Libraries/16143380022?ref=search&amp;sid=780517227.1093415716..1">
+					<span class="name">Facebook</span><br />
+					+ Add as Friend
+				</a>
+			</li>
+			<li class="youtube">
+				<a target="_blank" href="http://www.youtube.com/user/EmoryUniversity">
+					<span class="name">You Tube</span><br />
+					View our Videos
+				</a>
+			</li>
+			<li class="itunes">
+				<a target="_blank" href="http://itunes.emory.edu/">
+					<span class="name">iTunes</span><br />
+					Subscribe to podcasts
+				</a>
+			</li>
+		</ul>
+	</div>
+
+</div>
+{% endblock share-bar %}
+
+
+<address id="footer-address">
+    <span class="school">Robert W. Woodruff Library, Emory University</span><br />
+    540 Asbury Circle, Atlanta, GA 30322-2870 <span class="phone">phone: <a href="tel:404-727-6861" class="number">(404)727-6861</a></span>&nbsp;<span class="fax">fax: <a href="tel:404-727-0805" class="number">(404)727-0805</a></span>
+</address>
+    <div id="footer-links">
+            <ul id="site-links">
+                    <li class="first"><a href="{% block contact-us-link %}http://web.library.emory.edu/services/ask-librarian/{% endblock %}" title="Contact Us">Contact Us</a><span>|</span></li>
+                    {% comment %}Originally just read RSS but changed to avoid confusion with any site RSS links.{% endcomment %}
+                    <li class="icon-rss last"><a href="http://www.trumba.com/calendars/robert-woodruff-library.rss" title="Subscribe to RSS">Events RSS</a></li>
+            </ul>
+            <ul id="emory-links">
+                    <li class="first"><a target="_blank" href="http://www.emory.edu/index.html" title="Emory Home">Emory Home</a><span>|</span></li>
+                    <li><a target="_blank" href="http://www.emory.edu/home/contact-emory/index.html" title="Contact Emory">Contact Emory</a><span>|</span></li>
+                    <li><a target="_blank" href="http://www.emory.edu/emergency/index.html" title="Emergency">Emergency</a><span>|</span></li>
+                    {% comment %}Original link was About but changed to avoid confusion if template implemented in other sites.{% endcomment %}
+                    <li><a target="_blank" href="http://web.library.emory.edu/about" title="About Emory Libraries">About Emory Libraries</a><span>|</span></li>
+                    <li class="last"><a target="_blank" href="http://campaign.emory.edu/" title="Make a Gift">Make a Gift</a></li>
+            </ul>
+            <p id="copyright">Copyright &copy; Emory University 2010 - All rights Reserved</p>
+    </div>
+  </div>
+
+
+</div></div> <!-- /block-inner, /block -->
+
+      </div></div>
+
+  </div></div> <!-- /#page-inner, /#page -->
+  {% block script_footer %}
+  {% endblock %}
+</body>
+</html>

@@ -1,0 +1,48 @@
+EULcore comprises several packages, and these don't always need to be used
+together. Administrators may choose to install only those dependencies used
+by the applications they're installing.
+
+Among released packages:
+
+ * :mod:`eulcore.xpath` depends on ply_. Debian/Ubuntu users can
+   ``apt-get install python-ply``.
+ * :mod:`eulcore.xmlmap` depends on ply_ and lxml_. Debian/Ubuntu users can
+   ``apt-get install python-ply python-lxml``.
+ * :mod:`eulcore.existdb` depends on ply_ and lxml_.
+ * :mod:`eulcore.django.existdb` depends on ply_, lxml_, and Django_.
+ * :mod:`eulcore.django.http` depends on mimeparse. Install with ``easy_install mimeparse``.
+ * :mod:`eulcore.django.forms.captchafield` depends on python-recaptcha.  Install with
+   `pip install recaptcha-client`
+
+.. _ply: http://www.dabeaz.com/ply/
+.. _lxml: http://codespeak.net/lxml/
+.. _Django: http://www.djangoproject.com/
+
+EULcore also contains several packages in unreleased beta development. Their
+dependencies are as follows:
+
+ * :mod:`eulcore.fedora` depends on Python rdflib_ 3 for RELS-EXT and
+   RISearch RDF logic. Most users can ``easy_install 'rdflib>=3.0.0'``
+ * :mod:`eulcore.fedora` depends on dateutil_ for timezone-aware datetimes.
+   Debian/Ubuntu users can ``apt-get install python-dateutil``. Other users
+   can ``easy_install dateutil``
+ * :mod:`eulcore.fedora` and :mod:`eulcore.django.soap` depend on soaplib_.
+   Debian/Ubuntu users can ``apt-get install python-soaplib``.
+ * :mod:`eulcore.django.ldap` depends on python-ldap_. Debian/Ubuntu users
+   can ``apt-get install python-ldap``.
+
+.. _rdflib: http://www.rdflib.net/
+.. _dateutil: http://labix.org/python-dateutil
+.. _soaplib: http://trac.optio.webfactional.com/
+.. _python-ldap: http://www.python-ldap.org/
+
+Additional notes:
+
+ * lxml honors the HTTP_PROXY environment variable, and it is highly recommended
+   that you take advantage of this.  To enable lxml to use a proxy that will cache
+   XML Schemas, DTDs, and the like, you should set HTTP_PROXY appropriately. 
+   If you wish to set this configuration in a python script, it should look 
+   something like this::
+	
+	import os
+	os.putenv('HTTP_PROXY', 'http://localhost:3128/')  # local squid proxy on default port

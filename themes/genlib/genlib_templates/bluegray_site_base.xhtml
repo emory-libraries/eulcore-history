@@ -1,0 +1,32 @@
+{% extends "genlib_templates/site_base.xhtml" %}
+
+{% block style %}
+    {{ block.super }}
+    {% comment %}This applies the blue/gray emory theme patch to the site.{% endcomment %}
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/genlib_media/style/bluegray_standard.css" />
+{% endblock %}
+
+{% block searchbox_scripts %}{% endblock %}
+
+{% block searchbox %}{% endblock %}
+
+{% block share-bar %}{% endblock %}
+
+{% comment %}
+The primary navigation links for the blue-gray theme are meant to be equally spaced.
+Currently, the CSS width is set for 7 tabs, but this width can easily be overridden
+in your local CSS if you have a different number on your site.
+
+Calculate the width of your tabs as follows based on the total number of tabs:
+    (978-(x-1)*2)/x            where x is the number tabs
+
+And add a width override to your local css file, e.g.:
+
+    #navbar #primary a {
+        width: 138px; 
+     }
+
+It is recommended to add "first" and "last" class attributes to the first and
+last link elements in your navbar, in order to display correctly in browsers
+that do not support :first-child and :last-child selectors in CSS.
+{% endcomment %}

@@ -1,0 +1,54 @@
+Overview
+========
+This is an adaptation of the woodrufflibrary theme provided by SharpDot for use
+in our Drupal Sites.
+
+A significant amount of clean-up and adaptation has happened with it.  If you
+need to pull in items from the original template please try to examine a
+better or more consistant way of doing it from the original template if possible
+keeping in mind extensability.
+
+Setup
+------
+* Use themes/genlib/genlib_templates as an external in your templates directory.
+* Use themes/genlib/genlib_media as an external in your media directory.
+* Setup a local base template in your template directory and extend
+  themes/genlib/genlib_templates/site_base.xhtml in that file and override
+  or extend blocks as needed.  See 
+  themes/genlib/genlib_templates/example_local_sitebase.xhtml as an example.
+* Place eulcore.django.util in your installed apps so the custom template
+  tags work.
+
+Two Theme Options
+-----------------
+There are two general options currently for themes.  The default is the Emory
+blue and gold with social media tags.  Alternatively there is also a blue and
+gray subtheme that is an override of the blue and gold theme.
+
+**Blue and Gold Theme**
+To use this just extend the genlib/site_base.xhtml in your main theme template
+and follow the normal directions.
+
+**Blue and Gray Theme**
+To use this just extend the genlib/bluegray_site_base.xhtml in your main
+template and follow the normal directions.
+
+
+Themed Django Admin site
+------------------------
+
+There is a template that can be used to display the Django admin site
+inside the genlib theme.  To use it, you should copy the
+genlib/admin_base.html template into your templates directory as
+admin/base.html and update as necessary (at minimum, you should update
+it to extend your local sitebase template, which is expected to extend
+one of the genlib themes).  
+
+There is also a custom admin index template that adds a block for
+extra content to be displayed on the admin index page.
+
+See comments in either these templates for additional details.
+
+Customized admin templates are based on Django 1.2 admin site
+templates.
+

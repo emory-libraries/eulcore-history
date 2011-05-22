@@ -1,0 +1,92 @@
+/* style for floated photos */
+.photo-right-with-caption { float:right; margin:0 0 10px 10px; color:#666; font-size:12px; text-align:center; }
+.photo-left-with-caption { float:left; margin:0 10px 10px 0; color:#666; font-size:12px; text-align:center; }
+.photo-right-with-caption img, .photo-left-with-caption img { border:2px solid #714420; }
+
+.caption-in-table { color:#666; font-size:12px; font:italic 0.916667em/1.3em Verdana, Arial, Helvetica, sans-serif; text-align:center; }
+.caption-in-table img { border:1px solid #714420; margin-bottom:8px; }
+
+.photo-right { float:right; margin:0 0 10px 10px; border:2px solid #714420; }
+.photo-left { float:left; margin:0 10px 10px 0; border:2px solid #714420; }
+
+
+	/* 2 Column Grid */
+	.2-column-grid { /*480px*/ }
+	.2-column-grid:after { clear:both; content:'.'; display:block; visibility:hidden; height:0; }
+		.column-left { width:230px; float:left; display:inline; margin-right:10px; }	
+		.column-right { width:230px; float:left; display:inline; margin-left:10px; }
+
+	.block-grid {}
+		.block-grid .block { width:200px; height:120px; margin-left:9px; margin-right:9px; float:left; display:inline; }
+		/*#content .block-grid .block p { font:0.916667em/1em Verdana, Arial, Helvetica, sans-serif; }*/
+		.block-grid .block .more-link { width:200px; position:absolute; bottom:10px; left:10px; }
+		.block-grid .block .more-link a { padding:0px 10px 0 0; }
+
+/* List Single Line */
+.single-line-list {}
+.single-line-list li,
+.single-line-list li,
+.single-line-list li { padding-bottom:0.5em!important; }
+
+
+/* TEST
+body#tinymce { background-color:#ff0000!important; }
+*/
+
+/** Templates **/
+
+	/* 2 Column Grid */
+	.2-column-grid { /*480px*/ }
+	.2-column-grid:after { clear:both; content:'.'; display:block; visibility:hidden; height:0; }
+		.column-left { width:230px; float:left; display:inline; margin-right:10px; }	
+		.column-right { width:230px; float:left; display:inline; margin-left:10px; }
+
+	.block-grid {}
+		.block-grid .block { /*width:182px!important;*/ width:200px; height:120px; margin-left:9px; margin-right:9px; float:left; display:inline; }
+		/*#content .block-grid .block p { font:0.916667em/1em Verdana, Arial, Helvetica, sans-serif; }*/
+		.block-grid .block .more-link { /*width:182px!important;*/ width:200px; position:absolute; bottom:10px; left:10px; }
+		.block-grid .block .more-link a { padding:0px 10px 0 0; }
+		.block-grid .block ul { padding-top:0!important; }
+		.block-grid .block ul li { background-position:10px 5px!important; margin:0!important; padding:0 0 8px 21px!important; }
+
+  	.block { position:relative; background-color:#f2f3f5; border:1px solid #d9d9d9; padding:10px; margin:0 0 1.65em; }
+	.block:after { clear:both; content:'.'; display:block; visibility:hidden; height:0; }
+	.block .more-link { position:relative; background-color:#d9d9d9; width:100%; height:20px; margin:10px -10px -10px; padding:0px 10px 0; color:#696152; font-size:9px; text-transform:uppercase; text-align:right; }
+	.block .more-link a { background:url(images/icon_arrow-grey-right-sprite.gif) no-repeat right 3px; display:block; padding:0 12px 0 0; color:#696152!important; text-decoration:none!important; }
+  	.block .more-link a:hover { background-position:right -47px; color:#2e5299!important; }
+	.block h2, .block h3, .block h4, .block h5, .block h6 { padding:0!important; font-size:1.5em!important; line-height:1em!important; font-weight:normal!important; }
+	
+/* Tool Tip */
+	.tooltip { position:relative; border-bottom:1px dashed #2E5299; text-decoration:none!important; }
+	.tooltip:hover, .tooltip.over { font-size:100%;/*IE5*/ border-bottom:none; }
+	.tooltip .inner { display:inline-block; text-align:left; width:160px; height:auto; position:relative; padding:20px 20px 30px; 
+					  background:url(images/tooltip-bkg.png) no-repeat 0 bottom; border:none; border-top:1px solid #001745; font-size:10px; color:#fff; }
+	.tooltip .inner:after { clear:both; content:'.'; display:block; visibility:hidden; height:0; }
+			.tooltip .inner .point { position:absolute; bottom:-17px; left:20px; z-index:999; background:url(images/tooltip-body-point.png) no-repeat; width:29px; height:27px; }
+
+/* Tabbed Box */
+		
+	.tabbed-box-wrapper { min-height:600px; } /* This sets a min-hieght so window doesn't jump on toggle swipe */
+	.widget { /*position:relative;*/ background-color:#fcfaf2; border:1px solid #e3d9bc; padding:0; margin:0 0 20px; }
+		.tabdiv { padding:20px; }
+		.tabdiv h2, .tabdiv h3, .tabdiv h4, .tabdiv h5, .tabdiv h6 { padding-top:0px; }
+				
+		/* Show/Hide */
+			.widget #first { display:block; border-bottom:2px dashed #e3d9bc; }
+			.widget #second { display:block; border-bottom:2px dashed #e3d9bc; }
+			.widget #third { display:block; border-bottom:2px dashed #e3d9bc; }
+					
+		/* Tabs */
+		.widget .tabnav { overflow:hidden; position:relative; background:#e3d9bc url(images/tabbed-box-sprite.gif) no-repeat 0 39px!important; display:block; margin:0!important; padding:0 0 0 5px!important; }
+		.tabnav:after { clear:both; content:'.'; display:block; visibility:hidden; height:0; }
+			.tabnav li { background:url(images/tabbed-box-sprite.gif) no-repeat left -1px; width:30%; margin:9px 1% 0; padding:0 0 0 5px; float:left; display:inline; 
+											/*1.33333em*/font:bold 1.16667em/1em "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif; text-align:center; }
+			.tabnav a { background:url(images/tabbed-box-sprite.gif) no-repeat right -1px; height:20px; margin:0 0 0 0; padding:10px 10px 1px 5px; display:block;
+										   text-decoration:none!important; color:#737373!important; }
+			
+			body#tinymce .tabnav a { height:6px; }
+			
+				.widget .tabnav li:hover,
+				.widget .tabnav li.ui-tabs-selected { background-position:left -35px; }
+					.widget .tabnav li a:hover { background-position:right -35px; padding:10px 10px 1px 5px; color:#000!important; }
+					.widget .tabnav li.ui-tabs-selected a { background-position:right -35px; padding:10px 10px 1px 5px; color:#000!important; }

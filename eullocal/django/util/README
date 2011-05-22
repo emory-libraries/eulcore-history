@@ -1,0 +1,8 @@
+This django project is a stub for including custom template tags and
+management comments in a central app.
+
+This app should be used for generic items that need to be available to multiple
+apps in multiple projects where features can only be accessed via an installed
+app.
+
+To use the contents of this, put it in your projects installed apps.

@@ -1,0 +1,82 @@
+Change & Version Information
+============================
+
+The following is a summary of changes and improvements to python-eulcore.
+New features in each version should be listed, with any necessary information
+about installation or upgrade notes.
+
+Eulcore Breakup 
+---------------
+
+* :mod:`eulcore` split up into component parts for better sharability
+  and re-use:
+
+  * :mod:`eulxml`
+  * :mod:`eulfedora` 
+  * :mod:`eulexistdb` 
+  * :mod:`eulcommon` 
+  * :mod:`eullocal`  
+
+Release 0.15 (pre)
+------------------
+
+* Updates to Django settings used by :mod:`eulcore.django.fedora`:
+
+  * **FEDORA_PASSWORD** should now be used instead of **FEDORA_PASS**
+    (FEDORA_PASS is deprecated but will continue to work)
+  * **FEDORA_TEST_USER** and **FEDORA_TEST_PASSWORD** are now
+    recognized  for test setup and teardown.
+
+Release 0.14
+------------
+
+* Removed call to get_next_pid from get_object function in
+  :class:`eulcore.fedora.server.Repository` in order to simplify the
+  logic for overriding default new pid behavior in individual
+  projects.
+
+  * Renamed :class:`eulcore.fedora.models.DigitalObject`
+    ``_getDefaultPid`` method to ``get_default_pid`` to indicate it
+    can be overridden.
+
+* Added a new configurable timeout option to
+  :class:`eulcore.existdb.db.ExistDB`.
+* Updated :class:`eulcore.django.existdb.db.ExistDB` to look for
+  server url, username, and password configurations separately in
+  django settings.  This will allow django to automatically suppress
+  any configured eXist password in debug output.
+* Added --password option and -u/--username to syncrepo managed command
+
+Release 0.13
+------------
+* Minor updates to :mod:`eulcore.existdb`: new method ``using`` to specify
+  collection on a queryset; improved logic for highlighting that
+  significantly improves response time; better logging.
+* Improved page and content margins for the genlib theme print CSS.
+
+Release 0.12
+------------
+* :mod:`eulcore.fedora` improvements for uploading large files using the
+  ``poster`` module.
+* New ajax-appropriate auth decorators in :mod:`eulcore.django.auth`
+* bugfix in :mod:`eulcore.django.forms.xmlobject` for updating formsets with
+  no data
+* :mod:`eulcore.xmlmap` now configures ``lxml`` to use ``urllib2`` to
+  resolve urls
+
+Release 0.7.1
+-------------
+* :mod:`eulcore.fedora` has been updated for Fedora 3.4 REST API changes;
+  this is NOT backwards-compatible with previous versions of Fedora.
+
+Release 0.7.0
+-------------
+* :mod:`eulcore.fedora` is compatible with **Fedora 3.2 and 3.3** APIs
+* :mod:`eulcore.xmlmap.eadmap` updated from DTD-based EAD to schema-based
+* :mod:`eulcore.existdb.query` supports namespaces in XQueries
+
+Release 0.6.0
+-------------
+First tagged release of python-eulcore.
+* :mod:`eulcore.fedora` is compatible with **Fedora 3.2 and 3.3** APIs
+* :mod:`eulcore.existdb` is intended for use with eXist-db 1.4 or greater

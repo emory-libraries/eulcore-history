@@ -1,0 +1,56 @@
+/* 
+    Document   : admin_overrides
+    Created on : May 9, 2011
+    Author     : rsutton
+    Description:
+        This stylesheet provides overrides to allow the Django Admin
+        site to look correct when nested inside the standard library
+        or blue-gray site template.
+*/
+#header {
+  background-color: #002878;
+  width: inherit;
+}
+#content {
+  margin: 0px 10px;
+  padding-top: 5px;
+  width: 100% !important;   /* override admin content width */
+}
+.dashboard #admin-content {
+  width: 500px;		/* replicate admin inner content width */
+}
+#footer {
+  padding: inherit;
+}
+ul li {
+  list-style-type: none;
+}
+#admin-content {
+ padding: 10px;
+}
+#admin-content th {
+ padding: 5px;
+
+}
+#user-tools {
+  top: 15px;
+}
+#content-inner {
+ min-height: 0px;
+ padding-bottom: 0px;
+}
+table {
+  padding: 0px;
+  margin: 0px;
+  border-bottom: none;
+}
+/* suppress navigation elements for popup windows */
+.popup #navbar, .popup #header, .popup #footer, .popup #global-nav, .popup #user-tools {
+ display: none;
+}
+.popup #main, .popup #page {
+ width: 98%;
+}
+.popup #page {
+ background: none;
+}

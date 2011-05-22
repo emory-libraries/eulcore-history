@@ -1,0 +1,80 @@
+/* 
+    Document   : bluegray_standard
+    Created on : Aug 31, 2010, 3:55:39 PM
+    Author     : sturnbu
+    Description:
+        This sheet provides overrides to the standard emory libraries stylesheet
+        to give it the standard blue grey subsite look in the styleguide. Also
+        reference sites under "Centers, departments, divisions and offices" at
+        http://communications.emory.edu/web_guide/standard_templates/redesigns.html
+*/
+
+#navbar {
+    background: none;
+    background-color: #e4e6f0;    
+    border-left: none;
+    border-right: none;
+    color: #163B84;
+    padding: 0;
+    height: 24px;
+    margin: 0;
+    position: absolute;
+    width: 980px;
+}
+
+#navbar-inner {
+    margin: 0;
+    margin-left: 1px;
+    height: 24px;
+    width: 978px;
+}
+/* allow navbar links to be in a list, but don't require it */
+#navbar ul, #navbar li {
+    margin: 0;
+    padding: 0;
+    display: inline;
+}
+
+#navbar #primary {
+    margin: auto;
+    width: 978px; /* navbar should be full-width in blue-grey theme */
+}
+
+#navbar #primary .first, #navbar #primary a:first-child,
+#navbar #primary a.first:hover, #navbar #primary a:first-child.active {
+    border-left: 0px !important;
+}
+#navbar #primary .last {
+    border-right: 0px !important;
+}
+
+#navbar #primary a {
+    background-color: #e4e6f0;
+    display: block;
+    float: left;
+    padding: 0px !important;
+    height: 22px;
+    line-height:20px;
+    width: 138px;  /* 7 equally-spaced tabs; for x tabs, use (978-(x-1)*2)/x */
+    color:#163B84;
+    border-top: 0px !important;
+    border-left: 1px solid #ffffff;    
+    border-bottom: 1px solid #bfc1da;
+    border-right: 1px solid #bfc1da;
+    font-weight: bold;
+    text-decoration: none;
+    text-align: center;
+    text-transform: uppercase;
+    font-family: Arial,Helvetica,sans-serif;
+    font-size: 11px;
+}
+
+#navbar #primary a:hover, #navbar #primary a.active {
+    background-color: #6384c6;
+    color: #FFFFFF;
+    border-left: 1px solid #bfc1da !important;
+}
+
+#navbar #primary a.lastfill {
+    width: 100%;
+}
