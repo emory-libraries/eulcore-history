@@ -29,6 +29,8 @@ import httplib
 import logging
 import socket
 from urllib import unquote_plus, splittype
+import urlparse
+import warnings
 import xmlrpclib
 
 from eulxml import xmlmap
@@ -76,13 +78,32 @@ class ExistDB:
 
     """
 
-    def __init__(self, server_url, resultType=None, encoding='UTF-8', verbose=False,
+    def __init__(self, server_url=None, resultType=None, encoding='UTF-8', verbose=False,
                  timeout=None):
         # FIXME: Will encoding ever be anything but UTF-8? Does this really
         #   need to be part of our public interface?
 
         self.resultType = resultType or QueryResult
         datetime_opt = {'use_datetime': True}
+
+        # if server url or timeout are not set, attempt to get from django settings
+        if server_url is None or timeout is None:
+            try:
+                from django.conf import settings
+                if server_url is None:
+                    server_url = self._serverurl_from_djangoconf()
+                    
+                if timeout is None:
+                    timeout = getattr(settings, 'EXISTDB_TIMEOUT', None)
+            except ImportError:
+                pass
+            
+        # if server url is still not set, we have a problem
+        if server_url is None:
+            raise Exception('Cannot initialize an eXist-db connection without specifying ' +
+                            'eXist server url directly or in Django settings as EXISTDB_SERVER_URL')
+
+
 
         # determine if we need http or https transport
         # (duplicates some logic in xmlrpclib)
@@ -102,6 +123,44 @@ class ExistDB:
                 allow_none=True,
                 **datetime_opt
             )
+
+    def _serverurl_from_djangoconf(self):
+        # determine what exist url to use based on django settings, if available
+        try:
+            from django.conf import settings
+
+            # don't worry about errors on this one - if it isn't set, this should fail
+            exist_url = settings.EXISTDB_SERVER_URL
+
+            # former syntax had credentials in the server url; warn about the change
+            if '@' in exist_url:
+                warnings.warn('EXISTDB_SERVER_URL should not include eXist user or ' +
+                              'password information.  You should update your django ' +
+                              'settings to use EXISTDB_SERVER_USER and EXISTDB_SERVER_PASSWORD.')
+
+            # look for username & password
+            username = getattr(settings, 'EXISTDB_SERVER_USER', None)
+            password = getattr(settings, 'EXISTDB_SERVER_PASSWORD', None)
+
+            # if username or password are configured, add them to the url
+            if username or password:
+                # split the url into its component parts
+                urlparts = urlparse.urlsplit(exist_url)
+                # could have both username and password or just a username
+                if username and password:
+                    prefix = '%s:%s' % (username, password)
+                else:
+                    prefix = username
+                # prefix the network location with credentials
+                netloc = '%s@%s' % (prefix, urlparts.netloc)
+                # un-split the url with all the previous parts and modified location
+                exist_url = urlparse.urlunsplit((urlparts.scheme, netloc, urlparts.path,
+                                                urlparts.query, urlparts.fragment))
+
+            return exist_url
+        except ImportError:
+            pass
+
 
     def getDocument(self, name, **kwargs):
         """Retrieve a document from the database.

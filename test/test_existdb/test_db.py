@@ -6,20 +6,7 @@ from urlparse import urlsplit, urlunsplit
 from eulexistdb import db
 from testcore import main
 
-EXISTDB_SERVER_PROTOCOL = "http://"
-EXISTDB_SERVER_HOST     = "kamina.library.emory.edu:8080/exist"
-# NOTE: test account used for tests that require non-guest access; user should be in eXist DBA group
-EXISTDB_SERVER_USER     = "eulcore_tester"
-EXISTDB_SERVER_PASSWORD = "eVlc0re_t3st"
-# main access - no user/password, guest account
-EXISTDB_SERVER_URL = EXISTDB_SERVER_PROTOCOL + EXISTDB_SERVER_HOST
-# access with the specified user account
-EXISTDB_SERVER_URL_DBA      = EXISTDB_SERVER_PROTOCOL + EXISTDB_SERVER_USER + ":" + \
-    EXISTDB_SERVER_PASSWORD + "@" + EXISTDB_SERVER_HOST
-EXISTDB_ROOT_COLLECTION = '/eulcore'
-# NOTE: currently, for full-text query tests to work, test collection should be named /test/something
-#       a system collection named /db/system/config/db/test should exist and be writable by guest
-EXISTDB_TEST_COLLECTION = '/test' + EXISTDB_ROOT_COLLECTION
+from testsettings import EXISTDB_SERVER_URL, EXISTDB_SERVER_URL_DBA, EXISTDB_TEST_COLLECTION
 
 class ExistDBTest(unittest.TestCase):
     COLLECTION = EXISTDB_TEST_COLLECTION
@@ -40,6 +27,56 @@ class ExistDBTest(unittest.TestCase):
 
     def tearDown(self):
         self.db.removeCollection(self.COLLECTION)
+
+    # TODO: test init with/without django.conf settings
+
+    def test_failed_authentication_from_settings(self):
+        """Check that initializing ExistDB with invalid django settings raises exception"""
+        #passwords can be specified in localsettings.py
+        # overwrite (and then restore) to ensure that authentication fails
+        from django.conf import settings
+        server_url = settings.EXISTDB_SERVER_URL
+        try:
+
+            parts = urlsplit(settings.EXISTDB_SERVER_URL)
+            netloc = 'bad_user:bad_password@' + parts.hostname
+            if parts.port:
+                netloc += ':' + str(parts.port)
+            bad_uri = urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+
+            settings.EXISTDB_SERVER_URL = bad_uri
+            test_db = db.ExistDB()
+            self.assertRaises(db.ExistDBException,
+                test_db.hasCollection, self.COLLECTION)
+        finally:
+            settings.EXISTDB_SERVER_URL = server_url
+
+    def test_serverurl_from_djangoconf(self):
+        # test constructing url based on multiple possible configurations
+        from django.conf import settings
+        if not hasattr(settings, 'EXISTDB_SERVER_USER'):
+            settings.EXISTDB_SERVER_USER = 'username'
+        if not hasattr(settings, 'EXISTDB_SERVER_PASSWORD'):
+            print "DEBUG: setting exist password on settings"
+            settings.EXISTDB_SERVER_PASSWORD = 'pass'
+            
+        user = settings.EXISTDB_SERVER_USER
+        pwd = settings.EXISTDB_SERVER_PASSWORD
+        scheme, sep, host = settings.EXISTDB_SERVER_URL.partition('//')
+
+        # with username & password
+        self.assertEqual(scheme + sep + user + ':' + pwd + '@' + host,
+                         self.db._serverurl_from_djangoconf())
+        
+        # username but no password
+        settings.EXISTDB_SERVER_PASSWORD = None
+        self.assertEqual(scheme + sep + user + '@' + host, self.db._serverurl_from_djangoconf())
+
+        # no credentials
+        settings.EXISTDB_SERVER_USER = None
+        self.assertEqual(settings.EXISTDB_SERVER_URL, self.db._serverurl_from_djangoconf())
+
+    
 
     def test_getDocument(self):
         """Test retrieving a full document from eXist"""
