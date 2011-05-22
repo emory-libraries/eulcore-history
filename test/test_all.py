@@ -7,7 +7,8 @@ import logging.config
 from testcore import tests_from_modules, get_test_runner
 
 test_modules = (
-    'test_binfile', 
+    'test_binfile',
+    'test_djangoextras', 
     )
 
 if __name__ == '__main__':
