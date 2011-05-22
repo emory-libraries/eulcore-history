@@ -1,0 +1,55 @@
+:mod:`eulcore.django.existdb` is a Django-aware extension of
+:mod:`eulcore.existdb`.
+
+When you create an instance of :class:`eulcore.django.existdb.db.ExistDB`,
+it will automatically configure an eXist database from the Django settings,
+using the configuration names documented below.
+
+If you are writing unit tests that use this module, you should include
+:mod:`eulcore.django.testsetup` in your ``INSTALLED_APPS``.
+:mod:`eulcore.django.existdb` uses the pre- and post- test signals defined
+by :mod:`~eulcore.django.testsetup` to temporarily switch the configured
+root collection to the test collection, which it creates and destroys at the
+end. Any ExistDB instances created within the tests will automatically
+connect to the test collection.  In addition, if your test cases extend
+:class:`eulcore.django.test.TestCase`, you can make use of auto-loaded
+eXist fixtures for your unit tests.
+
+Projects that use this module should include the following settings in their
+``settings.py``::
+
+  #Exist DB Settings
+  EXISTDB_SERVER_USER = 'user'
+  EXISTDB_SERVER_PASSWORD = 'user'
+  EXISTDB_SERVER_URL = "http://megaserver.example.com:8042/exist"
+  EXISTDB_ROOT_COLLECTION = "/sample_collection"
+
+.. note:
+
+  User and password settings are optional.
+
+To configure a timeout for most eXist connections, specify the desired
+time in seconds as ``EXISTDB_TIMEOUT``; if none is specified, the
+global default timeout will be used.
+
+.. note::
+
+  Any configured ``EXISTDB_TIMEOUT`` will be ignored by the
+  **existdb_reindex** management command, since reindexing a large
+  collection could take significantly longer than a normal timeout
+  would allow for.
+
+If you are using an eXist index configuration file, you can add another setting
+to specify your configuration file::
+
+  EXISTDB_INDEX_CONFIGFILE = os.path.join(BASE_DIR, "exist_index.xconf")
+
+This will allow you to use the ``existdb_index`` management command to manage your
+index configuration file in eXist.
+
+If you wish to specify options for fulltext queries, you can set a dictionary
+of options like this::
+
+    EXISTDB_FULLTEXT_OPTIONS = {'default-operator': 'and'}
+
+Full-text query options are only available in very recent versions of eXist.
