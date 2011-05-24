@@ -38,4 +38,4 @@ libsysdev-l@listserv.cc.emory.edu
 
 License
 -------
-**eulxml** is distributed under the Apache 2.0 License.
+**eulcore-history** is distributed under the Apache 2.0 License.
